@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -189,6 +188,8 @@ namespace DynamicMosaicExample
                     btnSaveImage.Enabled = value;
                     btnLoadImage.Enabled = value;
                     btnClearImage.Enabled = value;
+                    btnWordUp.Enabled = value;
+                    btnWordDown.Enabled = value;
                 });
             }
         }
@@ -352,11 +353,13 @@ namespace DynamicMosaicExample
                     return;
                 foreach (string s in File.ReadAllLines(_strWordsPath, Encoding.UTF8))
                 {
-                    if (string.IsNullOrWhiteSpace(s) || WordExist(s))
+                    if (string.IsNullOrWhiteSpace(s))
                         continue;
                     string str = s;
                     if (s.Length > txtWord.MaxLength)
                         str = s.Substring(0, txtWord.MaxLength);
+                    if (WordExist(str))
+                        continue;
                     lstWords.Items.Add(str);
                 }
                 if (_selectedIndex < 0 || lstWords.Items.Count <= 0) return;
@@ -620,6 +623,37 @@ namespace DynamicMosaicExample
         void btnResetLearn_Click(object sender, EventArgs e)
         {
             _workReflex = null;
+            btnResetLearn.Enabled = false;
+        }
+
+        /// <summary>
+        /// Поднимает искомое слово вверх по списку, т.к. результат поиска зависит от порядка слов.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void btnWordUp_Click(object sender, EventArgs e)
+        {
+            if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 || lstWords.SelectedIndex < 1)
+                return;
+            string t = (string)lstWords.Items[lstWords.SelectedIndex];
+            string s = (string)lstWords.Items[lstWords.SelectedIndex - 1];
+            lstWords.Items[lstWords.SelectedIndex] = s;
+            lstWords.Items[lstWords.SelectedIndex - 1] = t;
+        }
+
+        /// <summary>
+        /// Опускает искомое слово вниз по списку, т.к. результат поиска зависит от порядка слов.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void btnWordDown_Click(object sender, EventArgs e)
+        {
+            if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 || lstWords.SelectedIndex < lstWords.Items.Count - 1)
+                return;
+            string t = (string)lstWords.Items[lstWords.SelectedIndex];
+            string s = (string)lstWords.Items[lstWords.SelectedIndex + 1];
+            lstWords.Items[lstWords.SelectedIndex] = s;
+            lstWords.Items[lstWords.SelectedIndex + 1] = t;
         }
 
         /// <summary>
@@ -635,6 +669,7 @@ namespace DynamicMosaicExample
                 if (_workThread?.IsAlive == true)
                     return;
                 EnableButtons = false;
+                InvokeFunction(() => btnResetLearn.Enabled = false);
                 (_workThread = new Thread(() => SafetyExecute(() =>
                 {
                     WaitableTimer();
@@ -656,21 +691,15 @@ namespace DynamicMosaicExample
                         return;
                     }
                     if (_workReflex == null)
-                        _workReflex = new Reflex(new ProcessorContainer((from ir in images select new Processor(ir.ImageMap, ir.SymbolString)).ToArray()));
-                    /*ConcurrentBag<string> results = new Processor(_btmFront, "Main")
-                        .GetEqual((from ir in images select new Processor(ir.ImageMap, ir.SymbolString)).ToArray())
-                        .FindRelation(lstWords.Items);*/
-
-                    List<string> lst
-                    foreach (string word in lstWords.Items)
                     {
-                        if (string.IsNullOrEmpty(word))
-                            continue;
-
+                        _workReflex = new Reflex(new ProcessorContainer((from ir in images select new Processor(ir.ImageMap, ir.SymbolString)).ToArray()));
+                        InvokeFunction(() => btnResetLearn.Enabled = true);
                     }
-
+                    string[] results = (from string word in lstWords.Items
+                                        where _workReflex.FindRelation(new Processor(_btmFront, "Main"), word)
+                                        select word).ToArray();
                     InvokeFunction(() => lstResults.Items.Clear());
-                    if ((results?.Count ?? 0) <= 0)
+                    if (results.Length <= 0)
                     {
                         InvokeFunction(() => grpResults.Text = $@"{_strGrpResults} (0)");
                         MessageInOtherThread(@"Распознанные образы отсутствуют. Отсутствуют слова или образы.");
@@ -678,9 +707,7 @@ namespace DynamicMosaicExample
                     }
                     InvokeFunction(() =>
                     {
-                        int count = results?.Count ?? 0;
-                        grpResults.Text = $@"{_strGrpResults} ({count})";
-                        if (results == null) return;
+                        grpResults.Text = $@"{_strGrpResults} ({results.Length})";
                         foreach (string s in results)
                             lstResults.Items.Add(s);
                     });

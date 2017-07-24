@@ -60,6 +60,8 @@
             this.tmrImagesCount = new System.Windows.Forms.Timer(this.components);
             this.dlgSaveImage = new System.Windows.Forms.SaveFileDialog();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
+            this.btnWordUp = new System.Windows.Forms.Button();
+            this.btnWordDown = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pbDraw)).BeginInit();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
@@ -121,9 +123,9 @@
             // 
             // btnWordAdd
             // 
-            this.btnWordAdd.Location = new System.Drawing.Point(145, 39);
+            this.btnWordAdd.Location = new System.Drawing.Point(193, 39);
             this.btnWordAdd.Name = "btnWordAdd";
-            this.btnWordAdd.Size = new System.Drawing.Size(114, 69);
+            this.btnWordAdd.Size = new System.Drawing.Size(66, 69);
             this.btnWordAdd.TabIndex = 3;
             this.btnWordAdd.Text = "Добавить слово";
             this.btnWordAdd.UseVisualStyleBackColor = true;
@@ -131,9 +133,9 @@
             // 
             // btnWordRemove
             // 
-            this.btnWordRemove.Location = new System.Drawing.Point(145, 111);
+            this.btnWordRemove.Location = new System.Drawing.Point(193, 111);
             this.btnWordRemove.Name = "btnWordRemove";
-            this.btnWordRemove.Size = new System.Drawing.Size(114, 23);
+            this.btnWordRemove.Size = new System.Drawing.Size(66, 23);
             this.btnWordRemove.TabIndex = 4;
             this.btnWordRemove.Text = "Удалить слово";
             this.btnWordRemove.UseVisualStyleBackColor = true;
@@ -277,11 +279,12 @@
             // label5
             // 
             this.label5.AutoSize = true;
+            this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.label5.Location = new System.Drawing.Point(144, 16);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(118, 39);
+            this.label5.Size = new System.Drawing.Size(115, 39);
             this.label5.TabIndex = 8;
-            this.label5.Text = "Результаты отоб-\r\nражаются только\r\nдля имеющихся слов.";
+            this.label5.Text = "Последовательность\r\nслов влияет на\r\nрезультат.";
             // 
             // label2
             // 
@@ -348,6 +351,8 @@
             // 
             // grpWords
             // 
+            this.grpWords.Controls.Add(this.btnWordDown);
+            this.grpWords.Controls.Add(this.btnWordUp);
             this.grpWords.Controls.Add(this.label3);
             this.grpWords.Controls.Add(this.lstWords);
             this.grpWords.Controls.Add(this.txtWord);
@@ -373,6 +378,26 @@
             // dlgOpenImage
             // 
             this.dlgOpenImage.Filter = "BMP|*.bmp";
+            // 
+            // btnWordUp
+            // 
+            this.btnWordUp.Location = new System.Drawing.Point(142, 39);
+            this.btnWordUp.Name = "btnWordUp";
+            this.btnWordUp.Size = new System.Drawing.Size(49, 23);
+            this.btnWordUp.TabIndex = 17;
+            this.btnWordUp.Text = "Вверх";
+            this.btnWordUp.UseVisualStyleBackColor = true;
+            this.btnWordUp.Click += new System.EventHandler(this.btnWordUp_Click);
+            // 
+            // btnWordDown
+            // 
+            this.btnWordDown.Location = new System.Drawing.Point(142, 111);
+            this.btnWordDown.Name = "btnWordDown";
+            this.btnWordDown.Size = new System.Drawing.Size(49, 23);
+            this.btnWordDown.TabIndex = 18;
+            this.btnWordDown.Text = "Вниз";
+            this.btnWordDown.UseVisualStyleBackColor = true;
+            this.btnWordDown.Click += new System.EventHandler(this.btnWordDown_Click);
             // 
             // FrmExample
             // 
@@ -439,6 +464,8 @@
         private System.Windows.Forms.SaveFileDialog dlgSaveImage;
         private System.Windows.Forms.OpenFileDialog dlgOpenImage;
         private System.Windows.Forms.Button btnResetLearn;
+        private System.Windows.Forms.Button btnWordDown;
+        private System.Windows.Forms.Button btnWordUp;
     }
 }
 

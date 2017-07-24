@@ -1,0 +1,101 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DynamicMosaic</name>
+    </assembly>
+    <members>
+        <member name="T:DynamicMosaic.Reflex">
+            <summary>
+                Предназначен для связывания карт <see cref="T:DynamicParser.Processor"/>.
+            Служит для поиска данных на карте и сохранения результатов поиска для последующих вызовов.
+            Они позволят системе лучше ориентиоваться при поиске данных, сопоставляя каждую новую карту с тем, что она уже обрабатывала.
+            </summary>
+        </member>
+        <member name="F:DynamicMosaic.Reflex._seaProcessors">
+            <summary>
+            Карты, с помощью которых производится поиск запрашиваемых данных.
+            </summary>
+        </member>
+        <member name="M:DynamicMosaic.Reflex.#ctor(DynamicParser.ProcessorContainer)">
+            <summary>
+            Инициализирует текущий контекст указанными картами. Карты предназначены для поиска запрашиваемых данных.
+            Нужны для вызова <see cref="M:DynamicParser.Processor.GetEqual(DynamicParser.ProcessorContainer)"/>. Этот список невозможно изменить вручную в процессе работы с классом.
+            </summary>
+            <param name="processors">Карты, которые необходимо добавить в контекст <see cref="T:DynamicMosaic.Reflex"/>.
+            С помощью них будет проводиться поиск запрашиваемых данных.</param>
+        </member>
+        <member name="M:DynamicMosaic.Reflex.GetMap(DynamicParser.Processor,DynamicParser.Registered)">
+            <summary>
+            Получает карту из целевой карты по указанным координатам, копируя данные карты в массив карт для поиска <see cref="F:DynamicMosaic.Reflex._seaProcessors"/>.
+            </summary>
+            <param name="processor">Карта, из которой необходимо получить целевую карту.</param>
+            <param name="registered">Информация о получаемой карте.</param>
+        </member>
+        <member name="M:DynamicMosaic.Reflex.AddMap(DynamicParser.Processor,DynamicParser.Registered)">
+            <summary>
+            Определяет, содержит ли текущий экземпляр <see cref="T:DynamicMosaic.Reflex"/> карту с совпадающим содержимым или нет.
+            В случае нахождения карт с совпадающим содержимым, метод возвращает значение <see langword="null"/>, в противном случае -
+            массив данных, который указан в параметре <see cref="T:DynamicParser.Registered"/>.
+            </summary>
+            <param name="processor">Карта, из которой необходимо получить целевую карту.</param>
+            <param name="registered">Данные о получаемой карте.</param>
+            <returns>В случае нахождения карты с совпадающим содержимым возвращает значение <see langword="true"/>, в противном случае - <see langword="false"/>.</returns>
+        </member>
+        <member name="M:DynamicMosaic.Reflex.FindRelation(DynamicParser.Processor,System.String)">
+            <summary>
+            Производит поиск слова в текущем контексте <see cref="T:DynamicMosaic.Reflex"/>.
+            Возвращает значение <see langword="true"/> в случае нахождения указанного слова на карте, в противном случае - <see langword="false"/>.
+            </summary>
+            <param name="processor">Карта, на которой будет производиться поиск.</param>
+            <param name="word">Искомое слово.</param>
+            <returns>
+            Возвращает значение <see langword="true"/> в случае нахождения указанного слова на карте, в противном случае - <see langword="false"/>.
+            </returns>
+        </member>
+        <member name="M:DynamicMosaic.Reflex.FindWord(System.Collections.Generic.IList{DynamicParser.Reg},System.Int32,System.Drawing.Size)">
+            <summary>
+                Получает массив карт, представляющих заданное слово, т.е. искомое слово можно составить из первых букв названий карт.
+            </summary>
+            <param name="regs">Список обрабатываемых карт.</param>
+            <param name="wordLength">Искомое слово.</param>
+            <param name="mapSize">Размер поля результатов поиска, в которых планируется выполнить поиск требуемого слова.</param>
+            <returns>Возвращает <see cref="T:DynamicParser.WordSearcher" />, который позволяет выполнить поиск требуемого слова.</returns>
+        </member>
+        <member name="M:DynamicMosaic.Reflex.ChangeCount(System.Int32[]@,System.Int32,System.Int32)">
+            <summary>
+                Увеличивает значение старших разрядов счётчика букв, если это возможно.
+                Возвращаются только случаи без совпадающих значений в различных разрядах.
+                Если увеличение было произведено, возвращается номер позиции, на которой произошло изменение, в противном случае
+                -1.
+            </summary>
+            <param name="count">Массив-счётчик.</param>
+            <param name="counter">Количество элементов в массиве "count".</param>
+            <param name="maxCount">Максимальное значение счётчика.</param>
+            <returns>Возвращается номер позиции, на которой произошло изменение, в противном случае -1.</returns>
+        </member>
+        <member name="M:DynamicMosaic.Reflex.StripString(System.String)">
+            <summary>
+            Удаляет из строки совпадающие символы.
+            Без учёта регистра.
+            Возвращает новую строку в верхнем регистре.
+            </summary>
+            <param name="str">Анализируемая строка.</param>
+            <returns>Возвращает новую строку в верхнем регистре.</returns>
+        </member>
+        <member name="M:DynamicMosaic.Reflex.IsMapsWord(System.String)">
+            <summary>
+            Позволяет выяснить, содержит ли текущий контекст достаточное количество карт для составления указанного слова.
+            </summary>
+            <param name="word">Проверяемое слово.</param>
+            <returns>В случае успешной проверки возвращается значение <see langword="true"/>, иначе <see langword="false"/>.</returns>
+        </member>
+        <member name="M:DynamicMosaic.Reflex.FindSymbols(System.Char,DynamicParser.SearchResults)">
+            <summary>
+                Находит карты в результатах поиска, поля <see cref="P:DynamicParser.Processor.Tag" /> которых по первому символу соответствуют указанному символу.
+            </summary>
+            <param name="procName">Искомая строка.</param>
+            <param name="searchResults">Результаты поиска, в которых необходимо найти указанные карты.</param>
+            <returns>Возвращает информацию о найденных картах.</returns>
+        </member>
+    </members>
+</doc>

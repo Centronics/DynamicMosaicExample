@@ -1,0 +1,510 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DynamicProcessor</name>
+    </assembly>
+    <members>
+        <member name="T:DynamicProcessor.Map">
+            <summary>
+            Представляет карту и позволяет производить операции, согласно стандарту её обработки.
+            </summary>
+        </member>
+        <member name="F:DynamicProcessor.Map.MaxX">
+            <summary>
+            Максимальное количество объектов по оси X.
+            </summary>
+        </member>
+        <member name="F:DynamicProcessor.Map.MaxY">
+            <summary>
+            Максимальное количество объектов по оси Y.
+            </summary>
+        </member>
+        <member name="F:DynamicProcessor.Map.AllMax">
+            <summary>
+            Максимальное количество объектов на карте.
+            </summary>
+        </member>
+        <member name="F:DynamicProcessor.Map._mapMas">
+            <summary>
+            Содержит объекты карты.
+            </summary>
+        </member>
+        <member name="M:DynamicProcessor.Map.#ctor">
+            <summary>
+            Инициализирует пустую карту.
+            </summary>
+        </member>
+        <member name="M:DynamicProcessor.Map.#ctor(System.IO.Stream)">
+            <summary>
+            Загружает карту из указанного потока, в формате XML.
+            </summary>
+            <param name="st">Поток, из которого необходимо осуществить загрузку.</param>
+        </member>
+        <member name="M:DynamicProcessor.Map.ObjectNumeration">
+            <summary>
+            Нумерует все объекты карты для просмотра в редакторе карт.
+            </summary>
+        </member>
+        <member name="M:DynamicProcessor.Map.FindBySign(DynamicProcessor.SignValue)">
+            <summary>
+            Производит поиск наиболее близкого объекта по полю "знак", игнорируя при этом пройденные объекты.
+            </summary>
+            <param name="sign">Искомый знак объекта.</param>
+            <returns>Возвращает найденный объект или null, если объект не найден.</returns>
+        </member>
+        <member name="M:DynamicProcessor.Map.Add(DynamicProcessor.MapObject)">
+            <summary>
+            Добавляет объект на карту (в конец коллекции). Объект не может иметь значение null. Количество объектов не может быть больше AllMax.
+            </summary>
+            <param name="obj">Объект для добавления.</param>
+        </member>
+        <member name="M:DynamicProcessor.Map.ClearDiscount">
+            <summary>
+            Очищает список пройденных объектов.
+            </summary>
+        </member>
+        <member name="M:DynamicProcessor.Map.Clone">
+            <summary>
+            Создаёт полную копию текущей карты.
+            </summary>
+            <returns>Возвращает полную копию текущей карты.</returns>
+        </member>
+        <member name="M:DynamicProcessor.Map.GetObjectByXY(System.Int32,System.Int32)">
+            <summary>
+            Выполняет поиск объекта с указанными координатами.
+            </summary>
+            <param name="objX">Координата X, не может быть меньше нуля.</param>
+            <param name="objY">Координата Y, не может быть меньше нуля.</param>
+            <returns>Возвращает найденный объект или null, если ничего не найдено.</returns>
+        </member>
+        <member name="M:DynamicProcessor.Map.RemoveObject(DynamicProcessor.SignValue)">
+            <summary>
+            Удаляет объект с указанным знаком.
+            </summary>
+            <param name="sv">Знак для удаления.</param>
+        </member>
+        <member name="M:DynamicProcessor.Map.RemoveObject(System.Int32,System.Int32)">
+            <summary>
+            Удаляет все объекты с указанными координатами.
+            </summary>
+            <param name="x">Координата X.</param>
+            <param name="y">Координата Y.</param>
+        </member>
+        <member name="M:DynamicProcessor.Map.RemoveObject(System.Int32)">
+            <summary>
+            Удаляет объект с указанным индексом.
+            </summary>
+            <param name="index">Отсчитываемый от нуля индекс объекта, который требуется удалить.</param>
+        </member>
+        <member name="M:DynamicProcessor.Map.Clear">
+            <summary>
+            Удаляет все объекты с карты.
+            </summary>
+        </member>
+        <member name="M:DynamicProcessor.Map.ToStream(System.IO.Stream)">
+            <summary>
+            Записывает карту в указанный поток, в формате XML.
+            </summary>
+            <param name="st">Поток, в который необходимо сохранить текущую карту.</param>
+        </member>
+        <member name="P:DynamicProcessor.Map.Item(System.Int32)">
+            <summary>
+            Получает объект карты по указанному индексу.
+            </summary>
+            <param name="index">Индекс объекта карты.</param>
+            <returns>Возвращает объект карты по указанному индексу.</returns>
+        </member>
+        <member name="P:DynamicProcessor.Map.Count">
+            <summary>
+            Получает количество объектов на карте.
+            </summary>
+        </member>
+        <member name="P:DynamicProcessor.Map.CountDiscounted">
+            <summary>
+            Получает количество пройденных объектов на карте.
+            </summary>
+        </member>
+        <member name="T:DynamicProcessor.Processor">
+            <summary>
+            Обрабатывает объекты карты.
+            </summary>
+        </member>
+        <member name="F:DynamicProcessor.Processor._currentMassive">
+            <summary>
+            Карта объектов текущего экземпляра.
+            </summary>
+        </member>
+        <member name="M:DynamicProcessor.Processor.#ctor(DynamicProcessor.Map)">
+            <summary>
+            Инициализирует экземпляр с указанием ссылки на карту обрабатываемых объектов.
+            </summary>
+            <param name="map">Карта обрабатываемых объектов.</param>
+        </member>
+        <member name="M:DynamicProcessor.Processor.Run(DynamicProcessor.SignValue)">
+            <summary>
+            Обрабатывает карту с учётом заданного знака. Обработка производится по принципу нахождения объекта с ближайшим знаком относительно заданного,
+            нахождения среднего арифметического между обоими знаками. При этом, найденный объект считается пройденным и в
+            рамках текущей сессии возврат к нему не производится. Средний знак сохраняется как знак пройденного объекта.
+            Таким образом, состояние карты полностью изменяется.
+            Когда все объекты карты пройдены, возвращается результат, представляющий собой среднее арифметическое от последнего найденного объекта.
+            Возвращает null, если выполнение было прервано.
+            </summary>
+            <param name="start">Стартовый знак.</param>
+            <returns>Возвращает результат обработки карты или null, если выполнение было прервано.</returns>
+        </member>
+        <member name="P:DynamicProcessor.Processor.ProcDebugObject">
+            <summary>
+            Вызывается при остановке на отлаживаемом объекте.
+            Получает порождаемый знак, стартовый знак, найденный объект и количество пройденных объектов.
+            Возвращает значение true - если необходимо продолжить обработку после отладочного прерывания, false - если нет.
+            </summary>
+        </member>
+        <member name="T:DynamicProcessor.SignValue">
+            <summary>
+            Представляет знак объекта карты.
+            Знак является 24-битным целым беззнаковым числом типа int, представляющим цвет без прозрачности (Alpha).
+            </summary>
+        </member>
+        <member name="F:DynamicProcessor.SignValue._sign">
+            <summary>
+            Текущее значение знака.
+            </summary>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.#ctor(System.Int32)">
+            <summary>
+            Инициализирует экземпляр без параметра прозрачности (Alpha).
+            Если он имеет ненулевое значение, то выбрасывается исключение ArgumentOutOfRangeException.
+            </summary>
+            <param name="sign">Значение знака.</param>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.#ctor(System.Drawing.Color)">
+            <summary>
+            Инициализирует экземпляр, игнорируя параметр прозрачности (Alpha).
+            </summary>
+            <param name="col">Значение знака.</param>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.Subtract(System.Int32)">
+            <summary>
+            Вычитает заданное значение из текущего экземпляра.
+            </summary>
+            <param name="val">Значение.</param>
+            <returns>Возвращает разность значений.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.Subtract(DynamicProcessor.SignValue)">
+            <summary>
+            Вычитает из текущего экземпляра заданный экземпляр, вычитая из большего меньшее.
+            </summary>
+            <param name="sv">Заданный экземпляр.</param>
+            <returns>Возвращает разность значений.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_Subtraction(DynamicProcessor.SignValue,System.Int32)">
+            <summary>
+            Вычитает заданное значение из текущего экземпляра.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Значение.</param>
+            <returns>Возвращает разность значений.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.Add(System.Int32)">
+            <summary>
+            Суммирует значение текущего экземпляра с заданным значением.
+            </summary>
+            <param name="val">Значение.</param>
+            <returns>Возвращает сумму значений.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.Add(DynamicProcessor.SignValue)">
+            <summary>
+            Суммирует значение текущего экземпляра со значением заданного экземпляра.
+            </summary>
+            <param name="sv">Заданный экземпляр.</param>
+            <returns>Возвращает сумму значений.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_Addition(DynamicProcessor.SignValue,System.Int32)">
+            <summary>
+            Суммирует значение текущего экземпляра с заданным значением.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Значение.</param>
+            <returns>Возвращает сумму значений.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.CompareTo(System.Object)">
+            <summary>
+            Сравнивает значение текущего экземпляра со значением заданного экземпляра.
+            </summary>
+            <param name="obj">Экземпляр для сравнения.</param>
+            <returns>Возвращает 0 в случае равенства, -1 если значение текущего экземпляра меньше, 1 если больше.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_GreaterThan(DynamicProcessor.SignValue,System.Int32)">
+            <summary>
+            Сравнивает значение текущего экземпляра с заданным значением.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Значение.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра больше заданного.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_LessThan(DynamicProcessor.SignValue,System.Int32)">
+            <summary>
+            Сравнивает значение текущего экземпляра с заданным значением.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Значение.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра меньше заданного.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_GreaterThanOrEqual(DynamicProcessor.SignValue,System.Int32)">
+            <summary>
+            Сравнивает значение текущего экземпляра с заданным значением.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Значение.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра больше или равно заданному.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_LessThanOrEqual(DynamicProcessor.SignValue,System.Int32)">
+            <summary>
+            Сравнивает значение текущего экземпляра с заданным значением.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Значение.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра меньше или равно заданному.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_GreaterThan(DynamicProcessor.SignValue,DynamicProcessor.SignValue)">
+            <summary>
+            Сравнивает значение текущего экземпляра со значением заданного экземпляра.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Сопоставляемый экземпляр.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра больше заданного.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_LessThan(DynamicProcessor.SignValue,DynamicProcessor.SignValue)">
+            <summary>
+            Сравнивает значение текущего экземпляра со значением заданного экземпляра.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Сопоставляемый экземпляр.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра меньше заданного.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_GreaterThanOrEqual(DynamicProcessor.SignValue,DynamicProcessor.SignValue)">
+            <summary>
+            Сравнивает значение текущего экземпляра со значением заданного экземпляра.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Сопоставляемый экземпляр.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра больше или равно заданному.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_LessThanOrEqual(DynamicProcessor.SignValue,DynamicProcessor.SignValue)">
+            <summary>
+            Сравнивает значение текущего экземпляра со значением заданного экземпляра.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Сопоставляемый экземпляр.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра меньше или равно заданному.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.GetHashCode">
+            <summary>
+            Получает хеш-код текущего экземпляра.
+            </summary>
+            <returns>Возвращает хеш-код текущего экземпляра.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.Equals(System.Object)">
+            <summary>
+            Сравнивает значения знаков.
+            </summary>
+            <param name="obj">Экземпляр для сравнения.</param>
+            <returns>Возвращает true - если значения знаков равны, в противном случае - false.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.Equals(DynamicProcessor.SignValue)">
+            <summary>
+            Сравнивает значения знаков.
+            </summary>
+            <param name="other">Экземпляр для сравнения.</param>
+            <returns>Возвращает true - если значения знаков равны, в противном случае - false.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.Average(DynamicProcessor.SignValue)">
+            <summary>
+            Вычисляет среднее значение знака.
+            </summary>
+            <param name="s2">Второй знак.</param>
+            <returns>Возвращает среднее значение знака.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_Subtraction(DynamicProcessor.SignValue,DynamicProcessor.SignValue)">
+            <summary>
+            Вычитает из значения текущего экземпляра значение указанного экземпляра, при этом всегда из большего вычитает меньшее.
+            </summary>
+            <param name="s1">Текущий экземпляр.</param>
+            <param name="s2">Заданный экземпляр.</param>
+            <returns>Возвращает разность знаков.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_Addition(DynamicProcessor.SignValue,DynamicProcessor.SignValue)">
+            <summary>
+            Суммирует текущий экземпляр с указанным, выполняя проверку на переполнение.
+            </summary>
+            <param name="s1">Текущий экземпляр.</param>
+            <param name="s2">Заданный экземпляр.</param>
+            <returns>Возвращает сумму знаков.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_Equality(DynamicProcessor.SignValue,DynamicProcessor.SignValue)">
+            <summary>
+            Сравнивает значения знаков.
+            </summary>
+            <param name="s1">Текущий экземпляр.</param>
+            <param name="s2">Сопоставляемый экземпляр.</param>
+            <returns>Возвращает true - если значения знаков равны, в противном случае - false.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_Inequality(DynamicProcessor.SignValue,DynamicProcessor.SignValue)">
+            <summary>
+            Сравнивает значения знаков.
+            </summary>
+            <param name="s1">Текущий экземпляр.</param>
+            <param name="s2">Сопоставляемый экземпляр.</param>
+            <returns>Возвращает true - если значения знаков различаются, в противном случае - false.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_Equality(DynamicProcessor.SignValue,System.Int32)">
+            <summary>
+            Сравнивает значение текущего экземпляра с указанным значением.
+            </summary>
+            <param name="s1">Текущий экземпляр.</param>
+            <param name="sign">Значение.</param>
+            <returns>Возвращает true - если значения знаков равны, в противном случае - false.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.op_Inequality(DynamicProcessor.SignValue,System.Int32)">
+            <summary>
+            Сравнивает значение текущего экземпляра с указанным значением.
+            </summary>
+            <param name="s1">Текущий экземпляр.</param>
+            <param name="sign">Значение.</param>
+            <returns>Возвращает true - если значения знаков различаются, в противном случае - false.</returns>
+        </member>
+        <member name="M:DynamicProcessor.SignValue.ToString">
+            <summary>
+            Получает строковое представление значения текущего экземпляра.
+            </summary>
+            <returns>Возвращает строковое представление значения текущего экземпляра.</returns>
+        </member>
+        <member name="P:DynamicProcessor.SignValue.Value">
+            <summary>
+            Получает или задаёт значение без параметра прозрачности (Alpha).
+            Если он имеет ненулевое значение, то выбрасывается исключение ArgumentOutOfRangeException.
+            </summary>
+        </member>
+        <member name="P:DynamicProcessor.SignValue.ValueColor">
+            <summary>
+            Получает или задаёт значение знака в виде цвета, игнорируя параметр прозрачности (Alpha).
+            </summary>
+        </member>
+        <member name="P:DynamicProcessor.SignValue.MinValue">
+            <summary>
+            Получает минимальное значение знака.
+            </summary>
+        </member>
+        <member name="P:DynamicProcessor.SignValue.MaxValue">
+            <summary>
+            Получает максимальное значение знака.
+            </summary>
+        </member>
+        <member name="T:DynamicProcessor.MapObject">
+            <summary>
+            Представляет объект карты.
+            </summary>
+        </member>
+        <member name="M:DynamicProcessor.MapObject.#ctor">
+            <summary>
+            Конструктор по умолчанию.
+            </summary>
+        </member>
+        <member name="M:DynamicProcessor.MapObject.CompareTo(System.Object)">
+            <summary>
+            Сравнивает заданные экземпляры.
+            </summary>
+            <param name="obj">Экземпляр для сравнения.</param>
+            <returns>Возвращает значение, указывающее, как соотносятся заданные значения.</returns>
+        </member>
+        <member name="M:DynamicProcessor.MapObject.GetHashCode">
+            <summary>
+            Получает хеш-код текущего экземпляра.
+            </summary>
+            <returns>Возвращает хеш-код текущего экземпляра.</returns>
+        </member>
+        <member name="M:DynamicProcessor.MapObject.Equals(System.Object)">
+            <summary>
+            Сравнивает значения знаков.
+            </summary>
+            <param name="obj">Экземпляр для сравнения.</param>
+            <returns>Возвращает true - если значения знаков равны, в противном случае - false.</returns>
+        </member>
+        <member name="M:DynamicProcessor.MapObject.op_Equality(DynamicProcessor.MapObject,System.Object)">
+            <summary>
+            Сравнивает значения знаков.
+            </summary>
+            <param name="s1">Первый экземпляр для сравнения.</param>
+            <param name="s2">Второй экземпляр для сравнения.</param>
+            <returns>Возвращает true - если значения знаков равны, в противном случае - false.</returns>
+        </member>
+        <member name="M:DynamicProcessor.MapObject.op_Inequality(DynamicProcessor.MapObject,System.Object)">
+            <summary>
+            Сравнивает значения знаков.
+            </summary>
+            <param name="s1">Первый экземпляр для сравнения.</param>
+            <param name="s2">Второй экземпляр для сравнения.</param>
+            <returns>Возвращает true - если значения знаков различаются, в противном случае - false.</returns>
+        </member>
+        <member name="M:DynamicProcessor.MapObject.Compare(DynamicProcessor.SignValue)">
+            <summary>
+            Сравнивает значение текущего экземпляра со значением заданного экземпляра.
+            </summary>
+            <param name="val">Экземпляр для сравнения.</param>
+            <returns>Возвращает 0 в случае равенства, -1 если значение текущего экземпляра меньше, 1 если больше.</returns>
+        </member>
+        <member name="M:DynamicProcessor.MapObject.op_GreaterThan(DynamicProcessor.MapObject,DynamicProcessor.MapObject)">
+            <summary>
+            Сравнивает значение текущего экземпляра со значением заданного экземпляра.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Сопоставляемый экземпляр.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра больше заданного.</returns>
+        </member>
+        <member name="M:DynamicProcessor.MapObject.op_LessThan(DynamicProcessor.MapObject,DynamicProcessor.MapObject)">
+            <summary>
+            Сравнивает значение текущего экземпляра со значением заданного экземпляра.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Сопоставляемый экземпляр.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра меньше заданного.</returns>
+        </member>
+        <member name="M:DynamicProcessor.MapObject.op_GreaterThanOrEqual(DynamicProcessor.MapObject,DynamicProcessor.MapObject)">
+            <summary>
+            Сравнивает значение текущего экземпляра со значением заданного экземпляра.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Сопоставляемый экземпляр.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра больше или равно заданному.</returns>
+        </member>
+        <member name="M:DynamicProcessor.MapObject.op_LessThanOrEqual(DynamicProcessor.MapObject,DynamicProcessor.MapObject)">
+            <summary>
+            Сравнивает значение текущего экземпляра со значением заданного экземпляра.
+            </summary>
+            <param name="sv">Текущий экземпляр.</param>
+            <param name="val">Сопоставляемый экземпляр.</param>
+            <returns>Возвращает значение true в случае, если значение текущего экземпляра меньше или равно заданному.</returns>
+        </member>
+        <member name="P:DynamicProcessor.MapObject.Sign">
+            <summary>
+            Знак. Представляет значение цвета в виде 24-битного целого числа без знака.
+            </summary>
+        </member>
+        <member name="P:DynamicProcessor.MapObject.ObjectX">
+            <summary>
+            Координата X на экране.
+            </summary>
+        </member>
+        <member name="P:DynamicProcessor.MapObject.ObjectY">
+            <summary>
+            Координата Y на экране.
+            </summary>
+        </member>
+        <member name="P:DynamicProcessor.MapObject.DiscountNumber">
+            <summary>
+            Получает или задаёт номер пройденного объекта процессором в рамках текущей сессии.
+            Если значение меньше нуля, то объект считается непройденным.
+            </summary>
+        </member>
+    </members>
+</doc>
