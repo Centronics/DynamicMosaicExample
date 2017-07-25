@@ -213,13 +213,21 @@ namespace DynamicMosaicExample
 
         /// <summary>
         ///     Предназначена для инициализации структур, отвечающих за вывод создаваемого изображения на экран.
+        /// Если предыдущее изображение присутствовало, то оно переносится на вновь созданное.
+        /// Если путь к файлу исходного изображения отсутствует, создаётся новое изображение.
         /// </summary>
         /// <param name="btmPath">Путь к файлу исходного изображения.</param>
         void Initialize(string btmPath = null)
         {
             if (string.IsNullOrEmpty(btmPath))
             {
-                _btmFront = new Bitmap(pbDraw.Width, pbDraw.Height);
+                Bitmap btm = new Bitmap(pbDraw.Width, pbDraw.Height);
+                if (_btmFront != null)
+                {
+                    CopyBitmapByWidth(_btmFront, btm, Color.White);
+                    _btmFront?.Dispose();
+                }
+                _btmFront = btm;
             }
             else
             {
@@ -256,6 +264,31 @@ namespace DynamicMosaicExample
             _grFront?.Dispose();
             _grFront = Graphics.FromImage(_btmFront);
             pbDraw.Image = _btmFront;
+        }
+
+        /// <summary>
+        /// Копирует изображение из <see cref="Bitmap"/> до тех пор, пока не дойдёт до максимального значения по <see cref="Image.Width"/>
+        /// какого-либо из них. <see cref="Image.Height"/> должна совпадать у обоих <see cref="Bitmap"/>.
+        /// </summary>
+        /// <param name="from"><see cref="Bitmap"/>, из которого необходимо скопировать содержимое.</param>
+        /// <param name="to"><see cref="Bitmap"/>, в который необходимо скопировать содержимое.</param>
+        /// <param name="color">Цвет, которым необходимо заполнить требуемую область перед копированием или <see langword="null"/>,
+        /// если заполнение не требуется.</param>
+        static void CopyBitmapByWidth(Bitmap from, Bitmap to, Color? color)
+        {
+            if (from == null)
+                throw new ArgumentNullException(nameof(from), $@"{nameof(CopyBitmapByWidth)}: {nameof(from)} = null.");
+            if (to == null)
+                throw new ArgumentNullException(nameof(to), $@"{nameof(CopyBitmapByWidth)}: {nameof(to)} = null.");
+            if (from.Height != to.Height)
+                throw new ArgumentOutOfRangeException(nameof(from), $@"{nameof(CopyBitmapByWidth)}: Высота {
+                    nameof(from)} = ({from.Height}) должна быть равна той, куда осуществляется копирование {nameof(to)} = ({to.Height}).");
+            if (color != null)
+                using (Graphics gr = Graphics.FromImage(to))
+                    gr.Clear(color.Value);
+            for (int x = 0; x < from.Width && x < to.Width; x++)
+                for (int y = 0; y < from.Height; y++)
+                    to.SetPixel(x, y, from.GetPixel(x, y));
         }
 
         /// <summary>
@@ -328,6 +361,34 @@ namespace DynamicMosaicExample
                 lstWords.Items.RemoveAt(index);
                 WordsSave();
             }, WordsLoad);
+        }
+
+        /// <summary>
+        /// Расширяет область рисования распознаваемого изображения <see cref="pbDraw"/> до максимального размера по <see cref="Control.Width"/>.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void btnWide_Click(object sender, EventArgs e)
+        {
+            SafetyExecute(() =>
+            {
+                pbDraw.Width += 10;
+                Initialize();
+            });
+        }
+
+        /// <summary>
+        /// Сужает область рисования распознаваемого изображения <see cref="pbDraw"/> до минимального размера по <see cref="Control.Width"/>.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void btnNarrow_Click(object sender, EventArgs e)
+        {
+            SafetyExecute(() =>
+            {
+                pbDraw.Width -= 10;
+                Initialize();
+            });
         }
 
         /// <summary>

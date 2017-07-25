@@ -57,11 +57,13 @@
             this.btnLoadImage = new System.Windows.Forms.Button();
             this.btnSaveImage = new System.Windows.Forms.Button();
             this.grpWords = new System.Windows.Forms.GroupBox();
+            this.btnWordDown = new System.Windows.Forms.Button();
+            this.btnWordUp = new System.Windows.Forms.Button();
             this.tmrImagesCount = new System.Windows.Forms.Timer(this.components);
             this.dlgSaveImage = new System.Windows.Forms.SaveFileDialog();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
-            this.btnWordUp = new System.Windows.Forms.Button();
-            this.btnWordDown = new System.Windows.Forms.Button();
+            this.btnNarrow = new System.Windows.Forms.Button();
+            this.btnWide = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pbDraw)).BeginInit();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
@@ -75,6 +77,8 @@
             this.pbDraw.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pbDraw.Cursor = System.Windows.Forms.Cursors.Cross;
             this.pbDraw.Location = new System.Drawing.Point(5, 32);
+            this.pbDraw.MaximumSize = new System.Drawing.Size(258, 50);
+            this.pbDraw.MinimumSize = new System.Drawing.Size(43, 50);
             this.pbDraw.Name = "pbDraw";
             this.pbDraw.Size = new System.Drawing.Size(258, 50);
             this.pbDraw.TabIndex = 0;
@@ -88,7 +92,7 @@
             // 
             this.btnRecognizeImage.Location = new System.Drawing.Point(5, 85);
             this.btnRecognizeImage.Name = "btnRecognizeImage";
-            this.btnRecognizeImage.Size = new System.Drawing.Size(114, 23);
+            this.btnRecognizeImage.Size = new System.Drawing.Size(83, 23);
             this.btnRecognizeImage.TabIndex = 0;
             this.btnRecognizeImage.Text = "Распознать";
             this.btnRecognizeImage.UseVisualStyleBackColor = true;
@@ -96,9 +100,9 @@
             // 
             // btnClearImage
             // 
-            this.btnClearImage.Location = new System.Drawing.Point(149, 85);
+            this.btnClearImage.Location = new System.Drawing.Point(5, 114);
             this.btnClearImage.Name = "btnClearImage";
-            this.btnClearImage.Size = new System.Drawing.Size(114, 23);
+            this.btnClearImage.Size = new System.Drawing.Size(83, 23);
             this.btnClearImage.TabIndex = 1;
             this.btnClearImage.Text = "Очистить";
             this.btnClearImage.UseVisualStyleBackColor = true;
@@ -315,6 +319,8 @@
             // 
             // grpSourceImage
             // 
+            this.grpSourceImage.Controls.Add(this.btnWide);
+            this.grpSourceImage.Controls.Add(this.btnNarrow);
             this.grpSourceImage.Controls.Add(this.btnLoadImage);
             this.grpSourceImage.Controls.Add(this.btnSaveImage);
             this.grpSourceImage.Controls.Add(this.pbDraw);
@@ -331,9 +337,9 @@
             // 
             // btnLoadImage
             // 
-            this.btnLoadImage.Location = new System.Drawing.Point(149, 114);
+            this.btnLoadImage.Location = new System.Drawing.Point(189, 114);
             this.btnLoadImage.Name = "btnLoadImage";
-            this.btnLoadImage.Size = new System.Drawing.Size(114, 23);
+            this.btnLoadImage.Size = new System.Drawing.Size(74, 23);
             this.btnLoadImage.TabIndex = 17;
             this.btnLoadImage.Text = "Загрузить";
             this.btnLoadImage.UseVisualStyleBackColor = true;
@@ -341,9 +347,9 @@
             // 
             // btnSaveImage
             // 
-            this.btnSaveImage.Location = new System.Drawing.Point(5, 114);
+            this.btnSaveImage.Location = new System.Drawing.Point(109, 114);
             this.btnSaveImage.Name = "btnSaveImage";
-            this.btnSaveImage.Size = new System.Drawing.Size(114, 23);
+            this.btnSaveImage.Size = new System.Drawing.Size(74, 23);
             this.btnSaveImage.TabIndex = 16;
             this.btnSaveImage.Text = "Сохранить";
             this.btnSaveImage.UseVisualStyleBackColor = true;
@@ -365,6 +371,26 @@
             this.grpWords.TabStop = false;
             this.grpWords.Text = "Искомые слова";
             // 
+            // btnWordDown
+            // 
+            this.btnWordDown.Location = new System.Drawing.Point(142, 88);
+            this.btnWordDown.Name = "btnWordDown";
+            this.btnWordDown.Size = new System.Drawing.Size(49, 46);
+            this.btnWordDown.TabIndex = 18;
+            this.btnWordDown.Text = "Слово\r\nвниз";
+            this.btnWordDown.UseVisualStyleBackColor = true;
+            this.btnWordDown.Click += new System.EventHandler(this.btnWordDown_Click);
+            // 
+            // btnWordUp
+            // 
+            this.btnWordUp.Location = new System.Drawing.Point(142, 39);
+            this.btnWordUp.Name = "btnWordUp";
+            this.btnWordUp.Size = new System.Drawing.Size(49, 46);
+            this.btnWordUp.TabIndex = 17;
+            this.btnWordUp.Text = "Слово\r\nвверх";
+            this.btnWordUp.UseVisualStyleBackColor = true;
+            this.btnWordUp.Click += new System.EventHandler(this.btnWordUp_Click);
+            // 
             // tmrImagesCount
             // 
             this.tmrImagesCount.Enabled = true;
@@ -379,25 +405,25 @@
             // 
             this.dlgOpenImage.Filter = "BMP|*.bmp";
             // 
-            // btnWordUp
+            // btnNarrow
             // 
-            this.btnWordUp.Location = new System.Drawing.Point(142, 39);
-            this.btnWordUp.Name = "btnWordUp";
-            this.btnWordUp.Size = new System.Drawing.Size(49, 23);
-            this.btnWordUp.TabIndex = 17;
-            this.btnWordUp.Text = "Вверх";
-            this.btnWordUp.UseVisualStyleBackColor = true;
-            this.btnWordUp.Click += new System.EventHandler(this.btnWordUp_Click);
+            this.btnNarrow.Location = new System.Drawing.Point(109, 85);
+            this.btnNarrow.Name = "btnNarrow";
+            this.btnNarrow.Size = new System.Drawing.Size(74, 23);
+            this.btnNarrow.TabIndex = 18;
+            this.btnNarrow.Text = "Уже";
+            this.btnNarrow.UseVisualStyleBackColor = true;
+            this.btnNarrow.Click += new System.EventHandler(this.btnNarrow_Click);
             // 
-            // btnWordDown
+            // btnWide
             // 
-            this.btnWordDown.Location = new System.Drawing.Point(142, 111);
-            this.btnWordDown.Name = "btnWordDown";
-            this.btnWordDown.Size = new System.Drawing.Size(49, 23);
-            this.btnWordDown.TabIndex = 18;
-            this.btnWordDown.Text = "Вниз";
-            this.btnWordDown.UseVisualStyleBackColor = true;
-            this.btnWordDown.Click += new System.EventHandler(this.btnWordDown_Click);
+            this.btnWide.Location = new System.Drawing.Point(189, 85);
+            this.btnWide.Name = "btnWide";
+            this.btnWide.Size = new System.Drawing.Size(74, 23);
+            this.btnWide.TabIndex = 19;
+            this.btnWide.Text = "Шире";
+            this.btnWide.UseVisualStyleBackColor = true;
+            this.btnWide.Click += new System.EventHandler(this.btnWide_Click);
             // 
             // FrmExample
             // 
@@ -466,6 +492,8 @@
         private System.Windows.Forms.Button btnResetLearn;
         private System.Windows.Forms.Button btnWordDown;
         private System.Windows.Forms.Button btnWordUp;
+        private System.Windows.Forms.Button btnWide;
+        private System.Windows.Forms.Button btnNarrow;
     }
 }
 
