@@ -54,6 +54,8 @@
             this.lblElapsedTime = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.grpSourceImage = new System.Windows.Forms.GroupBox();
+            this.btnWide = new System.Windows.Forms.Button();
+            this.btnNarrow = new System.Windows.Forms.Button();
             this.btnLoadImage = new System.Windows.Forms.Button();
             this.btnSaveImage = new System.Windows.Forms.Button();
             this.grpWords = new System.Windows.Forms.GroupBox();
@@ -62,8 +64,6 @@
             this.tmrImagesCount = new System.Windows.Forms.Timer(this.components);
             this.dlgSaveImage = new System.Windows.Forms.SaveFileDialog();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
-            this.btnNarrow = new System.Windows.Forms.Button();
-            this.btnWide = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.pbDraw)).BeginInit();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
@@ -335,6 +335,27 @@
             this.grpSourceImage.TabStop = false;
             this.grpSourceImage.Text = "Изображение (ЛКМ - рисовать / ПКМ - стереть)";
             // 
+            // btnWide
+            // 
+            this.btnWide.Enabled = false;
+            this.btnWide.Location = new System.Drawing.Point(189, 85);
+            this.btnWide.Name = "btnWide";
+            this.btnWide.Size = new System.Drawing.Size(74, 23);
+            this.btnWide.TabIndex = 19;
+            this.btnWide.Text = "Шире";
+            this.btnWide.UseVisualStyleBackColor = true;
+            this.btnWide.Click += new System.EventHandler(this.btnWide_Click);
+            // 
+            // btnNarrow
+            // 
+            this.btnNarrow.Location = new System.Drawing.Point(109, 85);
+            this.btnNarrow.Name = "btnNarrow";
+            this.btnNarrow.Size = new System.Drawing.Size(74, 23);
+            this.btnNarrow.TabIndex = 18;
+            this.btnNarrow.Text = "Уже";
+            this.btnNarrow.UseVisualStyleBackColor = true;
+            this.btnNarrow.Click += new System.EventHandler(this.btnNarrow_Click);
+            // 
             // btnLoadImage
             // 
             this.btnLoadImage.Location = new System.Drawing.Point(189, 114);
@@ -404,26 +425,6 @@
             // dlgOpenImage
             // 
             this.dlgOpenImage.Filter = "BMP|*.bmp";
-            // 
-            // btnNarrow
-            // 
-            this.btnNarrow.Location = new System.Drawing.Point(109, 85);
-            this.btnNarrow.Name = "btnNarrow";
-            this.btnNarrow.Size = new System.Drawing.Size(74, 23);
-            this.btnNarrow.TabIndex = 18;
-            this.btnNarrow.Text = "Уже";
-            this.btnNarrow.UseVisualStyleBackColor = true;
-            this.btnNarrow.Click += new System.EventHandler(this.btnNarrow_Click);
-            // 
-            // btnWide
-            // 
-            this.btnWide.Location = new System.Drawing.Point(189, 85);
-            this.btnWide.Name = "btnWide";
-            this.btnWide.Size = new System.Drawing.Size(74, 23);
-            this.btnWide.TabIndex = 19;
-            this.btnWide.Text = "Шире";
-            this.btnWide.UseVisualStyleBackColor = true;
-            this.btnWide.Click += new System.EventHandler(this.btnWide_Click);
             // 
             // FrmExample
             // 

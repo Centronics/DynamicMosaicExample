@@ -56,6 +56,12 @@ namespace DynamicMosaicExample
         readonly Pen _blackPen = new Pen(Color.Black, 2.0f);
 
         /// <summary>
+        /// Цвет, который считается изначальным. Определяет изначальный цвет, отображаемый на поверхности для рисования.
+        /// Используется для стирания изображения.
+        /// </summary>
+        readonly Color _defaultColor = Color.White;
+
+        /// <summary>
         ///     Таймер для измерения времени, затраченного на распознавание.
         /// </summary>
         readonly Stopwatch _stopwatch = new Stopwatch();
@@ -89,7 +95,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Задаёт цвет и ширину для стирания в окне создания распознаваемого изображения.
         /// </summary>
-        readonly Pen _whitePen = new Pen(Color.White, 2.0f);
+        readonly Pen _whitePen;
 
         /// <summary>
         ///     Изображение, которое выводится в окне создания распознаваемого изображения.
@@ -142,6 +148,7 @@ namespace DynamicMosaicExample
         {
             try
             {
+                _whitePen = new Pen(_defaultColor, 2.0f);
                 InitializeComponent();
                 Initialize();
                 _strRecog = btnRecognizeImage.Text;
@@ -188,8 +195,20 @@ namespace DynamicMosaicExample
                     btnSaveImage.Enabled = value;
                     btnLoadImage.Enabled = value;
                     btnClearImage.Enabled = value;
+                    btnResetLearn.Enabled = _workReflex != null && value;
                     btnWordUp.Enabled = value;
                     btnWordDown.Enabled = value;
+                    lstWords.Enabled = value;
+                    if (value)
+                    {
+                        btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
+                        btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
+                        return;
+                    }
+                    btnWide.Enabled = false;
+                    btnNarrow.Enabled = false;
+                    lstResults.Items.Clear();
+                    grpResults.Text = _strGrpResults;
                 });
             }
         }
@@ -202,11 +221,13 @@ namespace DynamicMosaicExample
         {
             get
             {
-                int white = Color.White.ToArgb();
                 for (int y = 0; y < _btmFront.Height; y++)
                     for (int x = 0; x < _btmFront.Width; x++)
-                        if (_btmFront.GetPixel(x, y).ToArgb() != white)
+                    {
+                        Color c = _btmFront.GetPixel(x, y);
+                        if (c.A != _defaultColor.A || c.R != _defaultColor.R || c.G != _defaultColor.G || c.B != _defaultColor.B)
                             return true;
+                    }
                 return false;
             }
         }
@@ -224,7 +245,7 @@ namespace DynamicMosaicExample
                 Bitmap btm = new Bitmap(pbDraw.Width, pbDraw.Height);
                 if (_btmFront != null)
                 {
-                    CopyBitmapByWidth(_btmFront, btm, Color.White);
+                    CopyBitmapByWidth(_btmFront, btm, _defaultColor);
                     _btmFront?.Dispose();
                 }
                 _btmFront = btm;
@@ -373,6 +394,8 @@ namespace DynamicMosaicExample
             SafetyExecute(() =>
             {
                 pbDraw.Width += 10;
+                btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
+                btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                 Initialize();
             });
         }
@@ -387,6 +410,8 @@ namespace DynamicMosaicExample
             SafetyExecute(() =>
             {
                 pbDraw.Width -= 10;
+                btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
+                btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                 Initialize();
             });
         }
@@ -694,7 +719,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void btnWordUp_Click(object sender, EventArgs e)
         {
-            if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 || lstWords.SelectedIndex < 1)
+            if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 1)
                 return;
             string t = (string)lstWords.Items[lstWords.SelectedIndex];
             string s = (string)lstWords.Items[lstWords.SelectedIndex - 1];
@@ -709,7 +734,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void btnWordDown_Click(object sender, EventArgs e)
         {
-            if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 || lstWords.SelectedIndex < lstWords.Items.Count - 1)
+            if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 || lstWords.SelectedIndex >= lstWords.Items.Count - 1)
                 return;
             string t = (string)lstWords.Items[lstWords.SelectedIndex];
             string s = (string)lstWords.Items[lstWords.SelectedIndex + 1];
@@ -730,15 +755,13 @@ namespace DynamicMosaicExample
                 if (_workThread?.IsAlive == true)
                     return;
                 EnableButtons = false;
-                InvokeFunction(() => btnResetLearn.Enabled = false);
                 (_workThread = new Thread(() => SafetyExecute(() =>
                 {
                     WaitableTimer();
                     List<ImageRect> images = new List<ImageRect>(ImageRect.Images);
-                    if (images.Count <= 0)
+                    if (images.Count < 2)
                     {
-                        MessageInOtherThread(
-                            @"Образы отсутствуют. Нарисуйте какой-нибудь образ, затем сохраните его.");
+                        MessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
                         return;
                     }
                     if (lstWords.Items.Count <= 0)
@@ -752,10 +775,7 @@ namespace DynamicMosaicExample
                         return;
                     }
                     if (_workReflex == null)
-                    {
                         _workReflex = new Reflex(new ProcessorContainer((from ir in images select new Processor(ir.ImageMap, ir.SymbolString)).ToArray()));
-                        InvokeFunction(() => btnResetLearn.Enabled = true);
-                    }
                     string[] results = (from string word in lstWords.Items
                                         where _workReflex.FindRelation(new Processor(_btmFront, "Main"), word)
                                         select word).ToArray();
@@ -897,7 +917,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void btnClearImage_Click(object sender, EventArgs e)
         {
-            SafetyExecute(() => _grFront.Clear(Color.White), () => pbDraw.Refresh());
+            SafetyExecute(() => _grFront.Clear(_defaultColor), () => pbDraw.Refresh());
         }
 
         /// <summary>

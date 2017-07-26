@@ -25,6 +25,12 @@ namespace DynamicMosaicExample
         readonly Graphics _grFront;
 
         /// <summary>
+        /// Цвет, который считается изначальным. Определяет изначальный цвет, отображаемый на поверхности для рисования.
+        /// Используется для стирания изображения.
+        /// </summary>
+        readonly Color _defaultColor = Color.White;
+
+        /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
         ///     Значение true - вывод разрешён, в противном случае - false.
         /// </summary>
@@ -131,7 +137,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void btnClear_Click(object sender, EventArgs e)
         {
-            RunFunction(() => _grFront.Clear(Color.White));
+            RunFunction(() => _grFront.Clear(_defaultColor));
             RunFunction(() => pbBox.Refresh());
         }
 
@@ -184,9 +190,9 @@ namespace DynamicMosaicExample
         {
             RunFunction(() =>
             {
-                if ((Keys) e.KeyChar == Keys.Enter || (Keys) e.KeyChar == Keys.Tab ||
-                    (Keys) e.KeyChar == Keys.Escape ||
-                    (Keys) e.KeyChar == Keys.Pause || (Keys) e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
+                if ((Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab ||
+                    (Keys)e.KeyChar == Keys.Escape ||
+                    (Keys)e.KeyChar == Keys.Pause || (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
                     e.Handled = true;
             });
         }
@@ -200,8 +206,8 @@ namespace DynamicMosaicExample
         {
             RunFunction(() =>
             {
-                if ((Keys) e.KeyChar == Keys.Enter || (Keys) e.KeyChar == Keys.Tab || (Keys) e.KeyChar == Keys.Escape ||
-                    (Keys) e.KeyChar == Keys.Pause || (Keys) e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
+                if ((Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab || (Keys)e.KeyChar == Keys.Escape ||
+                    (Keys)e.KeyChar == Keys.Pause || (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
                     e.Handled = true;
             });
         }
