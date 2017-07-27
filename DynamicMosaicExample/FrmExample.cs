@@ -51,6 +51,11 @@ namespace DynamicMosaicExample
             @"Образы отсутствуют. Для их добавления и распознавания необходимо создать искомые образы, нажав кнопку 'Создать образ', затем добавить искомое слово, которое так или иначе можно составить из названий искомых образов. Затем необходимо нарисовать его в поле исходного изображения. Далее нажать кнопку 'Распознать'.";
 
         /// <summary>
+        /// Определяет шаг (в пикселях), на который изменяется ширина сканируемого изображения при нажатии кнопок "Уже", "Шире".
+        /// </summary>
+        const int WidthCount = 20;
+
+        /// <summary>
         ///     Задаёт цвет и ширину для рисования в окне создания распознаваемого изображения.
         /// </summary>
         readonly Pen _blackPen = new Pen(Color.Black, 2.0f);
@@ -196,9 +201,7 @@ namespace DynamicMosaicExample
                     btnLoadImage.Enabled = value;
                     btnClearImage.Enabled = value;
                     btnResetLearn.Enabled = _workReflex != null && value;
-                    btnWordUp.Enabled = value;
-                    btnWordDown.Enabled = value;
-                    lstWords.Enabled = value;
+                    lstWords_SelectedIndexChanged(lstWords, new EventArgs());
                     if (value)
                     {
                         btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
@@ -264,10 +267,11 @@ namespace DynamicMosaicExample
                     btm.Dispose();
                     return;
                 }
-                if (btm.Width != pbDraw.Width)
+                if (WidthSizes.All(s => s != btm.Width))
                 {
                     MessageBox.Show(this,
-                        $@"Загружаемое изображение не подходит по ширине: {btm.Width}; необходимо: {pbDraw.Width}",
+                        $@"Загружаемое изображение не подходит по ширине: {btm.Width
+                        }. Она выходит за рамки допустимого. Попробуйте создать изображение и сохранить его заново.",
                         @"Ошибка");
                     btm.Dispose();
                     return;
@@ -280,7 +284,10 @@ namespace DynamicMosaicExample
                     btm.Dispose();
                     return;
                 }
+                pbDraw.Width = btm.Width;
                 _btmFront = btm;
+                btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
+                btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
             }
             _grFront?.Dispose();
             _grFront = Graphics.FromImage(_btmFront);
@@ -393,7 +400,7 @@ namespace DynamicMosaicExample
         {
             SafetyExecute(() =>
             {
-                pbDraw.Width += 10;
+                pbDraw.Width += WidthCount;
                 btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
                 btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                 Initialize();
@@ -409,7 +416,7 @@ namespace DynamicMosaicExample
         {
             SafetyExecute(() =>
             {
-                pbDraw.Width -= 10;
+                pbDraw.Width -= WidthCount;
                 btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
                 btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                 Initialize();
@@ -459,6 +466,30 @@ namespace DynamicMosaicExample
                 if (lstWords.Items.Count <= 0)
                     File.Delete(_strWordsPath);
             });
+        }
+
+        /// <summary>
+        /// Вызывается для того, чтобы включить/выключить кнопки <see cref="btnWordUp"/> и <see cref="btnWordDown"/>.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void lstWords_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (_workThread?.IsAlive == true)
+                return;
+            btnWordDown.Enabled = lstWords.Items.Count > 1 && lstWords.SelectedIndex < lstWords.Items.Count - 1 && lstWords.SelectedIndex > -1;
+            btnWordUp.Enabled = lstWords.Items.Count > 1 && lstWords.SelectedIndex > 0;
+        }
+
+        /// <summary>
+        /// Служит для обновления состояния кнопок <see cref="btnWordUp"/> и <see cref="btnWordDown"/>.
+        /// Вызывает <see cref="lstWords_SelectedIndexChanged(object, EventArgs)"/>.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void lstWords_Enter(object sender, EventArgs e)
+        {
+            lstWords_SelectedIndexChanged(lstWords, new EventArgs());
         }
 
         /// <summary>
@@ -682,8 +713,10 @@ namespace DynamicMosaicExample
                                 k = -1;
                                 break;
                         }
-                        if (_workThread?.IsAlive != true)
-                            return;
+                        if (_workThread?.IsAlive == true)
+                            continue;
+                        InvokeFunction(() => lstWords.SelectedIndex = 0);
+                        return;
                     }
 
                     #endregion
@@ -776,11 +809,21 @@ namespace DynamicMosaicExample
                     }
                     if (_workReflex == null)
                         _workReflex = new Reflex(new ProcessorContainer((from ir in images select new Processor(ir.ImageMap, ir.SymbolString)).ToArray()));
-                    string[] results = (from string word in lstWords.Items
-                                        where _workReflex.FindRelation(new Processor(_btmFront, "Main"), word)
-                                        select word).ToArray();
-                    InvokeFunction(() => lstResults.Items.Clear());
-                    if (results.Length <= 0)
+                    List<string> results = new List<string>();
+                    for (int k = 0; k < lstWords.Items.Count; k++)
+                    {
+                        int kCopy = k;
+                        InvokeFunction(() => lstWords.SelectedIndex = kCopy);
+                        string word = (string)lstWords.Items[k];
+                        if (_workReflex.FindRelation(new Processor(_btmFront, "Main"), word))
+                            results.Add(word);
+                    }
+                    InvokeFunction(() =>
+                    {
+                        lstWords.SelectedIndex = -1;
+                        lstResults.Items.Clear();
+                    });
+                    if (results.Count <= 0)
                     {
                         InvokeFunction(() => grpResults.Text = $@"{_strGrpResults} (0)");
                         MessageInOtherThread(@"Распознанные образы отсутствуют. Отсутствуют слова или образы.");
@@ -788,7 +831,7 @@ namespace DynamicMosaicExample
                     }
                     InvokeFunction(() =>
                     {
-                        grpResults.Text = $@"{_strGrpResults} ({results.Length})";
+                        grpResults.Text = $@"{_strGrpResults} ({results.Count})";
                         foreach (string s in results)
                             lstResults.Items.Add(s);
                     });
@@ -921,6 +964,21 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
+        /// Перечисляет возможные значения ширины поля создания сканируемого изображения.
+        /// Используется значение шага, указанное в константе <see cref="WidthCount"/>.
+        /// </summary>
+        IEnumerable<int> WidthSizes
+        {
+            get
+            {
+                for (int k = pbDraw.MinimumSize.Width, max = pbDraw.MaximumSize.Width; k <= max; k += WidthCount)
+                    yield return k;
+                for (int k = pbDraw.MaximumSize.Width, min = pbDraw.MinimumSize.Width; k >= min; k -= WidthCount)
+                    yield return k;
+            }
+        }
+
+        /// <summary>
         ///     Обрабатывает событие нажатие кнопки сохранения созданного изображения.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
@@ -950,10 +1008,10 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Выполняет метод с помощью метода Invoke.
+        ///     Выполняет метод с помощью метода <see cref="Control.Invoke(Delegate)"/>.
         /// </summary>
         /// <param name="funcAction">Функция, которую необходимо выполнить.</param>
-        /// <param name="catchAction">Функция, которая должна быть выполнена в блоке catch.</param>
+        /// <param name="catchAction">Функция, которая должна быть выполнена в блоке <see langword="catch"/>.</param>
         void InvokeFunction(Action funcAction, Action catchAction = null)
         {
             if (funcAction == null)
@@ -993,12 +1051,13 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Представляет обёртку для выполнения функций с применением блоков try-catch, а также выдачей сообщений обо всех
+        ///     Представляет обёртку для выполнения функций с применением блоков <see langword="try"/>-<see langword="catch"/>,
+        /// а также выдачей сообщений обо всех
         ///     ошибках.
         /// </summary>
         /// <param name="funcAction">Функция, которая должна быть выполнена.</param>
-        /// <param name="finallyAction">Функция, которая должна быть выполнена в блоке finally.</param>
-        /// <param name="catchAction">Функция, которая должна быть выполнена в блоке catch.</param>
+        /// <param name="finallyAction">Функция, которая должна быть выполнена в блоке <see langword="finally"/>.</param>
+        /// <param name="catchAction">Функция, которая должна быть выполнена в блоке <see langword="catch"/>.</param>
         void SafetyExecute(Action funcAction, Action finallyAction = null, Action catchAction = null)
         {
             try

@@ -123,6 +123,8 @@
             this.lstWords.Name = "lstWords";
             this.lstWords.Size = new System.Drawing.Size(130, 95);
             this.lstWords.TabIndex = 5;
+            this.lstWords.SelectedIndexChanged += new System.EventHandler(this.lstWords_SelectedIndexChanged);
+            this.lstWords.Enter += new System.EventHandler(this.lstWords_Enter);
             this.lstWords.KeyUp += new System.Windows.Forms.KeyEventHandler(this.lstWords_KeyUp);
             // 
             // btnWordAdd
@@ -272,6 +274,7 @@
             // 
             // btnResetLearn
             // 
+            this.btnResetLearn.Enabled = false;
             this.btnResetLearn.Location = new System.Drawing.Point(145, 62);
             this.btnResetLearn.Name = "btnResetLearn";
             this.btnResetLearn.Size = new System.Drawing.Size(114, 23);
@@ -394,6 +397,7 @@
             // 
             // btnWordDown
             // 
+            this.btnWordDown.Enabled = false;
             this.btnWordDown.Location = new System.Drawing.Point(142, 88);
             this.btnWordDown.Name = "btnWordDown";
             this.btnWordDown.Size = new System.Drawing.Size(49, 46);
@@ -404,6 +408,7 @@
             // 
             // btnWordUp
             // 
+            this.btnWordUp.Enabled = false;
             this.btnWordUp.Location = new System.Drawing.Point(142, 39);
             this.btnWordUp.Name = "btnWordUp";
             this.btnWordUp.Size = new System.Drawing.Size(49, 46);
