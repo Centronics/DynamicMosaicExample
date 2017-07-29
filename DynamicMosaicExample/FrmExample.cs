@@ -119,6 +119,12 @@ namespace DynamicMosaicExample
         bool _draw;
 
         /// <summary>
+        /// Предназначена для того, чтобы разрешить/запретить включение/выключение кнопок <see cref="btnWordUp"/> и <see cref="btnWordDown"/>
+        /// на время распознавания изображения.
+        /// </summary>
+        bool _allowChangeWordUpDown = true;
+
+        /// <summary>
         ///     Поверхность рисования в окне создания распознаваемого изображения.
         /// </summary>
         Graphics _grFront;
@@ -188,7 +194,7 @@ namespace DynamicMosaicExample
         {
             set
             {
-                InvokeFunction(() =>
+                InvokeAction(() =>
                 {
                     pbDraw.Enabled = value;
                     btnImageCreate.Enabled = value;
@@ -201,13 +207,14 @@ namespace DynamicMosaicExample
                     btnLoadImage.Enabled = value;
                     btnClearImage.Enabled = value;
                     btnResetLearn.Enabled = _workReflex != null && value;
-                    lstWords_SelectedIndexChanged(lstWords, new EventArgs());
+                    _allowChangeWordUpDown = value;
                     if (value)
                     {
                         btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
                         btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                         return;
                     }
+                    lstWords.SelectedIndex = -1;
                     btnWide.Enabled = false;
                     btnNarrow.Enabled = false;
                     lstResults.Items.Clear();
@@ -475,10 +482,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void lstWords_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (_workThread?.IsAlive == true)
-                return;
-            btnWordDown.Enabled = lstWords.Items.Count > 1 && lstWords.SelectedIndex < lstWords.Items.Count - 1 && lstWords.SelectedIndex > -1;
-            btnWordUp.Enabled = lstWords.Items.Count > 1 && lstWords.SelectedIndex > 0;
+            btnWordDown.Enabled = _allowChangeWordUpDown && lstWords.Items.Count > 1 && lstWords.SelectedIndex < lstWords.Items.Count - 1 && lstWords.SelectedIndex > -1;
+            btnWordUp.Enabled = _allowChangeWordUpDown && lstWords.Items.Count > 1 && lstWords.SelectedIndex > 0;
         }
 
         /// <summary>
@@ -586,6 +591,7 @@ namespace DynamicMosaicExample
                 if (_currentImage >= lst.Count || _currentImage < 0) return;
                 File.Delete(lst[_currentImage].ImagePath);
                 btnImagePrev_Click(null, null);
+                btnResetLearn_Click(btnResetLearn, new EventArgs());
             }, () =>
             {
                 RefreshImagesCount();
@@ -603,7 +609,8 @@ namespace DynamicMosaicExample
             SafetyExecute(() =>
             {
                 using (FrmSymbol fs = new FrmSymbol())
-                    fs.ShowDialog();
+                    if (fs.ShowDialog() == DialogResult.OK)
+                        btnResetLearn_Click(btnResetLearn, new EventArgs());
             }, () =>
             {
                 RefreshImagesCount();
@@ -618,7 +625,7 @@ namespace DynamicMosaicExample
         /// </summary>
         void RefreshImagesCount()
         {
-            InvokeFunction(() =>
+            InvokeAction(() =>
             {
                 try
                 {
@@ -665,7 +672,7 @@ namespace DynamicMosaicExample
                         switch (k)
                         {
                             case 0:
-                                InvokeFunction(() =>
+                                InvokeAction(() =>
                                 {
                                     btnRecognizeImage.Text = StrRecognize;
                                     lblElapsedTime.Text =
@@ -676,7 +683,7 @@ namespace DynamicMosaicExample
                                 Thread.Sleep(100);
                                 break;
                             case 1:
-                                InvokeFunction(() =>
+                                InvokeAction(() =>
                                 {
                                     btnRecognizeImage.Text = StrRecognize1;
                                     lblElapsedTime.Text =
@@ -687,7 +694,7 @@ namespace DynamicMosaicExample
                                 Thread.Sleep(100);
                                 break;
                             case 2:
-                                InvokeFunction(() =>
+                                InvokeAction(() =>
                                 {
                                     btnRecognizeImage.Text = StrRecognize2;
                                     lblElapsedTime.Text =
@@ -698,7 +705,7 @@ namespace DynamicMosaicExample
                                 Thread.Sleep(100);
                                 break;
                             case 3:
-                                InvokeFunction(() =>
+                                InvokeAction(() =>
                                 {
                                     btnRecognizeImage.Text = StrRecognize3;
                                     lblElapsedTime.Text =
@@ -715,7 +722,7 @@ namespace DynamicMosaicExample
                         }
                         if (_workThread?.IsAlive == true)
                             continue;
-                        InvokeFunction(() => lstWords.SelectedIndex = 0);
+                        InvokeAction(() => lstWords.SelectedIndex = 0);
                         return;
                     }
 
@@ -726,7 +733,7 @@ namespace DynamicMosaicExample
                     _stopwatch.Stop();
                     EnableButtons = true;
                 }
-            }, () => InvokeFunction(() => btnRecognizeImage.Text = _strRecog)))
+            }, () => InvokeAction(() => btnRecognizeImage.Text = _strRecog)))
             {
                 IsBackground = true,
                 Name = nameof(WaitableTimer)
@@ -809,32 +816,26 @@ namespace DynamicMosaicExample
                     }
                     if (_workReflex == null)
                         _workReflex = new Reflex(new ProcessorContainer((from ir in images select new Processor(ir.ImageMap, ir.SymbolString)).ToArray()));
-                    List<string> results = new List<string>();
                     for (int k = 0; k < lstWords.Items.Count; k++)
                     {
                         int kCopy = k;
-                        InvokeFunction(() => lstWords.SelectedIndex = kCopy);
+                        InvokeAction(() => lstWords.SelectedIndex = kCopy);
                         string word = (string)lstWords.Items[k];
-                        if (_workReflex.FindRelation(new Processor(_btmFront, "Main"), word))
-                            results.Add(word);
+                        if (!_workReflex.FindRelation(new Processor(_btmFront, "Main"), word))
+                            continue;
+                        InvokeAction(() =>
+                        {
+                            lstResults.Items.Add(word);
+                            grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count})";
+                        });
                     }
-                    InvokeFunction(() =>
-                    {
-                        lstWords.SelectedIndex = -1;
-                        lstResults.Items.Clear();
-                    });
-                    if (results.Count <= 0)
-                    {
-                        InvokeFunction(() => grpResults.Text = $@"{_strGrpResults} (0)");
-                        MessageInOtherThread(@"Распознанные образы отсутствуют. Отсутствуют слова или образы.");
+                    if (lstResults.Items.Count > 0)
                         return;
-                    }
-                    InvokeFunction(() =>
-                    {
-                        grpResults.Text = $@"{_strGrpResults} ({results.Count})";
-                        foreach (string s in results)
-                            lstResults.Items.Add(s);
-                    });
+                    MessageInOtherThread(@"Распознанные образы отсутствуют. Отсутствуют слова или образы.");
+                }, () =>
+                {
+                    _allowChangeWordUpDown = true;
+                    InvokeAction(() => lstWords.SelectedIndex = 0);
                 }))
                 {
                     IsBackground = true,
@@ -1012,7 +1013,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="funcAction">Функция, которую необходимо выполнить.</param>
         /// <param name="catchAction">Функция, которая должна быть выполнена в блоке <see langword="catch"/>.</param>
-        void InvokeFunction(Action funcAction, Action catchAction = null)
+        void InvokeAction(Action funcAction, Action catchAction = null)
         {
             if (funcAction == null)
                 return;
@@ -1068,7 +1069,7 @@ namespace DynamicMosaicExample
             {
                 try
                 {
-                    InvokeFunction(
+                    InvokeAction(
                         () =>
                             MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK,
                                 MessageBoxIcon.Exclamation));
@@ -1076,7 +1077,7 @@ namespace DynamicMosaicExample
                 }
                 catch
                 {
-                    InvokeFunction(
+                    InvokeAction(
                         () =>
                             MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK,
                                 MessageBoxIcon.Exclamation));
@@ -1090,7 +1091,7 @@ namespace DynamicMosaicExample
                 }
                 catch (Exception ex)
                 {
-                    InvokeFunction(
+                    InvokeAction(
                         () =>
                             MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK,
                                 MessageBoxIcon.Exclamation));
@@ -1107,7 +1108,7 @@ namespace DynamicMosaicExample
             if (string.IsNullOrWhiteSpace(message))
                 return;
             SafetyExecute(() => new Thread(
-                () => InvokeFunction(
+                () => InvokeAction(
                     () =>
                         MessageBox.Show(this, message, @"Ошибка", MessageBoxButtons.OK,
                             MessageBoxIcon.Exclamation)))

@@ -131,7 +131,7 @@
             // 
             this.btnWordAdd.Location = new System.Drawing.Point(193, 39);
             this.btnWordAdd.Name = "btnWordAdd";
-            this.btnWordAdd.Size = new System.Drawing.Size(66, 69);
+            this.btnWordAdd.Size = new System.Drawing.Size(66, 46);
             this.btnWordAdd.TabIndex = 3;
             this.btnWordAdd.Text = "Добавить слово";
             this.btnWordAdd.UseVisualStyleBackColor = true;
@@ -139,9 +139,9 @@
             // 
             // btnWordRemove
             // 
-            this.btnWordRemove.Location = new System.Drawing.Point(193, 111);
+            this.btnWordRemove.Location = new System.Drawing.Point(193, 88);
             this.btnWordRemove.Name = "btnWordRemove";
-            this.btnWordRemove.Size = new System.Drawing.Size(66, 23);
+            this.btnWordRemove.Size = new System.Drawing.Size(66, 46);
             this.btnWordRemove.TabIndex = 4;
             this.btnWordRemove.Text = "Удалить слово";
             this.btnWordRemove.UseVisualStyleBackColor = true;
