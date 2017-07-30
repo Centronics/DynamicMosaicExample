@@ -85,12 +85,12 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void pbBox_MouseDown(object sender, MouseEventArgs e)
         {
-            RunFunction(() =>
+            RunAction(() =>
             {
                 _draw = true;
                 _grFront.DrawRectangle(_blackPen, new Rectangle(e.X, e.Y, 1, 1));
             });
-            RunFunction(() => pbBox.Refresh());
+            RunAction(() => pbBox.Refresh());
         }
 
         /// <summary>
@@ -100,12 +100,14 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void pbBox_MouseMove(object sender, MouseEventArgs e)
         {
-            RunFunction(() =>
+            RunAction(() =>
             {
-                if (_draw)
-                    _grFront.DrawRectangle(_blackPen, new Rectangle(e.X, e.Y, 1, 1));
+                if (!_draw)
+                    return;
+                _grFront.DrawRectangle(_blackPen, new Rectangle(e.X, e.Y, 1, 1));
+                btnClear.Enabled = true;
             });
-            RunFunction(() => pbBox.Refresh());
+            RunAction(() => pbBox.Refresh());
         }
 
         /// <summary>
@@ -115,7 +117,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void btnOK_Click(object sender, EventArgs e)
         {
-            RunFunction(() =>
+            RunAction(() =>
             {
                 if (string.IsNullOrWhiteSpace(txtSymbol.Text))
                 {
@@ -137,8 +139,12 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void btnClear_Click(object sender, EventArgs e)
         {
-            RunFunction(() => _grFront.Clear(_defaultColor));
-            RunFunction(() => pbBox.Refresh());
+            RunAction(() =>
+            {
+                _grFront.Clear(_defaultColor);
+                btnClear.Enabled = false;
+            });
+            RunAction(() => pbBox.Refresh());
         }
 
         /// <summary>
@@ -148,7 +154,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void FrmSymbol_Shown(object sender, EventArgs e)
         {
-            RunFunction(() =>
+            RunAction(() =>
             {
                 btnClear_Click(null, null);
                 tmrPressWait.Enabled = true;
@@ -164,7 +170,7 @@ namespace DynamicMosaicExample
         {
             if (e.Alt || e.Control || e.Shift)
                 return;
-            RunFunction(() =>
+            RunAction(() =>
             {
                 if (!_timedOut)
                     return;
@@ -188,7 +194,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void txtSymbol_KeyPress(object sender, KeyPressEventArgs e)
         {
-            RunFunction(() =>
+            RunAction(() =>
             {
                 if ((Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab ||
                     (Keys)e.KeyChar == Keys.Escape ||
@@ -204,7 +210,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void FrmSymbol_KeyPress(object sender, KeyPressEventArgs e)
         {
-            RunFunction(() =>
+            RunAction(() =>
             {
                 if ((Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab || (Keys)e.KeyChar == Keys.Escape ||
                     (Keys)e.KeyChar == Keys.Pause || (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
@@ -227,7 +233,7 @@ namespace DynamicMosaicExample
         ///     Выполняет функцию с выводом сообщения об ошибке на экран.
         /// </summary>
         /// <param name="act">Выполняемая функция.</param>
-        void RunFunction(Action act)
+        void RunAction(Action act)
         {
             if (act == null)
                 return;

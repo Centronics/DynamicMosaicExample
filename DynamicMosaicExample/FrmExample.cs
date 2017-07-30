@@ -359,7 +359,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Добавляет указанное искомое слово.
+        ///     Добавляет указанное искомое слово, указанное в <see cref="txtWord"/>.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -379,7 +379,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Удаляет выделенное искомое слово.
+        ///     Удаляет выделенное искомое слово, указанное в <see cref="lstWords"/>.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -462,9 +462,9 @@ namespace DynamicMosaicExample
                         continue;
                     lstWords.Items.Add(str);
                 }
-                if (_selectedIndex < 0 || lstWords.Items.Count <= 0) return;
-                lstWords.SetSelected(
-                    _selectedIndex >= lstWords.Items.Count ? lstWords.Items.Count - 1 : _selectedIndex, true);
+                if (_selectedIndex < 0 || lstWords.Items.Count <= 0)
+                    return;
+                lstWords.SelectedIndex = _selectedIndex >= lstWords.Items.Count ? lstWords.Items.Count - 1 : _selectedIndex;
             }, () =>
             {
                 _selectedIndex = -1;
@@ -759,12 +759,17 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void btnWordUp_Click(object sender, EventArgs e)
         {
-            if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 1)
-                return;
-            string t = (string)lstWords.Items[lstWords.SelectedIndex];
-            string s = (string)lstWords.Items[lstWords.SelectedIndex - 1];
-            lstWords.Items[lstWords.SelectedIndex] = s;
-            lstWords.Items[lstWords.SelectedIndex - 1] = t;
+            SafetyExecute(() =>
+            {
+                if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 1)
+                    return;
+                string t = (string)lstWords.Items[lstWords.SelectedIndex];
+                string s = (string)lstWords.Items[lstWords.SelectedIndex - 1];
+                lstWords.Items[lstWords.SelectedIndex] = s;
+                lstWords.Items[lstWords.SelectedIndex - 1] = t;
+                _selectedIndex = lstWords.SelectedIndex - 1;
+                WordsSave();
+            }, WordsLoad);
         }
 
         /// <summary>
@@ -774,12 +779,17 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void btnWordDown_Click(object sender, EventArgs e)
         {
-            if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 || lstWords.SelectedIndex >= lstWords.Items.Count - 1)
-                return;
-            string t = (string)lstWords.Items[lstWords.SelectedIndex];
-            string s = (string)lstWords.Items[lstWords.SelectedIndex + 1];
-            lstWords.Items[lstWords.SelectedIndex] = s;
-            lstWords.Items[lstWords.SelectedIndex + 1] = t;
+            SafetyExecute(() =>
+            {
+                if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 || lstWords.SelectedIndex >= lstWords.Items.Count - 1)
+                    return;
+                string t = (string)lstWords.Items[lstWords.SelectedIndex];
+                string s = (string)lstWords.Items[lstWords.SelectedIndex + 1];
+                lstWords.Items[lstWords.SelectedIndex] = s;
+                lstWords.Items[lstWords.SelectedIndex + 1] = t;
+                _selectedIndex = lstWords.SelectedIndex + 1;
+                WordsSave();
+            }, WordsLoad);
         }
 
         /// <summary>
@@ -835,7 +845,11 @@ namespace DynamicMosaicExample
                 }, () =>
                 {
                     _allowChangeWordUpDown = true;
-                    InvokeAction(() => lstWords.SelectedIndex = 0);
+                    InvokeAction(() =>
+                    {
+                        lstWords.SelectedIndex = -1;
+                        lstWords.SelectedIndex = 0;
+                    });
                 }))
                 {
                     IsBackground = true,
@@ -897,6 +911,41 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
+        /// Производит движение слов вверх и вниз аналогично кнопкам <see cref="btnWordUp"/> и <see cref="btnWordDown"/> при нажатой клавише Control
+        /// стрелками вверх и вниз.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void lstWords_KeyDown(object sender, KeyEventArgs e)
+        {
+            // ReSharper disable once SwitchStatementMissingSomeCases
+            switch (e.KeyCode)
+            {
+                case Keys.Up:
+                    if (e.Control)
+                    {
+                        bool b = lstWords.SelectedIndex == 0;
+                        btnWordUp_Click(btnWordUp, new EventArgs());
+                        if (b)
+                            lstWords.SelectedIndex = 0;
+                        e.Handled = true;
+                    }
+                    break;
+                case Keys.Down:
+                    if (e.Control)
+                    {
+                        int lastPos = lstWords.Items.Count - 1;
+                        bool b = lstWords.SelectedIndex == lastPos;
+                        btnWordDown_Click(btnWordDown, new EventArgs());
+                        if (b)
+                            lstWords.SelectedIndex = lastPos;
+                        e.Handled = true;
+                    }
+                    break;
+            }
+        }
+
+        /// <summary>
         ///     Отменяет отрисовку изображения для распознавания в случае ухода указателя мыши с поля рисования.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
@@ -932,6 +981,7 @@ namespace DynamicMosaicExample
                 {
                     case MouseButtons.Left:
                         _grFront.DrawRectangle(_blackPen, new Rectangle(e.X, e.Y, 1, 1));
+                        btnClearImage.Enabled = true;
                         break;
                     case MouseButtons.Right:
                         _grFront.DrawRectangle(_whitePen, new Rectangle(e.X, e.Y, 1, 1));
@@ -961,7 +1011,11 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void btnClearImage_Click(object sender, EventArgs e)
         {
-            SafetyExecute(() => _grFront.Clear(_defaultColor), () => pbDraw.Refresh());
+            SafetyExecute(() =>
+            {
+                _grFront.Clear(_defaultColor);
+                btnClearImage.Enabled = false;
+            }, () => pbDraw.Refresh());
         }
 
         /// <summary>
