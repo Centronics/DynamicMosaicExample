@@ -256,7 +256,7 @@ namespace DynamicMosaicExample
                 if (_btmFront != null)
                 {
                     CopyBitmapByWidth(_btmFront, btm, _defaultColor);
-                    _btmFront?.Dispose();
+                    _btmFront.Dispose();
                 }
                 _btmFront = btm;
             }
@@ -292,6 +292,8 @@ namespace DynamicMosaicExample
                     return;
                 }
                 pbDraw.Width = btm.Width;
+                btm.SetPixel(0, 0, btm.GetPixel(0, 0)); //Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
+                _btmFront?.Dispose();
                 _btmFront = btm;
                 btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
                 btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
@@ -334,16 +336,7 @@ namespace DynamicMosaicExample
         void pbDraw_MouseDown(object sender, MouseEventArgs e)
         {
             _draw = true;
-            // ReSharper disable once SwitchStatementMissingSomeCases
-            switch (e.Button)
-            {
-                case MouseButtons.Left:
-                    _grFront.DrawRectangle(_blackPen, new Rectangle(e.X, e.Y, 1, 1));
-                    break;
-                case MouseButtons.Right:
-                    _grFront.DrawRectangle(_whitePen, new Rectangle(e.X, e.Y, 1, 1));
-                    break;
-            }
+            DrawPoint(e.X, e.Y, e.Button);
         }
 
         /// <summary>
@@ -468,7 +461,6 @@ namespace DynamicMosaicExample
             }, () =>
             {
                 _selectedIndex = -1;
-                btnWordRemove.Enabled = lstWords.Items.Count > 0;
                 grpWords.Text = $@"{_strGrpWords} ({lstWords.Items.Count})";
                 if (lstWords.Items.Count <= 0)
                     File.Delete(_strWordsPath);
@@ -484,6 +476,7 @@ namespace DynamicMosaicExample
         {
             btnWordDown.Enabled = _allowChangeWordUpDown && lstWords.Items.Count > 1 && lstWords.SelectedIndex < lstWords.Items.Count - 1 && lstWords.SelectedIndex > -1;
             btnWordUp.Enabled = _allowChangeWordUpDown && lstWords.Items.Count > 1 && lstWords.SelectedIndex > 0;
+            btnWordRemove.Enabled = lstWords.SelectedIndex >= 0;
         }
 
         /// <summary>
@@ -722,7 +715,11 @@ namespace DynamicMosaicExample
                         }
                         if (_workThread?.IsAlive == true)
                             continue;
-                        InvokeAction(() => lstWords.SelectedIndex = 0);
+                        InvokeAction(() =>
+                        {
+                            if (lstWords.Items.Count > 0)
+                                lstWords.SelectedIndex = 0;
+                        });
                         return;
                     }
 
@@ -848,7 +845,8 @@ namespace DynamicMosaicExample
                     InvokeAction(() =>
                     {
                         lstWords.SelectedIndex = -1;
-                        lstWords.SelectedIndex = 0;
+                        if (lstWords.Items.Count > 0)
+                            lstWords.SelectedIndex = 0;
                     });
                 }))
                 {
@@ -972,19 +970,29 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void pbDraw_MouseMove(object sender, MouseEventArgs e)
         {
+            if (_draw)
+                DrawPoint(e.X, e.Y, e.Button);
+        }
+
+        /// <summary>
+        /// Рисует точку в указанном месте на <see cref="pbDraw"/> с применением <see cref="_grFront"/>.
+        /// </summary>
+        /// <param name="x">Координата Х.</param>
+        /// <param name="y">Координата Y.</param>
+        /// <param name="button">Данные о нажатой кнопке мыши.</param>
+        void DrawPoint(int x, int y, MouseButtons button)
+        {
             SafetyExecute(() =>
             {
-                if (!_draw)
-                    return;
                 // ReSharper disable once SwitchStatementMissingSomeCases
-                switch (e.Button)
+                switch (button)
                 {
                     case MouseButtons.Left:
-                        _grFront.DrawRectangle(_blackPen, new Rectangle(e.X, e.Y, 1, 1));
+                        _grFront.DrawRectangle(_blackPen, new Rectangle(x, y, 1, 1));
                         btnClearImage.Enabled = true;
                         break;
                     case MouseButtons.Right:
-                        _grFront.DrawRectangle(_whitePen, new Rectangle(e.X, e.Y, 1, 1));
+                        _grFront.DrawRectangle(_whitePen, new Rectangle(x, y, 1, 1));
                         break;
                 }
             }, () => pbDraw.Refresh());
