@@ -200,8 +200,8 @@ namespace DynamicMosaicExample
                     btnImageCreate.Enabled = value;
                     btnImageDelete.Enabled = value;
                     tmrImagesCount.Enabled = value;
-                    btnWordRemove.Enabled = value;
-                    btnWordAdd.Enabled = value;
+                    btnWordRemove.Enabled = value && lstWords.SelectedIndex > -1;
+                    btnWordAdd.Enabled = value && !string.IsNullOrEmpty(txtWord.Text);
                     txtWord.Enabled = value;
                     btnSaveImage.Enabled = value;
                     btnLoadImage.Enabled = value;
@@ -360,6 +360,8 @@ namespace DynamicMosaicExample
         {
             SafetyExecute(() =>
             {
+                if (!btnWordAdd.Enabled)
+                    return;
                 if (string.IsNullOrWhiteSpace(txtWord.Text) || WordExist(txtWord.Text))
                 {
                     txtWord.Text = string.Empty;
@@ -476,7 +478,7 @@ namespace DynamicMosaicExample
         {
             btnWordDown.Enabled = _allowChangeWordUpDown && lstWords.Items.Count > 1 && lstWords.SelectedIndex < lstWords.Items.Count - 1 && lstWords.SelectedIndex > -1;
             btnWordUp.Enabled = _allowChangeWordUpDown && lstWords.Items.Count > 1 && lstWords.SelectedIndex > 0;
-            btnWordRemove.Enabled = lstWords.SelectedIndex >= 0;
+            btnWordRemove.Enabled = lstWords.SelectedIndex > -1 && _workThread?.IsAlive != true;
         }
 
         /// <summary>
@@ -898,6 +900,16 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
+        /// Отключает или включает кнопку добавления искомого слова в процессе его написания.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void txtWord_TextChanged(object sender, EventArgs e)
+        {
+            btnWordAdd.Enabled = !string.IsNullOrEmpty(txtWord.Text);
+        }
+
+        /// <summary>
         ///     Производит удаление слова по нажатию клавиши Delete.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
@@ -1067,7 +1079,8 @@ namespace DynamicMosaicExample
             {
                 if (dlgOpenImage.ShowDialog(this) != DialogResult.OK) return;
                 Initialize(dlgOpenImage.FileName);
-            });
+            },
+            () => btnClearImage.Enabled = IsPainting);
         }
 
         /// <summary>

@@ -131,6 +131,7 @@
             // 
             // btnWordAdd
             // 
+            this.btnWordAdd.Enabled = false;
             this.btnWordAdd.Location = new System.Drawing.Point(193, 39);
             this.btnWordAdd.Name = "btnWordAdd";
             this.btnWordAdd.Size = new System.Drawing.Size(66, 46);
@@ -158,6 +159,7 @@
             this.txtWord.Size = new System.Drawing.Size(114, 20);
             this.txtWord.TabIndex = 6;
             this.txtWord.Tag = "";
+            this.txtWord.TextChanged += new System.EventHandler(this.txtWord_TextChanged);
             this.txtWord.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtWord_KeyPress);
             this.txtWord.KeyUp += new System.Windows.Forms.KeyEventHandler(this.txtWord_KeyUp);
             // 
