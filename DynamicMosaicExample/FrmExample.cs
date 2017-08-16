@@ -153,6 +153,11 @@ namespace DynamicMosaicExample
         Reflex _workReflex;
 
         /// <summary>
+        /// Получает значение, отражающее статус рабочего процесса по распознаванию изображения.
+        /// </summary>
+        bool IsWorking => _workThread?.IsAlive == true;
+
+        /// <summary>
         ///     Конструктор основной формы приложения.
         /// </summary>
         public FrmExample()
@@ -443,6 +448,8 @@ namespace DynamicMosaicExample
         {
             SafetyExecute(() =>
             {
+                if (IsWorking)
+                    return;
                 lstWords.Items.Clear();
                 if (!File.Exists(_strWordsPath))
                     return;
@@ -478,7 +485,7 @@ namespace DynamicMosaicExample
         {
             btnWordDown.Enabled = _allowChangeWordUpDown && lstWords.Items.Count > 1 && lstWords.SelectedIndex < lstWords.Items.Count - 1 && lstWords.SelectedIndex > -1;
             btnWordUp.Enabled = _allowChangeWordUpDown && lstWords.Items.Count > 1 && lstWords.SelectedIndex > 0;
-            btnWordRemove.Enabled = lstWords.SelectedIndex > -1 && _workThread?.IsAlive != true;
+            btnWordRemove.Enabled = lstWords.SelectedIndex > -1 && !IsWorking;
         }
 
         /// <summary>
@@ -715,7 +722,7 @@ namespace DynamicMosaicExample
                                 k = -1;
                                 break;
                         }
-                        if (_workThread?.IsAlive == true)
+                        if (IsWorking)
                             continue;
                         InvokeAction(() =>
                         {
@@ -760,7 +767,7 @@ namespace DynamicMosaicExample
         {
             SafetyExecute(() =>
             {
-                if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 1)
+                if (!btnWordUp.Enabled || lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 1)
                     return;
                 string t = (string)lstWords.Items[lstWords.SelectedIndex];
                 string s = (string)lstWords.Items[lstWords.SelectedIndex - 1];
@@ -780,7 +787,7 @@ namespace DynamicMosaicExample
         {
             SafetyExecute(() =>
             {
-                if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 || lstWords.SelectedIndex >= lstWords.Items.Count - 1)
+                if (!btnWordDown.Enabled || lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 || lstWords.SelectedIndex >= lstWords.Items.Count - 1)
                     return;
                 string t = (string)lstWords.Items[lstWords.SelectedIndex];
                 string s = (string)lstWords.Items[lstWords.SelectedIndex + 1];
@@ -801,7 +808,7 @@ namespace DynamicMosaicExample
         {
             SafetyExecute(() =>
             {
-                if (_workThread?.IsAlive == true)
+                if (IsWorking)
                     return;
                 EnableButtons = false;
                 (_workThread = new Thread(() => SafetyExecute(() =>

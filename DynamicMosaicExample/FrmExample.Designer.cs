@@ -346,21 +346,23 @@
             // btnWide
             // 
             this.btnWide.Enabled = false;
+            this.btnWide.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold);
             this.btnWide.Location = new System.Drawing.Point(189, 85);
             this.btnWide.Name = "btnWide";
             this.btnWide.Size = new System.Drawing.Size(74, 23);
             this.btnWide.TabIndex = 4;
-            this.btnWide.Text = "Шире";
+            this.btnWide.Text = "===>";
             this.btnWide.UseVisualStyleBackColor = true;
             this.btnWide.Click += new System.EventHandler(this.btnWide_Click);
             // 
             // btnNarrow
             // 
+            this.btnNarrow.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnNarrow.Location = new System.Drawing.Point(109, 85);
             this.btnNarrow.Name = "btnNarrow";
             this.btnNarrow.Size = new System.Drawing.Size(74, 23);
             this.btnNarrow.TabIndex = 2;
-            this.btnNarrow.Text = "Уже";
+            this.btnNarrow.Text = "<===";
             this.btnNarrow.UseVisualStyleBackColor = true;
             this.btnNarrow.Click += new System.EventHandler(this.btnNarrow_Click);
             // 
