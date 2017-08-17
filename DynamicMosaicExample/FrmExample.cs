@@ -51,7 +51,7 @@ namespace DynamicMosaicExample
             @"Образы отсутствуют. Для их добавления и распознавания необходимо создать искомые образы, нажав кнопку 'Создать образ', затем добавить искомое слово, которое так или иначе можно составить из названий искомых образов. Затем необходимо нарисовать его в поле исходного изображения. Далее нажать кнопку 'Распознать'.";
 
         /// <summary>
-        /// Определяет шаг (в пикселях), на который изменяется ширина сканируемого изображения при нажатии кнопок "Уже", "Шире".
+        /// Определяет шаг (в пикселях), на который изменяется ширина сканируемого (создаваемого) изображения при нажатии кнопок сужения или расширения.
         /// </summary>
         const int WidthCount = 20;
 
@@ -210,7 +210,7 @@ namespace DynamicMosaicExample
                     txtWord.Enabled = value;
                     btnSaveImage.Enabled = value;
                     btnLoadImage.Enabled = value;
-                    btnClearImage.Enabled = value;
+                    btnClearImage.Enabled = value && IsPainting;
                     btnResetLearn.Enabled = _workReflex != null && value;
                     _allowChangeWordUpDown = value;
                     if (value)
@@ -357,16 +357,16 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Добавляет указанное искомое слово, указанное в <see cref="txtWord"/>.
+        ///     Добавляет искомое слово, указанное в <see cref="txtWord"/>.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         void btnWordAdd_Click(object sender, EventArgs e)
         {
+            if (!btnWordAdd.Enabled)
+                return;
             SafetyExecute(() =>
             {
-                if (!btnWordAdd.Enabled)
-                    return;
                 if (string.IsNullOrWhiteSpace(txtWord.Text) || WordExist(txtWord.Text))
                 {
                     txtWord.Text = string.Empty;
@@ -375,7 +375,11 @@ namespace DynamicMosaicExample
                 lstWords.Items.Insert(0, txtWord.Text);
                 WordsSave();
                 txtWord.Text = string.Empty;
-            }, WordsLoad);
+            }, () =>
+            {
+                WordsLoad();
+                lstWords_SelectedIndexChanged(lstWords, new EventArgs());
+            });
         }
 
         /// <summary>
@@ -765,9 +769,11 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void btnWordUp_Click(object sender, EventArgs e)
         {
+            if (!btnWordUp.Enabled)
+                return;
             SafetyExecute(() =>
             {
-                if (!btnWordUp.Enabled || lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 1)
+                if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 1)
                     return;
                 string t = (string)lstWords.Items[lstWords.SelectedIndex];
                 string s = (string)lstWords.Items[lstWords.SelectedIndex - 1];
@@ -785,9 +791,11 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void btnWordDown_Click(object sender, EventArgs e)
         {
+            if (!btnWordDown.Enabled)
+                return;
             SafetyExecute(() =>
             {
-                if (!btnWordDown.Enabled || lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 || lstWords.SelectedIndex >= lstWords.Items.Count - 1)
+                if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 || lstWords.SelectedIndex >= lstWords.Items.Count - 1)
                     return;
                 string t = (string)lstWords.Items[lstWords.SelectedIndex];
                 string s = (string)lstWords.Items[lstWords.SelectedIndex + 1];

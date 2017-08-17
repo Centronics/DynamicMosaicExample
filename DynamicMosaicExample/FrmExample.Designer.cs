@@ -132,31 +132,33 @@
             // btnWordAdd
             // 
             this.btnWordAdd.Enabled = false;
+            this.btnWordAdd.Font = new System.Drawing.Font("Microsoft Sans Serif", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnWordAdd.Location = new System.Drawing.Point(193, 39);
             this.btnWordAdd.Name = "btnWordAdd";
             this.btnWordAdd.Size = new System.Drawing.Size(66, 46);
             this.btnWordAdd.TabIndex = 7;
-            this.btnWordAdd.Text = "Добавить слово";
+            this.btnWordAdd.Text = "Добавить слово\r\nEnter";
             this.btnWordAdd.UseVisualStyleBackColor = true;
             this.btnWordAdd.Click += new System.EventHandler(this.btnWordAdd_Click);
             // 
             // btnWordRemove
             // 
             this.btnWordRemove.Enabled = false;
+            this.btnWordRemove.Font = new System.Drawing.Font("Microsoft Sans Serif", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnWordRemove.Location = new System.Drawing.Point(193, 88);
             this.btnWordRemove.Name = "btnWordRemove";
             this.btnWordRemove.Size = new System.Drawing.Size(66, 46);
             this.btnWordRemove.TabIndex = 8;
-            this.btnWordRemove.Text = "Удалить слово";
+            this.btnWordRemove.Text = "Удалить слово\r\nDelete";
             this.btnWordRemove.UseVisualStyleBackColor = true;
             this.btnWordRemove.Click += new System.EventHandler(this.btnWordRemove_Click);
             // 
             // txtWord
             // 
-            this.txtWord.Location = new System.Drawing.Point(145, 13);
+            this.txtWord.Location = new System.Drawing.Point(142, 13);
             this.txtWord.MaxLength = 6;
             this.txtWord.Name = "txtWord";
-            this.txtWord.Size = new System.Drawing.Size(114, 20);
+            this.txtWord.Size = new System.Drawing.Size(117, 20);
             this.txtWord.TabIndex = 6;
             this.txtWord.Tag = "";
             this.txtWord.TextChanged += new System.EventHandler(this.txtWord_TextChanged);
@@ -405,22 +407,24 @@
             // btnWordDown
             // 
             this.btnWordDown.Enabled = false;
+            this.btnWordDown.Font = new System.Drawing.Font("Microsoft Sans Serif", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnWordDown.Location = new System.Drawing.Point(142, 88);
             this.btnWordDown.Name = "btnWordDown";
             this.btnWordDown.Size = new System.Drawing.Size(49, 46);
             this.btnWordDown.TabIndex = 10;
-            this.btnWordDown.Text = "Слово\r\nвниз";
+            this.btnWordDown.Text = "Слово\r\nвниз\r\nCtrl+Dw";
             this.btnWordDown.UseVisualStyleBackColor = true;
             this.btnWordDown.Click += new System.EventHandler(this.btnWordDown_Click);
             // 
             // btnWordUp
             // 
             this.btnWordUp.Enabled = false;
+            this.btnWordUp.Font = new System.Drawing.Font("Microsoft Sans Serif", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnWordUp.Location = new System.Drawing.Point(142, 39);
             this.btnWordUp.Name = "btnWordUp";
             this.btnWordUp.Size = new System.Drawing.Size(49, 46);
             this.btnWordUp.TabIndex = 9;
-            this.btnWordUp.Text = "Слово\r\nвверх";
+            this.btnWordUp.Text = "Слово\r\nвверх\r\nCtrl+Up";
             this.btnWordUp.UseVisualStyleBackColor = true;
             this.btnWordUp.Click += new System.EventHandler(this.btnWordUp_Click);
             // 
