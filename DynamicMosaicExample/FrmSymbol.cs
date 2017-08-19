@@ -89,6 +89,7 @@ namespace DynamicMosaicExample
             {
                 _draw = true;
                 _grFront.DrawRectangle(_blackPen, new Rectangle(e.X, e.Y, 1, 1));
+                btnClear.Enabled = true;
             });
             RunAction(() => pbBox.Refresh());
         }

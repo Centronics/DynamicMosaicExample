@@ -367,6 +367,7 @@ namespace DynamicMosaicExample
                 return;
             SafetyExecute(() =>
             {
+                WordsSave();
                 if (string.IsNullOrWhiteSpace(txtWord.Text) || WordExist(txtWord.Text))
                 {
                     txtWord.Text = string.Empty;
@@ -823,7 +824,7 @@ namespace DynamicMosaicExample
                 {
                     WaitableTimer();
                     List<ImageRect> images = new List<ImageRect>(ImageRect.Images);
-                    if (images.Count < 2)
+                    if (images.Count < 2 && _workReflex == null)
                     {
                         MessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
                         return;
