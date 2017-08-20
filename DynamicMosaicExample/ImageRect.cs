@@ -29,7 +29,8 @@ namespace DynamicMosaicExample
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm), $@"{nameof(ImageRect)}: {nameof(btm)} = null.");
             if (string.IsNullOrWhiteSpace(imagePath))
-                throw new ArgumentNullException(nameof(imagePath), $@"{nameof(ImageRect)}: {nameof(imagePath)} = null.");
+                throw new ArgumentNullException(nameof(imagePath),
+                    $@"{nameof(ImageRect)}: {nameof(imagePath)} = null.");
             ulong? number;
             if (!NameParser(out number, tag) || number == null)
                 return;
