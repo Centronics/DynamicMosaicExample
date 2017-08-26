@@ -444,7 +444,7 @@ namespace DynamicMosaicExample
                 btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
                 btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                 Initialize();
-            });
+            }, () => btnClearImage.Enabled = IsPainting);
         }
 
         /// <summary>
@@ -461,7 +461,7 @@ namespace DynamicMosaicExample
                 btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
                 btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                 Initialize();
-            });
+            }, () => btnClearImage.Enabled = IsPainting);
         }
 
         /// <summary>
