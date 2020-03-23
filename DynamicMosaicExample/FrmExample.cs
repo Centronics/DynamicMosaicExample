@@ -1,22 +1,21 @@
-﻿using System;
+﻿using DynamicMosaic;
+using DynamicParser;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Windows.Forms;
-using DynamicMosaic;
-using DynamicParser;
 
 namespace DynamicMosaicExample
 {
     /// <summary>
     ///     Класс основной формы приложения.
     /// </summary>
-    public partial class FrmExample : Form
+    sealed partial class FrmExample : Form
     {
         /// <summary>
         ///     Надпись на кнопке "Распознать".
@@ -37,11 +36,6 @@ namespace DynamicMosaicExample
         ///     Надпись на кнопке "Распознать".
         /// </summary>
         const string StrRecognize3 = "Ждите...";
-
-        /// <summary>
-        ///     Имя файла с искомыми словами.
-        /// </summary>
-        const string StrWordsFile = "Words";
 
         /// <summary>
         ///     Текст ошибки в случае, если отсутствуют образы для поиска (распознавания).
@@ -78,20 +72,10 @@ namespace DynamicMosaicExample
         readonly string _strGrpResults;
 
         /// <summary>
-        ///     Хранит значение свойства <see cref="GroupBox.Text" /> объекта <see cref="grpWords" />.
-        /// </summary>
-        readonly string _strGrpWords;
-
-        /// <summary>
         ///     Текст кнопки "Распознать". Сохраняет исходное значение свойства <see cref="Button.Text" /> кнопки
         ///     <see cref="btnRecognizeImage" />.
         /// </summary>
         readonly string _strRecog;
-
-        /// <summary>
-        ///     Строка пути сохранения/загрузки файла, содержащего искомые слова.
-        /// </summary>
-        readonly string _strWordsPath = Path.Combine(Application.StartupPath, $"{StrWordsFile}.txt");
 
         /// <summary>
         ///     Содержит изначальное значение поля "Название" искомого образа буквы.
@@ -104,25 +88,23 @@ namespace DynamicMosaicExample
         readonly Pen _whitePen;
 
         /// <summary>
-        ///     Предназначена для того, чтобы разрешить/запретить включение/выключение кнопок <see cref="btnWordUp" /> и
-        ///     <see cref="btnWordDown" />
-        ///     на время распознавания изображения.
-        /// </summary>
-        bool _allowChangeWordUpDown = true;
-
-        /// <summary>
         ///     Изображение, которое выводится в окне создания распознаваемого изображения.
         /// </summary>
         Bitmap _btmFront;
 
         /// <summary>
-        ///     Индекс образа для распознавания, рассматриваемый в данный момент.
+        ///     Индекс <see cref="ImageRect"/>, рассматриваемый в данный момент.
         /// </summary>
         int _currentImage;
 
         /// <summary>
+        /// Индекс <see cref="Reflex"/>, содержимое которого отображается в данный момент.
+        /// </summary>
+        int _currentReflex;
+
+        /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
-        ///     Значение true - вывод разрешён, в противном случае - false.
+        ///     Значение <see langword="true" /> - вывод разрешён, в противном случае - <see langword="false" />.
         /// </summary>
         bool _draw;
 
@@ -139,15 +121,9 @@ namespace DynamicMosaicExample
         long _imageLastCount = -1;
 
         /// <summary>
-        ///     Отражает индекс выделенного в данный момент искомого слова.
+        /// Коллекция задействованных на данный момент элементов <see cref="Reflex" />.
         /// </summary>
-        int _selectedIndex = -1;
-
-        /// <summary>
-        ///     <see cref="Reflex" />, необходимый для обучения при распознавании образов.
-        ///     Обновляется при нажатии кнопки сброса обучения <see cref="btnResetLearn" />.
-        /// </summary>
-        Reflex _workReflex;
+        readonly List<Reflex> _workReflexes = new List<Reflex>();
 
         /// <summary>
         ///     Поток, отвечающий за выполнение процедуры распознавания.
@@ -155,21 +131,29 @@ namespace DynamicMosaicExample
         Thread _workThread;
 
         /// <summary>
+        /// Текущий обрабатываемый объект <see cref="Reflex"/>.
+        /// </summary>
+        Reflex _workReflex;
+
+        /// <summary>
         ///     Конструктор основной формы приложения.
         /// </summary>
-        public FrmExample()
+        internal FrmExample()
         {
             try
             {
                 _whitePen = new Pen(_defaultColor, 2.0f);
                 InitializeComponent();
+
+                //pbSuccess.Image = Resources.Error_128; // ОТЛИЧНО!!!
+
                 Initialize();
                 _strRecog = btnRecognizeImage.Text;
                 _unknownSymbolName = lblSymbolName.Text;
                 _strGrpResults = grpResults.Text;
-                _strGrpWords = grpWords.Text;
                 ImageWidth = pbBrowse.Width;
                 ImageHeight = pbBrowse.Height;
+                lstResults.SelectedIndex = 0;
             }
             catch (Exception ex)
             {
@@ -187,12 +171,12 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Ширина образа для распознавания.
         /// </summary>
-        public static int ImageWidth { get; private set; }
+        internal static int ImageWidth { get; private set; }
 
         /// <summary>
         ///     Высота образа для распознавания.
         /// </summary>
-        public static int ImageHeight { get; private set; }
+        internal static int ImageHeight { get; private set; }
 
         /// <summary>
         ///     Отключает или включает доступность кнопок на время выполнения операции.
@@ -207,24 +191,19 @@ namespace DynamicMosaicExample
                     btnImageCreate.Enabled = value;
                     btnImageDelete.Enabled = value;
                     tmrImagesCount.Enabled = value;
-                    btnWordRemove.Enabled = value && lstWords.SelectedIndex > -1;
-                    btnWordAdd.Enabled = value && !string.IsNullOrEmpty(txtWord.Text);
                     txtWord.Enabled = value;
                     btnSaveImage.Enabled = value;
                     btnLoadImage.Enabled = value;
                     btnClearImage.Enabled = value && IsPainting;
-                    btnResetLearn.Enabled = _workReflex != null && value;
-                    _allowChangeWordUpDown = value;
+                    btnReflexClear.Enabled = _workReflex != null && value;
                     if (value)
                     {
                         btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
                         btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                         return;
                     }
-                    lstWords.SelectedIndex = -1;
                     btnWide.Enabled = false;
                     btnNarrow.Enabled = false;
-                    lstResults.Items.Clear();
                     grpResults.Text = _strGrpResults;
                 });
             }
@@ -239,13 +218,13 @@ namespace DynamicMosaicExample
             get
             {
                 for (int y = 0; y < _btmFront.Height; y++)
-                for (int x = 0; x < _btmFront.Width; x++)
-                {
-                    Color c = _btmFront.GetPixel(x, y);
-                    if (c.A != _defaultColor.A || c.R != _defaultColor.R || c.G != _defaultColor.G ||
-                        c.B != _defaultColor.B)
-                        return true;
-                }
+                    for (int x = 0; x < _btmFront.Width; x++)
+                    {
+                        Color c = _btmFront.GetPixel(x, y);
+                        if (c.A != _defaultColor.A || c.R != _defaultColor.R || c.G != _defaultColor.G ||
+                            c.B != _defaultColor.B)
+                            return true;
+                    }
                 return false;
             }
         }
@@ -355,8 +334,8 @@ namespace DynamicMosaicExample
                 using (Graphics gr = Graphics.FromImage(to))
                     gr.Clear(color.Value);
             for (int x = 0; x < from.Width && x < to.Width; x++)
-            for (int y = 0; y < from.Height; y++)
-                to.SetPixel(x, y, from.GetPixel(x, y));
+                for (int y = 0; y < from.Height; y++)
+                    to.SetPixel(x, y, from.GetPixel(x, y));
         }
 
         /// <summary>
@@ -364,70 +343,10 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void pbDraw_MouseDown(object sender, MouseEventArgs e)
+        void PbDraw_MouseDown(object sender, MouseEventArgs e)
         {
             _draw = true;
             DrawPoint(e.X, e.Y, e.Button);
-        }
-
-        /// <summary>
-        ///     Получает значение, означающее, существует заданное слово в коллекции или нет.
-        ///     В случае, если оно существует, возвращается значение true, в противном случае - false.
-        /// </summary>
-        /// <param name="word">Проверяемое слово.</param>
-        /// <returns>В случае, если указанное слово существует, возвращается значение true, в противном случае - false.</returns>
-        bool WordExist(string word)
-        {
-            return
-                lstWords.Items.Cast<string>()
-                    .Any(s => string.Compare(s, word, StringComparison.OrdinalIgnoreCase) == 0);
-        }
-
-        /// <summary>
-        ///     Добавляет искомое слово, указанное в <see cref="txtWord" />.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void btnWordAdd_Click(object sender, EventArgs e)
-        {
-            if (!btnWordAdd.Enabled)
-                return;
-            SafetyExecute(() =>
-            {
-                WordsSave();
-                if (string.IsNullOrWhiteSpace(txtWord.Text) || WordExist(txtWord.Text))
-                {
-                    txtWord.Text = string.Empty;
-                    return;
-                }
-                lstWords.Items.Insert(0, txtWord.Text);
-                WordsSave();
-                txtWord.Text = string.Empty;
-            }, () =>
-            {
-                WordsLoad();
-                lstWords_SelectedIndexChanged(lstWords, new EventArgs());
-            });
-        }
-
-        /// <summary>
-        ///     Удаляет выделенное искомое слово, указанное в <see cref="lstWords" />.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void btnWordRemove_Click(object sender, EventArgs e)
-        {
-            if (!btnWordRemove.Enabled)
-                return;
-            SafetyExecute(() =>
-            {
-                int index = lstWords.SelectedIndex;
-                if (index < 0)
-                    return;
-                _selectedIndex = index;
-                lstWords.Items.RemoveAt(index);
-                WordsSave();
-            }, WordsLoad);
         }
 
         /// <summary>
@@ -436,16 +355,13 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnWide_Click(object sender, EventArgs e)
-        {
-            SafetyExecute(() =>
+        void BtnWide_Click(object sender, EventArgs e) => SafetyExecute(() =>
             {
                 pbDraw.Width += WidthCount;
                 btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
                 btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                 Initialize();
             }, () => btnClearImage.Enabled = IsPainting);
-        }
 
         /// <summary>
         ///     Сужает область рисования распознаваемого изображения <see cref="pbDraw" /> до минимального размера по
@@ -453,98 +369,20 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnNarrow_Click(object sender, EventArgs e)
-        {
-            SafetyExecute(() =>
+        void BtnNarrow_Click(object sender, EventArgs e) => SafetyExecute(() =>
             {
                 pbDraw.Width -= WidthCount;
                 btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
                 btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                 Initialize();
             }, () => btnClearImage.Enabled = IsPainting);
-        }
-
-        /// <summary>
-        ///     Сохраняет искомые слова в файл, имя которого содержится в константе <see cref="StrWordsFile" /> с расширением txt.
-        ///     Кодировка: UTF-8.
-        /// </summary>
-        void WordsSave()
-        {
-            SafetyExecute(() => File.WriteAllLines(_strWordsPath, lstWords.Items.Cast<string>(), Encoding.UTF8));
-        }
-
-        /// <summary>
-        ///     Загружает искомые слова из файла, имя которого содержится в константе <see cref="StrWordsFile" /> с расширением
-        ///     txt.
-        ///     Кодировка: UTF-8.
-        /// </summary>
-        void WordsLoad()
-        {
-            SafetyExecute(() =>
-            {
-                if (IsWorking)
-                    return;
-                lstWords.Items.Clear();
-                if (!File.Exists(_strWordsPath))
-                    return;
-                foreach (string s in File.ReadAllLines(_strWordsPath, Encoding.UTF8))
-                {
-                    if (string.IsNullOrWhiteSpace(s))
-                        continue;
-                    string str = s;
-                    if (s.Length > txtWord.MaxLength)
-                        str = s.Substring(0, txtWord.MaxLength);
-                    if (WordExist(str))
-                        continue;
-                    lstWords.Items.Add(str);
-                }
-                if (_selectedIndex < 0 || lstWords.Items.Count <= 0)
-                    return;
-                lstWords.SelectedIndex = _selectedIndex >= lstWords.Items.Count
-                    ? lstWords.Items.Count - 1
-                    : _selectedIndex;
-            }, () =>
-            {
-                _selectedIndex = -1;
-                grpWords.Text = $@"{_strGrpWords} ({lstWords.Items.Count})";
-                if (lstWords.Items.Count <= 0)
-                    File.Delete(_strWordsPath);
-            });
-        }
-
-        /// <summary>
-        ///     Вызывается для того, чтобы включить/выключить кнопки <see cref="btnWordUp" /> и <see cref="btnWordDown" />.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void lstWords_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            btnWordDown.Enabled = _allowChangeWordUpDown && lstWords.Items.Count > 1 &&
-                                  lstWords.SelectedIndex < lstWords.Items.Count - 1 && lstWords.SelectedIndex > -1;
-            btnWordUp.Enabled = _allowChangeWordUpDown && lstWords.Items.Count > 1 && lstWords.SelectedIndex > 0;
-            btnWordRemove.Enabled = lstWords.SelectedIndex > -1 && !IsWorking;
-        }
-
-        /// <summary>
-        ///     Служит для обновления состояния кнопок <see cref="btnWordUp" /> и <see cref="btnWordDown" />.
-        ///     Вызывает <see cref="lstWords_SelectedIndexChanged(object, EventArgs)" />.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void lstWords_Enter(object sender, EventArgs e)
-        {
-            lstWords_SelectedIndexChanged(lstWords, new EventArgs());
-        }
 
         /// <summary>
         ///     Вызывается при отпускании клавиши мыши над полем создания исходного изображения.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void pbDraw_MouseUp(object sender, MouseEventArgs e)
-        {
-            _draw = false;
-        }
+        void PbDraw_MouseUp(object sender, MouseEventArgs e) => _draw = false;
 
         /// <summary>
         ///     Возвращает окно просмотра образов в исходное состояние.
@@ -560,8 +398,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnImageNext_Click(object sender, EventArgs e)
-        {
+        void BtnImageNext_Click(object sender, EventArgs e) =>
             SafetyExecute(() =>
             {
                 List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
@@ -576,20 +413,19 @@ namespace DynamicMosaicExample
                     _currentImage = 0;
                 else
                     _currentImage++;
-                if (_currentImage >= lst.Count || _currentImage < 0) return;
+                if (_currentImage >= lst.Count || _currentImage < 0)
+                    return;
                 ImageRect ir = lst[_currentImage];
                 pbBrowse.Image = ir.Bitm;
                 lblSymbolName.Text = ir.SymbolName;
             }, () => tmrImagesCount.Enabled = true);
-        }
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Предыдущий" в искомых образах букв.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnImagePrev_Click(object sender, EventArgs e)
-        {
+        void BtnImagePrev_Click(object sender, EventArgs e) =>
             SafetyExecute(() =>
             {
                 List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
@@ -604,12 +440,12 @@ namespace DynamicMosaicExample
                     _currentImage = lst.Count - 1;
                 else
                     _currentImage--;
-                if (_currentImage >= lst.Count || _currentImage < 0) return;
+                if (_currentImage >= lst.Count || _currentImage < 0)
+                    return;
                 ImageRect ir = lst[_currentImage];
                 pbBrowse.Image = ir.Bitm;
                 lblSymbolName.Text = ir.SymbolName;
             }, () => tmrImagesCount.Enabled = true);
-        }
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Удалить".
@@ -617,8 +453,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnImageDelete_Click(object sender, EventArgs e)
-        {
+        void BtnImageDelete_Click(object sender, EventArgs e) =>
             SafetyExecute(() =>
             {
                 List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
@@ -629,41 +464,37 @@ namespace DynamicMosaicExample
                 }
                 if (_currentImage >= lst.Count || _currentImage < 0) return;
                 File.Delete(lst[_currentImage].ImagePath);
-                btnImagePrev_Click(null, null);
-                btnResetLearn_Click(btnResetLearn, new EventArgs());
+                BtnImagePrev_Click(null, null);
+                BtnReflexClear_Click(btnReflexClear, new EventArgs());
             }, () =>
             {
                 RefreshImagesCount();
                 tmrImagesCount.Enabled = true;
             });
-        }
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Создать образ".
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnImageCreate_Click(object sender, EventArgs e)
-        {
+        void BtnImageCreate_Click(object sender, EventArgs e) =>
             SafetyExecute(() =>
             {
                 using (FrmSymbol fs = new FrmSymbol())
                     if (fs.ShowDialog() == DialogResult.OK)
-                        btnResetLearn_Click(btnResetLearn, new EventArgs());
+                        BtnReflexClear_Click(btnReflexClear, new EventArgs());
             }, () =>
             {
                 RefreshImagesCount();
-                btnImageNext_Click(null, null);
+                BtnImageNext_Click(null, null);
                 tmrImagesCount.Enabled = true;
             });
-        }
 
         /// <summary>
         ///     Выполняет подсчёт количества изображений для поиска.
         ///     Обновляет состояния кнопок, связанных с изображениями.
         /// </summary>
-        void RefreshImagesCount()
-        {
+        void RefreshImagesCount() =>
             InvokeAction(() =>
             {
                 try
@@ -680,7 +511,7 @@ namespace DynamicMosaicExample
                         return;
                     }
                     if (!btnImageNext.Enabled || !btnImagePrev.Enabled || _imageLastCount != count)
-                        btnImageNext_Click(null, null);
+                        BtnImageNext_Click(null, null);
                     _imageLastCount = count;
                     btnImageDelete.Enabled = btnImageCreate.Enabled;
                     btnImageNext.Enabled = true;
@@ -692,13 +523,11 @@ namespace DynamicMosaicExample
                     throw;
                 }
             });
-        }
 
         /// <summary>
         ///     Запускает или останавливает таймер, выполняющий замер времени, затраченного на распознавание.
         /// </summary>
-        void WaitableTimer()
-        {
+        void WaitableTimer() =>
             new Thread(() => SafetyExecute(() =>
             {
                 _stopwatch.Restart();
@@ -716,9 +545,8 @@ namespace DynamicMosaicExample
                                     btnRecognizeImage.Text = StrRecognize;
                                     lblElapsedTime.Text =
                                         $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                                _stopwatch
-                                                    .Elapsed.Seconds
-                                            :00}";
+                                            _stopwatch
+                                                .Elapsed.Seconds:00}";
                                 });
                                 Thread.Sleep(100);
                                 break;
@@ -728,9 +556,8 @@ namespace DynamicMosaicExample
                                     btnRecognizeImage.Text = StrRecognize1;
                                     lblElapsedTime.Text =
                                         $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                                _stopwatch
-                                                    .Elapsed.Seconds
-                                            :00}";
+                                            _stopwatch
+                                                .Elapsed.Seconds:00}";
                                 });
                                 Thread.Sleep(100);
                                 break;
@@ -740,9 +567,8 @@ namespace DynamicMosaicExample
                                     btnRecognizeImage.Text = StrRecognize2;
                                     lblElapsedTime.Text =
                                         $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                                _stopwatch
-                                                    .Elapsed.Seconds
-                                            :00}";
+                                            _stopwatch
+                                                .Elapsed.Seconds:00}";
                                 });
                                 Thread.Sleep(100);
                                 break;
@@ -752,9 +578,8 @@ namespace DynamicMosaicExample
                                     btnRecognizeImage.Text = StrRecognize3;
                                     lblElapsedTime.Text =
                                         $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                                _stopwatch
-                                                    .Elapsed.Seconds
-                                            :00}";
+                                            _stopwatch
+                                                .Elapsed.Seconds:00}";
                                 });
                                 k = -1;
                                 Thread.Sleep(100);
@@ -767,8 +592,8 @@ namespace DynamicMosaicExample
                             continue;
                         InvokeAction(() =>
                         {
-                            if (lstWords.Items.Count > 0)
-                                lstWords.SelectedIndex = 0;
+                            /*if (lstWords.Items.Count > 0)
+                                lstWords.SelectedIndex = 0;*/
                         });
                         return;
                     }
@@ -785,7 +610,6 @@ namespace DynamicMosaicExample
                 IsBackground = true,
                 Name = nameof(WaitableTimer)
             }.Start();
-        }
 
         /// <summary>
         ///     Сбрасывает сведения, накопившиеся в процессе обучения программы при распознавании.
@@ -794,56 +618,12 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnResetLearn_Click(object sender, EventArgs e)
+        void BtnReflexClear_Click(object sender, EventArgs e) => InvokeAction(() =>
         {
+            _workReflexes.Clear();
             _workReflex = null;
-            btnResetLearn.Enabled = false;
-        }
-
-        /// <summary>
-        ///     Поднимает искомое слово вверх по списку, т.к. результат поиска зависит от порядка слов.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void btnWordUp_Click(object sender, EventArgs e)
-        {
-            if (!btnWordUp.Enabled)
-                return;
-            SafetyExecute(() =>
-            {
-                if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 1)
-                    return;
-                string t = (string) lstWords.Items[lstWords.SelectedIndex];
-                string s = (string) lstWords.Items[lstWords.SelectedIndex - 1];
-                lstWords.Items[lstWords.SelectedIndex] = s;
-                lstWords.Items[lstWords.SelectedIndex - 1] = t;
-                _selectedIndex = lstWords.SelectedIndex - 1;
-                WordsSave();
-            }, WordsLoad);
-        }
-
-        /// <summary>
-        ///     Опускает искомое слово вниз по списку, т.к. результат поиска зависит от порядка слов.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void btnWordDown_Click(object sender, EventArgs e)
-        {
-            if (!btnWordDown.Enabled)
-                return;
-            SafetyExecute(() =>
-            {
-                if (lstWords.Items.Count <= 1 || lstWords.SelectedIndex < 0 ||
-                    lstWords.SelectedIndex >= lstWords.Items.Count - 1)
-                    return;
-                string t = (string) lstWords.Items[lstWords.SelectedIndex];
-                string s = (string) lstWords.Items[lstWords.SelectedIndex + 1];
-                lstWords.Items[lstWords.SelectedIndex] = s;
-                lstWords.Items[lstWords.SelectedIndex + 1] = t;
-                _selectedIndex = lstWords.SelectedIndex + 1;
-                WordsSave();
-            }, WordsLoad);
-        }
+            btnReflexClear.Enabled = false;
+        });
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Распознать".
@@ -851,8 +631,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnRecognizeImage_Click(object sender, EventArgs e)
-        {
+        void BtnRecognizeImage_Click(object sender, EventArgs e) =>
             SafetyExecute(() =>
             {
                 if (IsWorking)
@@ -862,12 +641,12 @@ namespace DynamicMosaicExample
                 {
                     WaitableTimer();
                     List<ImageRect> images = new List<ImageRect>(ImageRect.Images);
-                    if (images.Count < 2 && _workReflex == null)
+                    if (images.Count < 2 && _workReflexes.Count <= 0)
                     {
                         MessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
                         return;
                     }
-                    if (lstWords.Items.Count <= 0)
+                    if (txtWord.Text.Length <= 0)
                     {
                         MessageInOtherThread(
                             @"Слова отсутствуют. Добавьте какое-нибудь слово, которое можно составить из одного или нескольких образов.");
@@ -878,42 +657,30 @@ namespace DynamicMosaicExample
                         MessageInOtherThread(@"Необходимо нарисовать какой-нибудь рисунок на рабочей поверхности.");
                         return;
                     }
-                    if (_workReflex == null)
-                        _workReflex =
-                            new Reflex(new ProcessorContainer((from ir in images
-                                select new Processor(ir.ImageMap, ir.SymbolString)).ToArray()));
-                    for (int k = 0; k < lstWords.Items.Count; k++)
-                    {
-                        int kCopy = k;
-                        InvokeAction(() => lstWords.SelectedIndex = kCopy);
-                        string word = (string) lstWords.Items[k];
-                        if (!_workReflex.FindRelation(new Processor(_btmFront, "Main"), word))
-                            continue;
+                    Reflex workReflex = _workReflex ?? new Reflex(new ProcessorContainer((from ir in images
+                                                                                          select new Processor(ir.ImageMap, ir.SymbolString)).ToArray()));
+                    Reflex result = workReflex.FindRelation(new Processor(_btmFront, "Main"), txtWord.Text);
+                    if (result != null)
                         InvokeAction(() =>
                         {
-                            lstResults.Items.Add(word);
+                            _workReflexes.Add(result);
+                            lstResults.Items.Add(DateTime.Now.ToString(@"HH:mm:ss"));
                             grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count})";
                         });
-                    }
                     if (lstResults.Items.Count > 0)
                         return;
                     MessageInOtherThread(@"Распознанные образы отсутствуют. Отсутствуют слова или образы.");
-                }, () =>
+                }, () => InvokeAction(() =>
                 {
-                    _allowChangeWordUpDown = true;
-                    InvokeAction(() =>
-                    {
-                        lstWords.SelectedIndex = -1;
-                        if (lstWords.Items.Count > 0)
-                            lstWords.SelectedIndex = 0;
-                    });
-                }))
+                    lstResults.SelectedIndex = -1;
+                    if (lstResults.Items.Count > 0)
+                        lstResults.SelectedIndex = 0;
+                })))
                 {
                     IsBackground = true,
                     Name = "Recognizer"
                 }).Start();
             });
-        }
 
         /// <summary>
         ///     Осуществляет выход из программы по нажатию клавиши Escape.
@@ -938,10 +705,10 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void txtWord_KeyUp(object sender, KeyEventArgs e)
+        void TxtWord_KeyUp(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Enter)
-                btnWordAdd_Click(null, null);
+                BtnRecognizeImage_Click(null, null);
         }
 
         /// <summary>
@@ -949,96 +716,30 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void txtWord_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if ((Keys) e.KeyChar == Keys.Enter || (Keys) e.KeyChar == Keys.Tab || (Keys) e.KeyChar == Keys.Pause ||
-                (Keys) e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
-                e.Handled = true;
-        }
-
-        /// <summary>
-        ///     Отключает или включает кнопку добавления искомого слова в процессе его написания.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void txtWord_TextChanged(object sender, EventArgs e)
-        {
-            btnWordAdd.Enabled = !string.IsNullOrEmpty(txtWord.Text);
-        }
-
-        /// <summary>
-        ///     Производит удаление слова по нажатию клавиши Delete.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void lstWords_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Delete)
-                btnWordRemove_Click(null, null);
-        }
-
-        /// <summary>
-        ///     Производит движение слов вверх и вниз аналогично кнопкам <see cref="btnWordUp" /> и <see cref="btnWordDown" /> при
-        ///     нажатой клавише Control
-        ///     стрелками вверх и вниз.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void lstWords_KeyDown(object sender, KeyEventArgs e)
-        {
-            // ReSharper disable once SwitchStatementMissingSomeCases
-            switch (e.KeyCode)
-            {
-                case Keys.Up:
-                    if (e.Control)
-                    {
-                        bool b = lstWords.SelectedIndex == 0;
-                        btnWordUp_Click(btnWordUp, new EventArgs());
-                        if (b)
-                            lstWords.SelectedIndex = 0;
-                        e.Handled = true;
-                    }
-                    break;
-                case Keys.Down:
-                    if (e.Control)
-                    {
-                        int lastPos = lstWords.Items.Count - 1;
-                        bool b = lstWords.SelectedIndex == lastPos;
-                        btnWordDown_Click(btnWordDown, new EventArgs());
-                        if (b)
-                            lstWords.SelectedIndex = lastPos;
-                        e.Handled = true;
-                    }
-                    break;
-            }
-        }
+        void TxtWord_KeyPress(object sender, KeyPressEventArgs e) =>
+            e.Handled = ((Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab || (Keys)e.KeyChar == Keys.Pause ||
+                         (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15);
 
         /// <summary>
         ///     Отменяет отрисовку изображения для распознавания в случае ухода указателя мыши с поля рисования.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void pbDraw_MouseLeave(object sender, EventArgs e)
-        {
-            _draw = false;
-        }
+        void PbDraw_MouseLeave(object sender, EventArgs e) => _draw = false;
 
         /// <summary>
         ///     Обновляет количество изображений для поиска.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void tmrImagesCount_Tick(object sender, EventArgs e)
-        {
-            RefreshImagesCount();
-        }
+        void TmrImagesCount_Tick(object sender, EventArgs e) => RefreshImagesCount();
 
         /// <summary>
         ///     Отвечает за отрисовку рисунка, создаваемого пользователем.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void pbDraw_MouseMove(object sender, MouseEventArgs e)
+        void PbDraw_MouseMove(object sender, MouseEventArgs e)
         {
             if (_draw)
                 DrawPoint(e.X, e.Y, e.Button);
@@ -1050,9 +751,7 @@ namespace DynamicMosaicExample
         /// <param name="x">Координата Х.</param>
         /// <param name="y">Координата Y.</param>
         /// <param name="button">Данные о нажатой кнопке мыши.</param>
-        void DrawPoint(int x, int y, MouseButtons button)
-        {
-            SafetyExecute(() =>
+        void DrawPoint(int x, int y, MouseButtons button) => SafetyExecute(() =>
             {
                 // ReSharper disable once SwitchStatementMissingSomeCases
                 switch (button)
@@ -1066,7 +765,6 @@ namespace DynamicMosaicExample
                         break;
                 }
             }, () => pbDraw.Refresh());
-        }
 
         /// <summary>
         ///     Вызывается во время первого отображения формы.
@@ -1076,10 +774,9 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void FrmExample_Shown(object sender, EventArgs e)
         {
-            btnClearImage_Click(null, null);
-            btnImageNext_Click(null, null);
+            BtnClearImage_Click(null, null);
+            BtnImageNext_Click(null, null);
             RefreshImagesCount();
-            WordsLoad();
         }
 
         /// <summary>
@@ -1087,44 +784,38 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnClearImage_Click(object sender, EventArgs e)
-        {
+        void BtnClearImage_Click(object sender, EventArgs e) =>
             SafetyExecute(() =>
             {
                 _grFront.Clear(_defaultColor);
                 btnClearImage.Enabled = false;
             }, () => pbDraw.Refresh());
-        }
 
         /// <summary>
         ///     Обрабатывает событие нажатие кнопки сохранения созданного изображения.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnSaveImage_Click(object sender, EventArgs e)
-        {
+        void BtnSaveImage_Click(object sender, EventArgs e) =>
             SafetyExecute(() =>
             {
                 if (dlgSaveImage.ShowDialog(this) != DialogResult.OK) return;
                 using (FileStream fs = new FileStream(dlgSaveImage.FileName, FileMode.Create, FileAccess.Write))
                     _btmFront.Save(fs, ImageFormat.Bmp);
             });
-        }
 
         /// <summary>
         ///     Обрабатывает событие нажатие кнопки загрузки созданного изображения.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnLoadImage_Click(object sender, EventArgs e)
-        {
+        void BtnLoadImage_Click(object sender, EventArgs e) =>
             SafetyExecute(() =>
                 {
                     if (dlgOpenImage.ShowDialog(this) != DialogResult.OK) return;
                     Initialize(dlgOpenImage.FileName);
                 },
                 () => btnClearImage.Enabled = IsPainting);
-        }
 
         /// <summary>
         ///     Выполняет метод с помощью метода <see cref="Control.Invoke(Delegate)" />.
@@ -1137,7 +828,7 @@ namespace DynamicMosaicExample
                 return;
             try
             {
-                Action act = delegate
+                void Act()
                 {
                     try
                     {
@@ -1147,21 +838,20 @@ namespace DynamicMosaicExample
                     {
                         try
                         {
-                            MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK,
-                                MessageBoxIcon.Exclamation);
+                            MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                             catchAction?.Invoke();
                         }
                         catch (Exception ex1)
                         {
-                            MessageBox.Show(this, ex1.Message, @"Ошибка", MessageBoxButtons.OK,
-                                MessageBoxIcon.Exclamation);
+                            MessageBox.Show(this, ex1.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                         }
                     }
-                };
+                }
+
                 if (InvokeRequired)
-                    Invoke(act);
+                    Invoke((Action)Act);
                 else
-                    act();
+                    Act();
             }
             catch (Exception ex)
             {
@@ -1235,5 +925,74 @@ namespace DynamicMosaicExample
                 Name = @"Message"
             }.Start());
         }
+
+        void LstResults_SelectedIndexChanged(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            btnReflexRemove.Enabled = lstResults.SelectedIndex > 0;
+            _workReflex = lstResults.SelectedIndex > 0 ? _workReflexes[lstResults.SelectedIndex - 1] : null;
+            if (lstResults.SelectedIndex <= 0)
+                return;
+                _currentReflex = lstResults.SelectedIndex;
+
+        });
+
+        void BtnReflexRemove_Click(object sender, EventArgs e) => SafetyExecute(() =>
+            {
+                if (lstResults.SelectedIndex <= 0)
+                    return;
+                _workReflexes.RemoveAt(lstResults.SelectedIndex - 1);
+                lstResults.Items.RemoveAt(lstResults.SelectedIndex);
+                _workReflex = null;
+                lstResults.SelectedIndex = -1;
+            });
+
+        void BtnConNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            /*
+             SafetyExecute(() =>
+            {List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
+                if (lst.Count <= 0)
+                {
+                    SymbolBrowseClear();
+                    MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                    return;
+                }
+                if (_currentImage >= lst.Count - 1)
+                    _currentImage = 0;
+                else
+                    _currentImage++;
+                if (_currentImage >= lst.Count || _currentImage < 0)
+                    return;
+                ImageRect ir = lst[_currentImage];
+                pbBrowse.Image = ir.Bitm;
+                lblSymbolName.Text = ir.SymbolName;
+                });*/
+        });
+
+        void BtnConPrevious_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            /*SafetyExecute(() =>
+            {
+                List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
+                if (lst.Count <= 0)
+                {
+                    SymbolBrowseClear();
+                    MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                    return;
+                }
+
+                if (_currentImage <= 0)
+                    _currentImage = lst.Count - 1;
+                else
+                    _currentImage--;
+                if (_currentImage >= lst.Count || _currentImage < 0)
+                    return;
+                ImageRect ir = lst[_currentImage];
+                pbBrowse.Image = ir.Bitm;
+                lblSymbolName.Text = ir.SymbolName;
+            });*/
+        });
     }
 }
