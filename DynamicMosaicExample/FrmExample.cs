@@ -83,6 +83,16 @@ namespace DynamicMosaicExample
         readonly string _unknownSymbolName;
 
         /// <summary>
+        /// Содержит изначальное значение поля "Название" искомого образа в <see cref="Reflex"/>.
+        /// </summary>
+        readonly string _unknownSystemName;
+
+        /// <summary>
+        /// Строка "Создать Reflex".
+        /// </summary>
+        readonly string _createReflexString;
+
+        /// <summary>
         ///     Задаёт цвет и ширину для стирания в окне создания распознаваемого изображения.
         /// </summary>
         readonly Pen _whitePen;
@@ -144,12 +154,11 @@ namespace DynamicMosaicExample
             {
                 _whitePen = new Pen(_defaultColor, 2.0f);
                 InitializeComponent();
-
-                //pbSuccess.Image = Resources.Error_128; // ОТЛИЧНО!!!
-
                 Initialize();
                 _strRecog = btnRecognizeImage.Text;
                 _unknownSymbolName = lblSymbolName.Text;
+                _unknownSystemName = lblConSymbol.Text;
+                _createReflexString = (string)lstResults.Items[0];
                 _strGrpResults = grpResults.Text;
                 ImageWidth = pbBrowse.Width;
                 ImageHeight = pbBrowse.Height;
@@ -394,6 +403,15 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
+        ///     Возвращает окно просмотра <see cref="Reflex"/> в исходное состояние.
+        /// </summary>
+        void ReflexBrowseClear()
+        {
+            lblConSymbol.Text = _unknownSystemName;
+            pbConSymbol.Image = new Bitmap(pbConSymbol.Width, pbConSymbol.Height);
+        }
+
+        /// <summary>
         ///     Вызывается по нажатию кнопки "Следующий" в искомых образах букв.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
@@ -413,8 +431,6 @@ namespace DynamicMosaicExample
                     _currentImage = 0;
                 else
                     _currentImage++;
-                if (_currentImage >= lst.Count || _currentImage < 0)
-                    return;
                 ImageRect ir = lst[_currentImage];
                 pbBrowse.Image = ir.Bitm;
                 lblSymbolName.Text = ir.SymbolName;
@@ -440,8 +456,6 @@ namespace DynamicMosaicExample
                     _currentImage = lst.Count - 1;
                 else
                     _currentImage--;
-                if (_currentImage >= lst.Count || _currentImage < 0)
-                    return;
                 ImageRect ir = lst[_currentImage];
                 pbBrowse.Image = ir.Bitm;
                 lblSymbolName.Text = ir.SymbolName;
@@ -622,6 +636,9 @@ namespace DynamicMosaicExample
         {
             _workReflexes.Clear();
             _workReflex = null;
+            lstResults.SelectedIndex = -1;
+            _currentReflex = 0;
+            lstResults.Items.Add(_createReflexString);
             btnReflexClear.Enabled = false;
         });
 
@@ -664,9 +681,14 @@ namespace DynamicMosaicExample
                         InvokeAction(() =>
                         {
                             _workReflexes.Add(result);
-                            lstResults.Items.Add(DateTime.Now.ToString(@"HH:mm:ss"));
+                            lstResults.Items.Insert(1, DateTime.Now.ToString(@"HH:mm:ss"));
                             grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count})";
+                            _currentReflex = 0;
+                            lstResults.SelectedIndex = 1;
+                            pbSuccess.Image = Resources.OK_128;
                         });
+                    else
+                        pbSuccess.Image = Resources.Error_128;
                     if (lstResults.Items.Count > 0)
                         return;
                     MessageInOtherThread(@"Распознанные образы отсутствуют. Отсутствуют слова или образы.");
@@ -932,8 +954,7 @@ namespace DynamicMosaicExample
             _workReflex = lstResults.SelectedIndex > 0 ? _workReflexes[lstResults.SelectedIndex - 1] : null;
             if (lstResults.SelectedIndex <= 0)
                 return;
-                _currentReflex = lstResults.SelectedIndex;
-
+            pbConSymbol.Image = ImageRect.GetBitmap(_workReflexes[lstResults.SelectedIndex][_currentReflex]);
         });
 
         void BtnReflexRemove_Click(object sender, EventArgs e) => SafetyExecute(() =>
@@ -944,55 +965,41 @@ namespace DynamicMosaicExample
                 lstResults.Items.RemoveAt(lstResults.SelectedIndex);
                 _workReflex = null;
                 lstResults.SelectedIndex = -1;
+                _currentReflex = 0;
             });
 
         void BtnConNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            /*
-             SafetyExecute(() =>
-            {List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
-                if (lst.Count <= 0)
-                {
-                    SymbolBrowseClear();
-                    MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    return;
-                }
-                if (_currentImage >= lst.Count - 1)
-                    _currentImage = 0;
-                else
-                    _currentImage++;
-                if (_currentImage >= lst.Count || _currentImage < 0)
-                    return;
-                ImageRect ir = lst[_currentImage];
-                pbBrowse.Image = ir.Bitm;
-                lblSymbolName.Text = ir.SymbolName;
-                });*/
+            if (lstResults.SelectedIndex < 0)
+            {
+                ReflexBrowseClear();
+                return;
+            }
+
+            if (_currentReflex >= _workReflexes[lstResults.SelectedIndex - 1].Count - 1)
+                _currentReflex = 0;
+            else
+                _currentReflex++;
+            Processor p = _workReflexes[lstResults.SelectedIndex - 1][_currentReflex];
+            pbBrowse.Image = ImageRect.GetBitmap(p);
+            lblSymbolName.Text = p.Tag;
         });
 
         void BtnConPrevious_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            /*SafetyExecute(() =>
+            if (lstResults.SelectedIndex <= 0)
             {
-                List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
-                if (lst.Count <= 0)
-                {
-                    SymbolBrowseClear();
-                    MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    return;
-                }
+                ReflexBrowseClear();
+                return;
+            }
 
-                if (_currentImage <= 0)
-                    _currentImage = lst.Count - 1;
-                else
-                    _currentImage--;
-                if (_currentImage >= lst.Count || _currentImage < 0)
-                    return;
-                ImageRect ir = lst[_currentImage];
-                pbBrowse.Image = ir.Bitm;
-                lblSymbolName.Text = ir.SymbolName;
-            });*/
+            if (_currentReflex <= 0)
+                _currentReflex = _workReflexes[lstResults.SelectedIndex - 1].Count - 1;
+            else
+                _currentReflex--;
+            Processor p = _workReflexes[lstResults.SelectedIndex - 1][_currentReflex];
+            pbBrowse.Image = ImageRect.GetBitmap(p);
+            lblSymbolName.Text = p.Tag;
         });
     }
 }

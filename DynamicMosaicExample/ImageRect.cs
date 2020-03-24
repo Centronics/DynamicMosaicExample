@@ -1,22 +1,24 @@
-﻿using System;
+﻿using DynamicProcessor;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
-using DynamicProcessor;
+using Processor = DynamicParser.Processor;
 
 namespace DynamicMosaicExample
 {
     /// <summary>
     ///     Предназначен для работы с образами искомых букв.
     /// </summary>
-    public class ImageRect
+    public sealed class ImageRect
     {
         /// <summary>
         ///     Расширение изображения образа искомой буквы.
         /// </summary>
-        public const string ExtImg = "bmp";
+        const string ExtImg = "bmp";
 
         /// <summary>
         ///     Инициализирует экземпляр образа буквы для распознавания.
@@ -24,15 +26,14 @@ namespace DynamicMosaicExample
         /// <param name="btm">Изображение буквы.</param>
         /// <param name="tag">Название буквы.</param>
         /// <param name="imagePath">Полный путь к изображению буквы.</param>
-        public ImageRect(Bitmap btm, string tag, string imagePath)
+        ImageRect(Bitmap btm, string tag, string imagePath)
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm), $@"{nameof(ImageRect)}: {nameof(btm)} = null.");
             if (string.IsNullOrWhiteSpace(imagePath))
                 throw new ArgumentNullException(nameof(imagePath),
                     $@"{nameof(ImageRect)}: {nameof(imagePath)} = null.");
-            ulong? number;
-            if (!NameParser(out number, tag) || number == null)
+            if (!NameParser(out ulong? number, tag) || number == null)
                 return;
             if (btm.Width != FrmExample.ImageWidth || btm.Height != FrmExample.ImageHeight)
                 return;
@@ -45,10 +46,21 @@ namespace DynamicMosaicExample
             IsSymbol = true;
         }
 
+        public static Bitmap GetBitmap(Processor proc)
+        {
+            if (proc == null)
+                throw new ArgumentNullException(nameof(proc), $@"Параметр {nameof(proc)} не может быть null.");
+            Bitmap b = new Bitmap(proc.Width, proc.Height);
+            for (int y = 0; y < proc.Height; y++)
+                for (int x = 0; x < proc.Width; x++)
+                    b.SetPixel(x, y, proc[x, y].ValueColor);
+            return b;
+        }
+
         /// <summary>
         ///     Путь, по которому осуществляется поиск искомых образов букв.
         /// </summary>
-        public static string SearchPath { get; } = Application.StartupPath;
+        static string SearchPath { get; } = Application.StartupPath;
 
         /// <summary>
         ///     Получает изображения букв, поиск которых следует осуществить.
@@ -58,43 +70,43 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Содержит текущее изображение.
         /// </summary>
-        public Bitmap Bitm { get; }
+        internal Bitmap Bitm { get; }
 
         /// <summary>
         ///     Полный путь к текущему образу.
         /// </summary>
-        public string ImagePath { get; }
+        internal string ImagePath { get; }
 
         /// <summary>
         ///     Определяет значение поля <see cref="DynamicParser.Processor.Tag" />.
         /// </summary>
-        public string SymbolString { get; }
+        internal string SymbolString { get; }
 
         /// <summary>
         ///     Символ текущей буквы в виде строки.
         /// </summary>
-        public string SymbolName { get; }
+        internal string SymbolName { get; }
 
         /// <summary>
         ///     Символьное обозначение текущей буквы.
         /// </summary>
-        public char Symbol { get; }
+        char Symbol { get; }
 
         /// <summary>
         ///     Номер текущего образа.
         /// </summary>
-        public ulong Number { get; }
+        ulong Number { get; }
 
         /// <summary>
         ///     Получает значение, является ли данный файл образом, предназначенным для распознавания.
-        ///     Значение true означает, что данный файл является образом для распознавания, false - нет.
+        ///     Значение <see langword="true" /> означает, что данный файл является образом для распознавания, <see langword="false" /> - нет.
         /// </summary>
-        public bool IsSymbol { get; }
+        bool IsSymbol { get; }
 
         /// <summary>
         ///     Получает текущее изображение в виде набора знаков объектов карты.
         /// </summary>
-        public SignValue[,] ImageMap
+        internal SignValue[,] ImageMap
         {
             get
             {
@@ -102,8 +114,8 @@ namespace DynamicMosaicExample
                     return null;
                 SignValue[,] mas = new SignValue[Bitm.Width, Bitm.Height];
                 for (int y = 0; y < Bitm.Height; y++)
-                for (int x = 0; x < Bitm.Width; x++)
-                    mas[x, y] = new SignValue(Bitm.GetPixel(x, y));
+                    for (int x = 0; x < Bitm.Width; x++)
+                        mas[x, y] = new SignValue(Bitm.GetPixel(x, y));
                 return mas;
             }
         }
@@ -111,7 +123,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает все имеющиеся на данный момент образы букв для распознавания.
         /// </summary>
-        public static IEnumerable<ImageRect> Images
+        internal static IEnumerable<ImageRect> Images
         {
             get
             {
@@ -131,7 +143,7 @@ namespace DynamicMosaicExample
         /// <param name="name">Название буквы.</param>
         /// <param name="btm">Изображение буквы.</param>
         /// <returns>Возвращает экмемпляр текущего класса образа буквы.</returns>
-        public static ImageRect Save(char name, Bitmap btm)
+        internal static ImageRect Save(char name, Bitmap btm)
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm), $@"{nameof(Save)}: Сохраняемое изображение не указано.");
@@ -158,8 +170,7 @@ namespace DynamicMosaicExample
             char ch = char.ToUpper(tag[0]);
             if (ch != 'M' && ch != 'B')
                 return false;
-            ulong ul;
-            if (!ulong.TryParse(tag.Substring(2), out ul)) return false;
+            if (!ulong.TryParse(tag.Substring(2), out ulong ul)) return false;
             number = ul;
             return true;
         }
@@ -175,12 +186,8 @@ namespace DynamicMosaicExample
             {
                 char nm = char.ToUpper(name);
                 ulong max = 0;
-                foreach (ImageRect ir in Images)
+                foreach (ImageRect ir in Images.Where(i => i.Symbol == nm).Where(i => i.Number >= max))
                 {
-                    if (ir.Symbol != nm)
-                        continue;
-                    if (ir.Number < max)
-                        continue;
                     max = ir.Number;
                     imageRect = ir;
                 }
