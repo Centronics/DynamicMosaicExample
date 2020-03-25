@@ -468,7 +468,6 @@
             this.Controls.Add(this.grpSourceImage);
             this.Controls.Add(this.grpResults);
             this.Controls.Add(this.grpImages);
-            this.Enabled = false;
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.KeyPreview = true;
             this.MaximizeBox = false;

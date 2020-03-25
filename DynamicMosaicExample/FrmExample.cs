@@ -636,10 +636,15 @@ namespace DynamicMosaicExample
         {
             _workReflexes.Clear();
             _workReflex = null;
+            lstResults.Items.Clear();
             lstResults.SelectedIndex = -1;
             _currentReflex = 0;
             lstResults.Items.Add(_createReflexString);
+            btnConNext.Enabled = false;
+            btnConPrevious.Enabled = false;
+            btnReflexRemove.Enabled = false;
             btnReflexClear.Enabled = false;
+            ReflexBrowseClear();
         });
 
         /// <summary>
@@ -682,14 +687,14 @@ namespace DynamicMosaicExample
                         {
                             _workReflexes.Add(result);
                             lstResults.Items.Insert(1, DateTime.Now.ToString(@"HH:mm:ss"));
-                            grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count})";
+                            grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
                             _currentReflex = 0;
                             lstResults.SelectedIndex = 1;
                             pbSuccess.Image = Resources.OK_128;
                         });
                     else
                         pbSuccess.Image = Resources.Error_128;
-                    if (lstResults.Items.Count > 0)
+                    if ((lstResults.Items.Count - 1) > 0)
                         return;
                     MessageInOtherThread(@"Распознанные образы отсутствуют. Отсутствуют слова или образы.");
                 }, () => InvokeAction(() =>
@@ -953,8 +958,20 @@ namespace DynamicMosaicExample
             btnReflexRemove.Enabled = lstResults.SelectedIndex > 0;
             _workReflex = lstResults.SelectedIndex > 0 ? _workReflexes[lstResults.SelectedIndex - 1] : null;
             if (lstResults.SelectedIndex <= 0)
+            {
+                btnConNext.Enabled = false;
+                btnConPrevious.Enabled = false;
+                btnReflexRemove.Enabled = false;
+                btnReflexClear.Enabled = false;
+                ReflexBrowseClear();
                 return;
-            pbConSymbol.Image = ImageRect.GetBitmap(_workReflexes[lstResults.SelectedIndex][_currentReflex]);
+            }
+
+            pbConSymbol.Image = ImageRect.GetBitmap(_workReflexes[lstResults.SelectedIndex - 1][_currentReflex]);
+            btnConNext.Enabled = true;
+            btnConPrevious.Enabled = true;
+            btnReflexRemove.Enabled = true;
+            btnReflexClear.Enabled = true;
         });
 
         void BtnReflexRemove_Click(object sender, EventArgs e) => SafetyExecute(() =>
@@ -966,6 +983,13 @@ namespace DynamicMosaicExample
                 _workReflex = null;
                 lstResults.SelectedIndex = -1;
                 _currentReflex = 0;
+                if (lstResults.Items.Count > 1)
+                    return;
+                btnConNext.Enabled = false;
+                btnConPrevious.Enabled = false;
+                btnReflexRemove.Enabled = false;
+                btnReflexClear.Enabled = false;
+                ReflexBrowseClear();
             });
 
         void BtnConNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
