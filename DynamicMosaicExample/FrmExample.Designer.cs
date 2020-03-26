@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmExample));
             this.pbDraw = new System.Windows.Forms.PictureBox();
             this.btnRecognizeImage = new System.Windows.Forms.Button();
             this.btnClearImage = new System.Windows.Forms.Button();
@@ -38,7 +39,6 @@
             this.grpImages = new System.Windows.Forms.GroupBox();
             this.txtImagesCount = new System.Windows.Forms.TextBox();
             this.label4 = new System.Windows.Forms.Label();
-            this.lblSymbolName = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.btnImageDelete = new System.Windows.Forms.Button();
             this.btnImagePrev = new System.Windows.Forms.Button();
@@ -60,12 +60,13 @@
             this.grpContains = new System.Windows.Forms.GroupBox();
             this.btnConPrevious = new System.Windows.Forms.Button();
             this.btnConNext = new System.Windows.Forms.Button();
-            this.lblConSymbol = new System.Windows.Forms.Label();
             this.label6 = new System.Windows.Forms.Label();
             this.pbConSymbol = new System.Windows.Forms.PictureBox();
             this.tmrImagesCount = new System.Windows.Forms.Timer(this.components);
             this.dlgSaveImage = new System.Windows.Forms.SaveFileDialog();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
+            this.txtSymbolName = new System.Windows.Forms.TextBox();
+            this.txtConSymbol = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.pbDraw)).BeginInit();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
@@ -133,6 +134,7 @@
             this.txtWord.Size = new System.Drawing.Size(152, 20);
             this.txtWord.TabIndex = 6;
             this.txtWord.Tag = "";
+            this.txtWord.TextChanged += new System.EventHandler(this.TxtWord_TextChanged);
             this.txtWord.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TxtWord_KeyPress);
             this.txtWord.KeyUp += new System.Windows.Forms.KeyEventHandler(this.TxtWord_KeyUp);
             // 
@@ -148,9 +150,9 @@
             // 
             // grpImages
             // 
+            this.grpImages.Controls.Add(this.txtSymbolName);
             this.grpImages.Controls.Add(this.txtImagesCount);
             this.grpImages.Controls.Add(this.label4);
-            this.grpImages.Controls.Add(this.lblSymbolName);
             this.grpImages.Controls.Add(this.label1);
             this.grpImages.Controls.Add(this.btnImageDelete);
             this.grpImages.Controls.Add(this.btnImagePrev);
@@ -181,19 +183,10 @@
             this.label4.TabIndex = 12;
             this.label4.Text = "Всего:";
             // 
-            // lblSymbolName
-            // 
-            this.lblSymbolName.AutoSize = true;
-            this.lblSymbolName.Location = new System.Drawing.Point(63, 17);
-            this.lblSymbolName.Name = "lblSymbolName";
-            this.lblSymbolName.Size = new System.Drawing.Size(80, 13);
-            this.lblSymbolName.TabIndex = 4;
-            this.lblSymbolName.Text = "<Неизвестно>";
-            // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(3, 17);
+            this.label1.Location = new System.Drawing.Point(3, 16);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(60, 13);
             this.label1.TabIndex = 3;
@@ -375,6 +368,7 @@
             // pbSuccess
             // 
             this.pbSuccess.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pbSuccess.Image = ((System.Drawing.Image)(resources.GetObject("pbSuccess.Image")));
             this.pbSuccess.Location = new System.Drawing.Point(9, 37);
             this.pbSuccess.Name = "pbSuccess";
             this.pbSuccess.Size = new System.Drawing.Size(92, 100);
@@ -384,9 +378,9 @@
             // 
             // grpContains
             // 
+            this.grpContains.Controls.Add(this.txtConSymbol);
             this.grpContains.Controls.Add(this.btnConPrevious);
             this.grpContains.Controls.Add(this.btnConNext);
-            this.grpContains.Controls.Add(this.lblConSymbol);
             this.grpContains.Controls.Add(this.label6);
             this.grpContains.Controls.Add(this.pbConSymbol);
             this.grpContains.Location = new System.Drawing.Point(107, 37);
@@ -417,15 +411,6 @@
             this.btnConNext.Text = "Следующий";
             this.btnConNext.UseVisualStyleBackColor = true;
             this.btnConNext.Click += new System.EventHandler(this.BtnConNext_Click);
-            // 
-            // lblConSymbol
-            // 
-            this.lblConSymbol.AutoSize = true;
-            this.lblConSymbol.Location = new System.Drawing.Point(65, 18);
-            this.lblConSymbol.Name = "lblConSymbol";
-            this.lblConSymbol.Size = new System.Drawing.Size(80, 13);
-            this.lblConSymbol.TabIndex = 24;
-            this.lblConSymbol.Text = "<Неизвестно>";
             // 
             // label6
             // 
@@ -458,6 +443,22 @@
             // dlgOpenImage
             // 
             this.dlgOpenImage.Filter = "BMP|*.bmp";
+            // 
+            // txtSymbolName
+            // 
+            this.txtSymbolName.Location = new System.Drawing.Point(66, 15);
+            this.txtSymbolName.Name = "txtSymbolName";
+            this.txtSymbolName.ReadOnly = true;
+            this.txtSymbolName.Size = new System.Drawing.Size(77, 20);
+            this.txtSymbolName.TabIndex = 19;
+            // 
+            // txtConSymbol
+            // 
+            this.txtConSymbol.Location = new System.Drawing.Point(67, 15);
+            this.txtConSymbol.Name = "txtConSymbol";
+            this.txtConSymbol.ReadOnly = true;
+            this.txtConSymbol.Size = new System.Drawing.Size(77, 20);
+            this.txtConSymbol.TabIndex = 20;
             // 
             // FrmExample
             // 
@@ -508,7 +509,6 @@
         private System.Windows.Forms.Button btnImagePrev;
         private System.Windows.Forms.Button btnImageNext;
         private System.Windows.Forms.Label label1;
-        private System.Windows.Forms.Label lblSymbolName;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label lblElapsedTime;
         private System.Windows.Forms.Button btnImageDelete;
@@ -529,10 +529,11 @@
         private System.Windows.Forms.GroupBox grpContains;
         private System.Windows.Forms.Button btnConPrevious;
         private System.Windows.Forms.Button btnConNext;
-        private System.Windows.Forms.Label lblConSymbol;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.PictureBox pbSuccess;
         private System.Windows.Forms.Button btnReflexRemove;
+        private System.Windows.Forms.TextBox txtSymbolName;
+        private System.Windows.Forms.TextBox txtConSymbol;
     }
 }
 

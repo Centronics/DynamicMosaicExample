@@ -140,12 +140,8 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
-    <None Include="OK-128.png" />
-    <None Include="Error-128.png" />
-    <Content Include="Resources\Error-128.png" />
-    <Content Include="Resources\OK-128.png" />
+    <Folder Include="Resources\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
