@@ -46,6 +46,11 @@ namespace DynamicMosaicExample
             IsSymbol = true;
         }
 
+        /// <summary>
+        /// Преобразует <see cref="Processor"/> в <see cref="Bitmap"/>.
+        /// </summary>
+        /// <param name="proc"><see cref="Processor"/>, который требуется преобразовать.</param>
+        /// <returns>Возвращает <see cref="Processor"/>, преобразованный в <see cref="Bitmap"/>.</returns>
         public static Bitmap GetBitmap(Processor proc)
         {
             if (proc == null)
@@ -142,7 +147,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="name">Название буквы.</param>
         /// <param name="btm">Изображение буквы.</param>
-        /// <returns>Возвращает экмемпляр текущего класса образа буквы.</returns>
+        /// <returns>Возвращает экземпляр текущего класса образа буквы.</returns>
         internal static ImageRect Save(char name, Bitmap btm)
         {
             if (btm == null)

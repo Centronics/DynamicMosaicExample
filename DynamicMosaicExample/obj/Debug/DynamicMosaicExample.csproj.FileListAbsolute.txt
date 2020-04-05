@@ -3,7 +3,6 @@ D:\Coding\DynamicMosaicExample\DynamicMosaicExample\bin\Debug\DynamicMosaicExamp
 D:\Coding\DynamicMosaicExample\DynamicMosaicExample\bin\Debug\DynamicMosaic.dll
 D:\Coding\DynamicMosaicExample\DynamicMosaicExample\bin\Debug\DynamicParser.dll
 D:\Coding\DynamicMosaicExample\DynamicMosaicExample\bin\Debug\DynamicProcessor.dll
-D:\Coding\DynamicMosaicExample\DynamicMosaicExample\bin\Debug\DynamicMosaic.pdb
 D:\Coding\DynamicMosaicExample\DynamicMosaicExample\bin\Debug\DynamicMosaic.xml
 D:\Coding\DynamicMosaicExample\DynamicMosaicExample\bin\Debug\DynamicParser.xml
 D:\Coding\DynamicMosaicExample\DynamicMosaicExample\bin\Debug\DynamicProcessor.xml

@@ -109,7 +109,7 @@ namespace DynamicMosaicExample
         /// <summary>
         /// Индекс <see cref="Processor"/>, выбранный в <see cref="Reflex"/>, содержимое которого отображается в текущий момент.
         /// </summary>
-        int _currentReflex;
+        int _currentReflexMapIndex;
 
         /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
@@ -162,6 +162,8 @@ namespace DynamicMosaicExample
                 ImageWidth = pbBrowse.Width;
                 ImageHeight = pbBrowse.Height;
                 lstResults.SelectedIndex = 0;
+                btnConSaveImage.Image = Resources.SaveImage;
+                btnConSaveAllImages.Image = Resources.SaveAllImages;
             }
             catch (Exception ex)
             {
@@ -649,10 +651,12 @@ namespace DynamicMosaicExample
             _workReflex = null;
             lstResults.Items.Clear();
             lstResults.SelectedIndex = -1;
-            _currentReflex = 0;
+            _currentReflexMapIndex = 0;
             lstResults.Items.Add(_createReflexString);
             btnConNext.Enabled = false;
             btnConPrevious.Enabled = false;
+            btnConSaveImage.Enabled = false;
+            btnConSaveAllImages.Enabled = false;
             btnReflexRemove.Enabled = false;
             btnReflexClear.Enabled = false;
             grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
@@ -701,7 +705,7 @@ namespace DynamicMosaicExample
                         InvokeAction(() =>
                         {
                             _workReflexes.Add(result);
-                            _currentReflex = 0;
+                            _currentReflexMapIndex = 0;
                             lstResults.Items.Insert(1, DateTime.Now.ToString(@"HH:mm:ss"));
                             lstResults.SelectedIndex = 1;
                             btnReflexClear.Enabled = true;
@@ -964,44 +968,66 @@ namespace DynamicMosaicExample
             }.Start());
         }
 
+        /// <summary>
+        /// Обрабатывает событие выбора исследуемой системы.
+        /// Отображает содержимое системы в окне "Содержимое <see cref="Reflex"/>".
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
         void LstResults_SelectedIndexChanged(object sender, EventArgs e) => SafetyExecute(() =>
         {
             if (lstResults.SelectedIndex > 0)
             {
                 _workReflex = _workReflexes[lstResults.SelectedIndex - 1];
-                pbConSymbol.Image = ImageRect.GetBitmap(_workReflexes[lstResults.SelectedIndex - 1][0]);
+                pbConSymbol.Image = ImageRect.GetBitmap(_workReflex[0]);
                 btnConNext.Enabled = true;
                 btnConPrevious.Enabled = true;
                 btnReflexRemove.Enabled = true;
-                _currentReflex = 0;
+                btnConSaveImage.Enabled = true;
+                btnConSaveAllImages.Enabled = true;
+                _currentReflexMapIndex = 0;
                 return;
             }
             _workReflex = null;
             btnConNext.Enabled = false;
             btnConPrevious.Enabled = false;
             btnReflexRemove.Enabled = false;
+            btnConSaveImage.Enabled = false;
+            btnConSaveAllImages.Enabled = false;
             ReflexBrowseClear();
         });
 
+        /// <summary>
+        /// Обрабатывает событие удаления системы из рассматриваемых.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
         void BtnReflexRemove_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             if (lstResults.SelectedIndex <= 0)
                 return;
             _workReflexes.RemoveAt(lstResults.SelectedIndex - 1);
             lstResults.Items.RemoveAt(lstResults.SelectedIndex);
-            lstResults.SelectedIndex = -1;
+            lstResults.SelectedIndex = 0;
             _workReflex = null;
-            _currentReflex = 0;
+            _currentReflexMapIndex = 0;
             grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
+            ReflexBrowseClear();
             if (lstResults.Items.Count > 1)
                 return;
             btnConNext.Enabled = false;
             btnConPrevious.Enabled = false;
             btnReflexRemove.Enabled = false;
             btnReflexClear.Enabled = false;
-            ReflexBrowseClear();
+            btnConSaveImage.Enabled = false;
+            btnConSaveAllImages.Enabled = false;
         });
 
+        /// <summary>
+        /// Обрабатывает событие выбора следующей карты, рассматриваемой в выбранной системе.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
         void BtnConNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             if (lstResults.SelectedIndex < 0)
@@ -1010,15 +1036,20 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            if (_currentReflex >= _workReflexes[lstResults.SelectedIndex - 1].Count - 1)
-                _currentReflex = 0;
+            if (_currentReflexMapIndex >= _workReflex.Count - 1)
+                _currentReflexMapIndex = 0;
             else
-                _currentReflex++;
-            Processor p = _workReflexes[lstResults.SelectedIndex - 1][_currentReflex];
+                _currentReflexMapIndex++;
+            Processor p = _workReflex[_currentReflexMapIndex];
             pbConSymbol.Image = ImageRect.GetBitmap(p);
             txtConSymbol.Text = p.Tag;
         });
 
+        /// <summary>
+        /// Обрабатывает событие выбора предыдущей карты, рассматриваемой в выбранной системе.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
         void BtnConPrevious_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             if (lstResults.SelectedIndex <= 0)
@@ -1027,15 +1058,45 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            if (_currentReflex <= 0)
-                _currentReflex = _workReflexes[lstResults.SelectedIndex - 1].Count - 1;
+            if (_currentReflexMapIndex <= 0)
+                _currentReflexMapIndex = _workReflex.Count - 1;
             else
-                _currentReflex--;
-            Processor p = _workReflexes[lstResults.SelectedIndex - 1][_currentReflex];
+                _currentReflexMapIndex--;
+            Processor p = _workReflex[_currentReflexMapIndex];
             pbConSymbol.Image = ImageRect.GetBitmap(p);
             txtConSymbol.Text = p.Tag;
         });
 
+        /// <summary>
+        /// Обрабатывает событие изменения искомого слова, обнуляя результат распознавания.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
         void TxtWord_TextChanged(object sender, EventArgs e) => SafetyExecute(() => pbSuccess.Image = Resources.Unk_128);
+
+        /// <summary>
+        /// Сохраняет выбранную карту <see cref="Processor"/> выбранной системы <see cref="Reflex"/> на жёсткий диск.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            Processor p = _workReflex[_currentReflexMapIndex];
+            ImageRect.Save(p.Tag[0], ImageRect.GetBitmap(p));
+        });
+
+        /// <summary>
+        /// Сохраняет все карты <see cref="Processor"/> выбранной системы <see cref="Reflex"/> на жёсткий диск.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            for (int k = 0; k < _workReflex.Count; k++)
+            {
+                Processor p = _workReflex[k];
+                ImageRect.Save(p.Tag[0], ImageRect.GetBitmap(p));
+            }
+        });
     }
 }
