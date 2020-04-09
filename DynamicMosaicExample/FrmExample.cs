@@ -1092,11 +1092,46 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
+            List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);//добавить в хеш
+            //написать функцию для расчёта хеша
+            //сделать контейнер с повторяющимися ключами
             for (int k = 0; k < _workReflex.Count; k++)
             {
                 Processor p = _workReflex[k];
-                ImageRect.Save(p.Tag[0], ImageRect.GetBitmap(p));
+                if (p.Tag.Length != 1 || lst.All(t => string.Compare(t.SymbolString, p.Tag, StringComparison.OrdinalIgnoreCase) != 0))
+                    ImageRect.Save(p.Tag[0], ImageRect.GetBitmap(p));
             }
         });
+
+        /// <summary>
+        /// Сравнивает две карты <see cref="Processor"/>.
+        /// Создана только для сравнения содержимого карт.
+        /// Поле <see cref="Processor.Tag"/> не учитывается.
+        /// Если карты <see cref="Processor"/> не подходят друг к другу по каким-либо параметрам, то выдаётся исключение <see cref="ArgumentNullException"/> или <see cref="ArgumentException"/>.
+        /// Возвращает значение <see langword="true" /> в случае, если содержимое карт совпадает, в противном случае возвращает <see langword="false" />.
+        /// </summary>
+        /// <param name="p1">Первая сравниваемая карта.</param>
+        /// <param name="p2">Вторая сравниваемая карта.</param>
+        /// <returns>Возвращает значение <see langword="true" /> в случае, если содержимое карт совпадает, в противном случае возвращает <see langword="false" />.</returns>
+        bool ProcessorCompare(Processor p1, Processor p2)
+        {
+            if (p1 is null)
+                throw new ArgumentNullException(nameof(p1), @"p1 равен null.");
+            if (p2 is null)
+                throw new ArgumentNullException(nameof(p2), @"p2 равен null.");
+            if (ReferenceEquals(p1, p2))
+                throw new ArgumentException(@"p1 == p2.");
+            if (p1.Width != p2.Width)
+                throw new ArgumentException(@"p1 не равно p2 по ширине.");
+            if (p1.Height != p2.Height)
+                throw new ArgumentException(@"p1 не равно p2 по высоте.");
+            for (int y = 0; y < p1.Height; y++)
+                for (int x = 0; x < p1.Width; x++)
+                    if (p1[x, y] != p2[x, y])
+                        return false;
+            return true;
+        }
+
+
     }
 }

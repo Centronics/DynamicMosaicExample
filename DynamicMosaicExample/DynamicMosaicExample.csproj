@@ -87,6 +87,7 @@
     <Compile Include="FrmSymbol.Designer.cs">
       <DependentUpon>FrmSymbol.cs</DependentUpon>
     </Compile>
+    <Compile Include="ProcessorStorage.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources.Designer.cs">
