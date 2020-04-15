@@ -142,8 +142,8 @@ namespace DynamicMosaicExample
             {
                 if (p == null)
                     throw new ArgumentNullException(nameof(p), $@"Функция {nameof(GetInts)}.");
-                for (int i = 0; i < p.Height; i++)
-                    for (int j = 0; j < p.Width; j++)
+                for (int j = 0; j < p.Height; j++)
+                    for (int i = 0; i < p.Width; i++)
                         yield return p[i, j].Value;
             }
 
@@ -156,7 +156,7 @@ namespace DynamicMosaicExample
             {
                 if (ints == null)
                     throw new ArgumentNullException(nameof(ints), $@"Для подсчёта контрольной суммы необходимо указать массив байт. Функция {nameof(GetHash)}.");
-                return ints.Aggregate(255, (current, t) => Table[current ^ t]);
+                return ints.Aggregate(255, (current, t) => Table[(byte)(current ^ t)]);
             }
 
             /// <summary>

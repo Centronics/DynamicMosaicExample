@@ -18,6 +18,174 @@ namespace DynamicMosaicExample
     sealed partial class FrmExample : Form
     {
         /// <summary>
+        /// Состояние программы после распознавания карты.
+        /// </summary>
+        enum RecognizeStatus
+        {
+            /// <summary>
+            /// Неизвестно.
+            /// Этот статус означает, что распознавание ещё не было запущено.
+            /// </summary>
+            UNKNOWN,
+
+            /// <summary>
+            /// Ошибка, условия изменены.
+            /// Это значит, что после того, как распознавание завершилось неудачно, условия были изменены.
+            /// Вернуться в статус <see cref="ERROR"/> уже не получится, надо запускать процедуру распознавания повторно.
+            /// К этим условиям относятся те, которые нельзя откатить назад, это все возможные условия за исключением распознаваемого слова, без учёта регистра.
+            /// </summary>
+            ERRORCHANGED,
+
+            /// <summary>
+            /// Ошибка, слово изменено.
+            /// Вернуться из этого статуса в статус <see cref="ERROR"/> можно путём возвращения слова в предыдущее состояние, какое оно было при выполнении процедуры распознавания.
+            /// Регистр не учитывается.
+            /// </summary>
+            ERRORWORD,
+
+            /// <summary>
+            /// Успех, условия изменены.
+            /// Это значит, что после того, как распознавание завершилось удачно, условия были изменены.
+            /// Вернуться в статус <see cref="SUCCESS"/> уже не получится, надо запускать процедуру распознавания повторно.
+            /// К этим условиям относятся те, которые нельзя откатить назад, это все возможные условия за исключением распознаваемого слова, без учёта регистра.
+            /// </summary>
+            SUCCESSCHANGED,
+
+            /// <summary>
+            /// Успех, слово изменено.
+            /// Вернуться из этого статуса в статус <see cref="SUCCESS"/> можно путём возвращения слова в предыдущее состояние, какое оно было при выполнении процедуры распознавания.
+            /// Регистр не учитывается.
+            /// </summary>
+            SUCCESSWORD,
+
+            /// <summary>
+            /// Ошибка, условия не изменялись.
+            /// </summary>
+            ERROR,
+
+            /// <summary>
+            /// Успех, условия не изменялись.
+            /// </summary>
+            SUCCESS
+        }
+
+        sealed class CurrentStatus
+        {
+            RecognizeStatus _status = RecognizeStatus.UNKNOWN;
+            readonly FrmExample _curForm;
+            string _curWord = string.Empty;
+
+            public CurrentStatus(FrmExample frm)
+            {
+                if (frm is null)
+                    throw new ArgumentNullException(nameof(frm));
+                _curForm = frm;
+            }
+
+            public void GetState()
+            {
+                _curWord = _curForm.txtWord.Text;
+            }
+
+            public bool StateChanged => (_status == RecognizeStatus.ERROR || _status == RecognizeStatus.SUCCESS ||
+                                         _status == RecognizeStatus.SUCCESSWORD || _status == RecognizeStatus.ERRORWORD) && string.Compare(_curWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) != 0;
+
+            public RecognizeStatus Status
+            {
+                get { return _status; }
+                set
+                {
+                    switch (_status)
+                    {
+                        case RecognizeStatus.UNKNOWN:
+                            if (value == RecognizeStatus.ERROR)
+                            {
+                                _curForm.pbSuccess.Image = Resources.Error_128;
+                                _status = RecognizeStatus.ERROR;
+                                return;
+                            }
+                            if (value == RecognizeStatus.SUCCESS)
+                            {
+                                _curForm.pbSuccess.Image = Resources.OK_128;
+                                _status = RecognizeStatus.SUCCESS;
+                            }
+                            return;
+                        case RecognizeStatus.ERRORCHANGED:
+                            if (value == RecognizeStatus.UNKNOWN)
+                            {
+                                _curForm.pbSuccess.Image = Resources.Unk_128;
+                                _status = RecognizeStatus.UNKNOWN;
+                            }
+                            return;
+                        case RecognizeStatus.ERRORWORD:
+                            if (value == RecognizeStatus.UNKNOWN)
+                            {
+                                _curForm.pbSuccess.Image = Resources.Unk_128;
+                                _status = RecognizeStatus.UNKNOWN;
+                                return;
+                            }
+                            if (value == RecognizeStatus.ERROR)
+                            {
+                                _curForm.pbSuccess.Image = Resources.Error_128;
+                                _status = RecognizeStatus.ERROR;
+                            }
+                            return;
+                        case RecognizeStatus.SUCCESSCHANGED:
+                            if (value == RecognizeStatus.UNKNOWN)
+                            {
+                                _curForm.pbSuccess.Image = Resources.Unk_128;
+                                _status = RecognizeStatus.UNKNOWN;
+                            }
+                            return;
+                        case RecognizeStatus.SUCCESSWORD:
+                            if (value == RecognizeStatus.UNKNOWN)
+                            {
+                                _curForm.pbSuccess.Image = Resources.Unk_128;
+                                _status = RecognizeStatus.UNKNOWN;
+                                return;
+                            }
+                            if (value == RecognizeStatus.SUCCESS)
+                            {
+                                _curForm.pbSuccess.Image = Resources.OK_128;
+                                _status = RecognizeStatus.SUCCESS;
+                            }
+                            return;
+                        case RecognizeStatus.ERROR:
+                            if (value == RecognizeStatus.UNKNOWN)
+                            {
+                                _curForm.pbSuccess.Image = Resources.Unk_128;
+                                _status = RecognizeStatus.UNKNOWN;
+                                return;
+                            }
+                            if (value == RecognizeStatus.ERRORWORD || value == RecognizeStatus.ERRORCHANGED)
+                            {
+                                _curForm.pbSuccess.Image = Resources.Unk_128;
+                                _status = value;
+                            }
+                            return;
+                        case RecognizeStatus.SUCCESS:
+                            if (value == RecognizeStatus.UNKNOWN)
+                            {
+                                _curForm.pbSuccess.Image = Resources.Unk_128;
+                                _status = RecognizeStatus.UNKNOWN;
+                                return;
+                            }
+                            if (value == RecognizeStatus.SUCCESSWORD || value == RecognizeStatus.SUCCESSCHANGED)
+                            {
+                                _curForm.pbSuccess.Image = Resources.Unk_128;
+                                _status = value;
+                            }
+                            return;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+                }
+            }
+        }
+
+        readonly CurrentStatus _currentStatus;
+
+        /// <summary>
         ///     Надпись на кнопке "Распознать".
         /// </summary>
         const string StrRecognize = "Ждите   ";
@@ -164,6 +332,7 @@ namespace DynamicMosaicExample
                 lstResults.SelectedIndex = 0;
                 btnConSaveImage.Image = Resources.SaveImage;
                 btnConSaveAllImages.Image = Resources.SaveAllImages;
+                _currentStatus = new CurrentStatus(this);
             }
             catch (Exception ex)
             {
@@ -323,6 +492,7 @@ namespace DynamicMosaicExample
             _grFront?.Dispose();
             _grFront = Graphics.FromImage(_btmFront);
             pbDraw.Image = _btmFront;
+            pbSuccess.Image = Resources.Unk_128;
         }
 
         /// <summary>
@@ -442,7 +612,7 @@ namespace DynamicMosaicExample
                     _currentImage++;
                 ImageRect ir = lst[_currentImage];
                 pbBrowse.Image = ir.Bitm;
-                txtSymbolName.Text = ir.SymbolName;
+                txtSymbolName.Text = ir.SymbolString;
             }, () => tmrImagesCount.Enabled = true);
 
         /// <summary>
@@ -468,7 +638,7 @@ namespace DynamicMosaicExample
                     _currentImage--;
                 ImageRect ir = lst[_currentImage];
                 pbBrowse.Image = ir.Bitm;
-                txtSymbolName.Text = ir.SymbolName;
+                txtSymbolName.Text = ir.SymbolString;
             }, () => tmrImagesCount.Enabled = true);
 
         /// <summary>
@@ -661,6 +831,7 @@ namespace DynamicMosaicExample
             btnReflexClear.Enabled = false;
             grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
             ReflexBrowseClear();
+            pbSuccess.Image = Resources.Unk_128;
         });
 
         /// <summary>
@@ -704,7 +875,7 @@ namespace DynamicMosaicExample
                     if (result != null)
                         InvokeAction(() =>
                         {
-                            _workReflexes.Add(result);
+                            _workReflexes.Insert(0, result);
                             _currentReflexMapIndex = 0;
                             lstResults.Items.Insert(1, DateTime.Now.ToString(@"HH:mm:ss"));
                             lstResults.SelectedIndex = 1;
@@ -798,10 +969,12 @@ namespace DynamicMosaicExample
             {
                 case MouseButtons.Left:
                     _grFront.DrawRectangle(_blackPen, new Rectangle(x, y, 1, 1));
+                    pbSuccess.Image = Resources.Unk_128;
                     btnClearImage.Enabled = true;
                     break;
                 case MouseButtons.Right:
                     _grFront.DrawRectangle(_whitePen, new Rectangle(x, y, 1, 1));
+                    pbSuccess.Image = Resources.Unk_128;
                     break;
             }
         }, () => pbDraw.Refresh());
@@ -829,6 +1002,7 @@ namespace DynamicMosaicExample
             {
                 _grFront.Clear(_defaultColor);
                 btnClearImage.Enabled = false;
+                pbSuccess.Image = Resources.Unk_128;
             }, () => pbDraw.Refresh());
 
         /// <summary>
@@ -968,6 +1142,8 @@ namespace DynamicMosaicExample
             }.Start());
         }
 
+
+
         /// <summary>
         /// Обрабатывает событие выбора исследуемой системы.
         /// Отображает содержимое системы в окне "Содержимое <see cref="Reflex"/>".
@@ -979,7 +1155,9 @@ namespace DynamicMosaicExample
             if (lstResults.SelectedIndex > 0)
             {
                 _workReflex = _workReflexes[lstResults.SelectedIndex - 1];
-                pbConSymbol.Image = ImageRect.GetBitmap(_workReflex[0]);
+                Processor p = _workReflex[0];
+                pbConSymbol.Image = ImageRect.GetBitmap(p);
+                txtConSymbol.Text = p.Tag;
                 btnConNext.Enabled = true;
                 btnConPrevious.Enabled = true;
                 btnReflexRemove.Enabled = true;

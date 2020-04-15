@@ -33,14 +33,14 @@ namespace DynamicMosaicExample
             if (string.IsNullOrWhiteSpace(imagePath))
                 throw new ArgumentNullException(nameof(imagePath),
                     $@"{nameof(ImageRect)}: {nameof(imagePath)} = null.");
-            if (!NameParser(out ulong? number, tag) || number == null)
+            if (!NameParser(out ulong number, tag))
                 return;
             if (btm.Width != FrmExample.ImageWidth || btm.Height != FrmExample.ImageHeight)
                 return;
             SymbolString = tag.Substring(1);
             Symbol = char.ToUpper(tag[1]);
             SymbolName = new string(Symbol, 1);
-            Number = number.Value;
+            Number = number;
             Bitm = btm;
             ImagePath = imagePath;
             IsSymbol = true;
@@ -51,7 +51,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="proc"><see cref="Processor"/>, который требуется преобразовать.</param>
         /// <returns>Возвращает <see cref="Processor"/>, преобразованный в <see cref="Bitmap"/>.</returns>
-        public static Bitmap GetBitmap(Processor proc)
+        internal static Bitmap GetBitmap(Processor proc)
         {
             if (proc == null)
                 throw new ArgumentNullException(nameof(proc), $@"Параметр {nameof(proc)} не может быть null.");
@@ -167,17 +167,15 @@ namespace DynamicMosaicExample
         /// <param name="number">Возвращает номер текущей буквы.</param>
         /// <param name="tag">Имя файла без расширения.</param>
         /// <returns>Возвращает значение true в случае, если разбор имени файла прошёл успешно, в противном случае - false.</returns>
-        static bool NameParser(out ulong? number, string tag)
+        static bool NameParser(out ulong number, string tag)
         {
-            number = null;
-            if (string.IsNullOrWhiteSpace(tag) || tag.Length < 3)
+            number = 0;
+            if (string.IsNullOrWhiteSpace(tag) || tag.Length < 2)
                 return false;
             char ch = char.ToUpper(tag[0]);
             if (ch != 'M' && ch != 'B')
                 return false;
-            if (!ulong.TryParse(tag.Substring(2), out ulong ul)) return false;
-            number = ul;
-            return true;
+            return tag.Length <= 2 || ulong.TryParse(tag.Substring(2), out number);
         }
 
         /// <summary>
@@ -200,7 +198,7 @@ namespace DynamicMosaicExample
             char prefix = char.IsUpper(name) ? 'b' : 'm';
             return imageRect != null
                 ? $@"{SearchPath}\{prefix}{name}{unchecked(imageRect.Number + 1)}.{ExtImg}"
-                : $@"{SearchPath}\{prefix}{name}0.{ExtImg}";
+                : $@"{SearchPath}\{prefix}{name}.{ExtImg}";
         }
     }
 }
