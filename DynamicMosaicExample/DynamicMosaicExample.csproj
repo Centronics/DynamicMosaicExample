@@ -74,6 +74,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FrmExamplePart.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="ImageRect.cs" />
     <Compile Include="FrmExample.cs">
       <SubType>Form</SubType>

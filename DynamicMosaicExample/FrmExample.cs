@@ -2,7 +2,6 @@
 using DynamicParser;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -15,416 +14,8 @@ namespace DynamicMosaicExample
     /// <summary>
     ///     Класс основной формы приложения.
     /// </summary>
-    sealed partial class FrmExample : Form
+    sealed partial class FrmExample
     {
-        /// <summary>
-        /// Состояние программы после распознавания карты.
-        /// </summary>
-        enum RecognizeStatus
-        {
-            /// <summary>
-            /// Неизвестно.
-            /// Этот статус означает, что распознавание ещё не было запущено.
-            /// </summary>
-            UNKNOWN,
-
-            /// <summary>
-            /// Ошибка, условия изменены.
-            /// Это значит, что после того, как распознавание завершилось неудачно, условия были изменены.
-            /// Вернуться в статус <see cref="ERROR"/> уже не получится, надо запускать процедуру распознавания повторно.
-            /// К этим условиям относятся те, которые нельзя откатить назад, это все возможные условия за исключением распознаваемого слова, без учёта регистра.
-            /// </summary>
-            ERRORCHANGED,
-
-            /// <summary>
-            /// Ошибка, слово изменено.
-            /// Вернуться из этого статуса в статус <see cref="ERROR"/> можно путём возвращения слова в предыдущее состояние, какое оно было при выполнении процедуры распознавания.
-            /// Регистр не учитывается.
-            /// </summary>
-            ERRORWORD,
-
-            /// <summary>
-            /// Успех, условия изменены.
-            /// Это значит, что после того, как распознавание завершилось удачно, условия были изменены.
-            /// Вернуться в статус <see cref="SUCCESS"/> уже не получится, надо запускать процедуру распознавания повторно.
-            /// К этим условиям относятся те, которые нельзя откатить назад, это все возможные условия за исключением распознаваемого слова, без учёта регистра.
-            /// </summary>
-            SUCCESSCHANGED,
-
-            /// <summary>
-            /// Успех, слово изменено.
-            /// Вернуться из этого статуса в статус <see cref="SUCCESS"/> можно путём возвращения слова в предыдущее состояние, какое оно было при выполнении процедуры распознавания.
-            /// Регистр не учитывается.
-            /// </summary>
-            SUCCESSWORD,
-
-            /// <summary>
-            /// Ошибка, условия не изменялись.
-            /// </summary>
-            ERROR,
-
-            /// <summary>
-            /// Успех, условия не изменялись.
-            /// </summary>
-            SUCCESS
-        }
-
-        sealed class CurrentStatus
-        {
-            RecognizeStatus _status = RecognizeStatus.UNKNOWN;
-            readonly FrmExample _curForm;
-            string _curWord = string.Empty;
-
-            public CurrentStatus(FrmExample frm)
-            {
-                if (frm is null)
-                    throw new ArgumentNullException(nameof(frm));
-                _curForm = frm;
-            }
-
-            public void GetState()
-            {
-                _curWord = _curForm.txtWord.Text;
-            }
-
-            public bool StateChanged => (_status == RecognizeStatus.ERROR || _status == RecognizeStatus.SUCCESS ||
-                                         _status == RecognizeStatus.SUCCESSWORD || _status == RecognizeStatus.ERRORWORD) && string.Compare(_curWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) != 0;
-
-            public RecognizeStatus Status
-            {
-                get { return _status; }
-                set
-                {
-                    switch (_status)
-                    {
-                        case RecognizeStatus.UNKNOWN:
-                            if (value == RecognizeStatus.ERROR)
-                            {
-                                _curForm.pbSuccess.Image = Resources.Error_128;
-                                _status = RecognizeStatus.ERROR;
-                                return;
-                            }
-                            if (value == RecognizeStatus.SUCCESS)
-                            {
-                                _curForm.pbSuccess.Image = Resources.OK_128;
-                                _status = RecognizeStatus.SUCCESS;
-                            }
-                            return;
-                        case RecognizeStatus.ERRORCHANGED:
-                            if (value == RecognizeStatus.UNKNOWN)
-                            {
-                                _curForm.pbSuccess.Image = Resources.Unk_128;
-                                _status = RecognizeStatus.UNKNOWN;
-                            }
-                            return;
-                        case RecognizeStatus.ERRORWORD:
-                            if (value == RecognizeStatus.UNKNOWN)
-                            {
-                                _curForm.pbSuccess.Image = Resources.Unk_128;
-                                _status = RecognizeStatus.UNKNOWN;
-                                return;
-                            }
-                            if (value == RecognizeStatus.ERROR)
-                            {
-                                _curForm.pbSuccess.Image = Resources.Error_128;
-                                _status = RecognizeStatus.ERROR;
-                            }
-                            return;
-                        case RecognizeStatus.SUCCESSCHANGED:
-                            if (value == RecognizeStatus.UNKNOWN)
-                            {
-                                _curForm.pbSuccess.Image = Resources.Unk_128;
-                                _status = RecognizeStatus.UNKNOWN;
-                            }
-                            return;
-                        case RecognizeStatus.SUCCESSWORD:
-                            if (value == RecognizeStatus.UNKNOWN)
-                            {
-                                _curForm.pbSuccess.Image = Resources.Unk_128;
-                                _status = RecognizeStatus.UNKNOWN;
-                                return;
-                            }
-                            if (value == RecognizeStatus.SUCCESS)
-                            {
-                                _curForm.pbSuccess.Image = Resources.OK_128;
-                                _status = RecognizeStatus.SUCCESS;
-                            }
-                            return;
-                        case RecognizeStatus.ERROR:
-                            if (value == RecognizeStatus.UNKNOWN)
-                            {
-                                _curForm.pbSuccess.Image = Resources.Unk_128;
-                                _status = RecognizeStatus.UNKNOWN;
-                                return;
-                            }
-                            if (value == RecognizeStatus.ERRORWORD || value == RecognizeStatus.ERRORCHANGED)
-                            {
-                                _curForm.pbSuccess.Image = Resources.Unk_128;
-                                _status = value;
-                            }
-                            return;
-                        case RecognizeStatus.SUCCESS:
-                            if (value == RecognizeStatus.UNKNOWN)
-                            {
-                                _curForm.pbSuccess.Image = Resources.Unk_128;
-                                _status = RecognizeStatus.UNKNOWN;
-                                return;
-                            }
-                            if (value == RecognizeStatus.SUCCESSWORD || value == RecognizeStatus.SUCCESSCHANGED)
-                            {
-                                _curForm.pbSuccess.Image = Resources.Unk_128;
-                                _status = value;
-                            }
-                            return;
-                        default:
-                            throw new ArgumentOutOfRangeException();
-                    }
-                }
-            }
-        }
-
-        readonly CurrentStatus _currentStatus;
-
-        /// <summary>
-        ///     Надпись на кнопке "Распознать".
-        /// </summary>
-        const string StrRecognize = "Ждите   ";
-
-        /// <summary>
-        ///     Надпись на кнопке "Распознать".
-        /// </summary>
-        const string StrRecognize1 = "Ждите.  ";
-
-        /// <summary>
-        ///     Надпись на кнопке "Распознать".
-        /// </summary>
-        const string StrRecognize2 = "Ждите.. ";
-
-        /// <summary>
-        ///     Надпись на кнопке "Распознать".
-        /// </summary>
-        const string StrRecognize3 = "Ждите...";
-
-        /// <summary>
-        ///     Текст ошибки в случае, если отсутствуют образы для поиска (распознавания).
-        /// </summary>
-        const string ImagesNoExists =
-            @"Образы отсутствуют. Для их добавления и распознавания необходимо создать искомые образы, нажав кнопку 'Создать образ', затем добавить искомое слово, которое так или иначе можно составить из названий искомых образов. Затем необходимо нарисовать его в поле исходного изображения. Далее нажать кнопку 'Распознать'.";
-
-        /// <summary>
-        ///     Определяет шаг (в пикселях), на который изменяется ширина сканируемого (создаваемого) изображения при нажатии
-        ///     кнопок сужения или расширения.
-        /// </summary>
-        const int WidthCount = 20;
-
-        /// <summary>
-        ///     Задаёт цвет и ширину для рисования в окне создания распознаваемого изображения.
-        /// </summary>
-        readonly Pen _blackPen = new Pen(Color.Black, 2.0f);
-
-        /// <summary>
-        ///     Цвет, который считается изначальным. Определяет изначальный цвет, отображаемый на поверхности для рисования.
-        ///     Используется для стирания изображения.
-        /// </summary>
-        readonly Color _defaultColor = Color.White;
-
-        /// <summary>
-        ///     Таймер для измерения времени, затраченного на распознавание.
-        /// </summary>
-        readonly Stopwatch _stopwatch = new Stopwatch();
-
-        /// <summary>
-        ///     Хранит значение свойства <see cref="GroupBox.Text" /> объекта <see cref="grpResults" />.
-        /// </summary>
-        readonly string _strGrpResults;
-
-        /// <summary>
-        ///     Текст кнопки "Распознать". Сохраняет исходное значение свойства <see cref="Button.Text" /> кнопки
-        ///     <see cref="btnRecognizeImage" />.
-        /// </summary>
-        readonly string _strRecog;
-
-        /// <summary>
-        ///     Содержит изначальное значение поля "Название" искомого образа буквы.
-        /// </summary>
-        readonly string _unknownSymbolName;
-
-        /// <summary>
-        /// Содержит изначальное значение поля "Название" искомого образа в <see cref="Reflex"/>.
-        /// </summary>
-        readonly string _unknownSystemName;
-
-        /// <summary>
-        /// Строка "Создать Reflex".
-        /// </summary>
-        readonly string _createReflexString;
-
-        /// <summary>
-        ///     Задаёт цвет и ширину для стирания в окне создания распознаваемого изображения.
-        /// </summary>
-        readonly Pen _whitePen;
-
-        /// <summary>
-        ///     Изображение, которое выводится в окне создания распознаваемого изображения.
-        /// </summary>
-        Bitmap _btmFront;
-
-        /// <summary>
-        ///     Индекс <see cref="ImageRect"/>, рассматриваемый в данный момент.
-        /// </summary>
-        int _currentImage;
-
-        /// <summary>
-        /// Индекс <see cref="Processor"/>, выбранный в <see cref="Reflex"/>, содержимое которого отображается в текущий момент.
-        /// </summary>
-        int _currentReflexMapIndex;
-
-        /// <summary>
-        ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
-        ///     Значение <see langword="true" /> - вывод разрешён, в противном случае - <see langword="false" />.
-        /// </summary>
-        bool _draw;
-
-        /// <summary>
-        ///     Поверхность рисования в окне создания распознаваемого изображения.
-        /// </summary>
-        Graphics _grFront;
-
-        /// <summary>
-        ///     Содержит количество искомых образов, которое было на момент последней проверки.
-        ///     Предназначено для того, чтобы в случае уменьшения их количества (путём удаления файлов)
-        ///     обновить отображаемый образ.
-        /// </summary>
-        long _imageLastCount = -1;
-
-        /// <summary>
-        /// Коллекция задействованных на данный момент элементов <see cref="Reflex" />.
-        /// </summary>
-        readonly List<Reflex> _workReflexes = new List<Reflex>();
-
-        /// <summary>
-        ///     Поток, отвечающий за выполнение процедуры распознавания.
-        /// </summary>
-        Thread _workThread;
-
-        /// <summary>
-        /// Текущий обрабатываемый объект <see cref="Reflex"/>.
-        /// </summary>
-        Reflex _workReflex;
-
-        /// <summary>
-        ///     Конструктор основной формы приложения.
-        /// </summary>
-        internal FrmExample()
-        {
-            try
-            {
-                _whitePen = new Pen(_defaultColor, 2.0f);
-                InitializeComponent();
-                Initialize();
-                _strRecog = btnRecognizeImage.Text;
-                _unknownSymbolName = txtSymbolName.Text;
-                _unknownSystemName = txtConSymbol.Text;
-                _createReflexString = (string)lstResults.Items[0];
-                _strGrpResults = grpResults.Text;
-                ImageWidth = pbBrowse.Width;
-                ImageHeight = pbBrowse.Height;
-                lstResults.SelectedIndex = 0;
-                btnConSaveImage.Image = Resources.SaveImage;
-                btnConSaveAllImages.Image = Resources.SaveAllImages;
-                _currentStatus = new CurrentStatus(this);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($@"{ex.Message}{Environment.NewLine}Программа будет завершена.", @"Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Process.GetCurrentProcess().Kill();
-            }
-        }
-
-        /// <summary>
-        ///     Получает значение, отражающее статус рабочего процесса по распознаванию изображения.
-        /// </summary>
-        bool IsWorking => _workThread?.IsAlive == true;
-
-        /// <summary>
-        ///     Ширина образа для распознавания.
-        /// </summary>
-        internal static int ImageWidth { get; private set; }
-
-        /// <summary>
-        ///     Высота образа для распознавания.
-        /// </summary>
-        internal static int ImageHeight { get; private set; }
-
-        /// <summary>
-        ///     Отключает или включает доступность кнопок на время выполнения операции.
-        /// </summary>
-        bool EnableButtons
-        {
-            set
-            {
-                InvokeAction(() =>
-                {
-                    pbDraw.Enabled = value;
-                    btnImageCreate.Enabled = value;
-                    btnImageDelete.Enabled = value;
-                    tmrImagesCount.Enabled = value;
-                    txtWord.Enabled = value;
-                    btnSaveImage.Enabled = value;
-                    btnLoadImage.Enabled = value;
-                    btnClearImage.Enabled = value && IsPainting;
-                    btnReflexClear.Enabled = value;
-                    if (value)
-                    {
-                        btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
-                        btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
-                        return;
-                    }
-
-                    btnWide.Enabled = false;
-                    btnNarrow.Enabled = false;
-                    grpResults.Text = _strGrpResults;
-                });
-            }
-        }
-
-        /// <summary>
-        ///     Возвращает значение true в случае, если пользователь нарисовал что-либо в окне создания исходного изображения.
-        ///     В противном случае возвращает значение false.
-        /// </summary>
-        bool IsPainting
-        {
-            get
-            {
-                for (int y = 0; y < _btmFront.Height; y++)
-                    for (int x = 0; x < _btmFront.Width; x++)
-                    {
-                        Color c = _btmFront.GetPixel(x, y);
-                        if (c.A != _defaultColor.A || c.R != _defaultColor.R || c.G != _defaultColor.G ||
-                            c.B != _defaultColor.B)
-                            return true;
-                    }
-
-                return false;
-            }
-        }
-
-        /// <summary>
-        ///     Перечисляет возможные значения ширины поля создания сканируемого изображения.
-        ///     Используется значение шага, указанное в константе <see cref="WidthCount" />.
-        /// </summary>
-        IEnumerable<int> WidthSizes
-        {
-            get
-            {
-                for (int k = pbDraw.MinimumSize.Width, max = pbDraw.MaximumSize.Width; k <= max; k += WidthCount)
-                    yield return k;
-                for (int k = pbDraw.MaximumSize.Width, min = pbDraw.MinimumSize.Width; k >= min; k -= WidthCount)
-                    yield return k;
-            }
-        }
-
         /// <summary>
         ///     Предназначена для инициализации структур, отвечающих за вывод создаваемого изображения на экран.
         ///     Если предыдущее изображение присутствовало, то оно переносится на вновь созданное.
@@ -534,6 +125,7 @@ namespace DynamicMosaicExample
         {
             _draw = true;
             DrawPoint(e.X, e.Y, e.Button);
+            _currentState.CriticalChange(sender, e);
         }
 
         /// <summary>
@@ -677,7 +269,10 @@ namespace DynamicMosaicExample
             {
                 using (FrmSymbol fs = new FrmSymbol())
                     if (fs.ShowDialog() == DialogResult.OK)
+                    {
                         BtnReflexClear_Click(btnReflexClear, new EventArgs());
+                        _currentState.CriticalChange(sender, e);
+                    }
             }, () =>
             {
                 RefreshImagesCount();
@@ -871,6 +466,8 @@ namespace DynamicMosaicExample
 
                     Reflex workReflex = _workReflex ?? new Reflex(new ProcessorContainer((from ir in images
                                                                                           select new Processor(ir.ImageMap, ir.SymbolString)).ToArray()));
+                    _currentState.CriticalChange(sender, e);
+                    _currentState.WordChange(sender, e);
                     Reflex result = workReflex.FindRelation(new Processor(_btmFront, "Main"), txtWord.Text);
                     if (result != null)
                         InvokeAction(() =>
@@ -882,9 +479,13 @@ namespace DynamicMosaicExample
                             btnReflexClear.Enabled = true;
                             grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
                             pbSuccess.Image = Resources.OK_128;
+                            _currentState.State = RecognizeState.SUCCESS;
                         });
                     else
+                    {
                         pbSuccess.Image = Resources.Error_128;
+                        _currentState.State = RecognizeState.ERROR;
+                    }
                 }))
                 {
                     IsBackground = true,
