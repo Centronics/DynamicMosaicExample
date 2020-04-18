@@ -252,7 +252,7 @@ namespace DynamicMosaicExample
                 if (_currentImage >= lst.Count || _currentImage < 0) return;
                 File.Delete(lst[_currentImage].ImagePath);
                 BtnImagePrev_Click(null, null);
-                BtnReflexClear_Click(btnReflexClear, new EventArgs());
+                BtnReflexClear_Click(null, null);
             }, () =>
             {
                 RefreshImagesCount();
@@ -270,13 +270,12 @@ namespace DynamicMosaicExample
                 using (FrmSymbol fs = new FrmSymbol())
                     if (fs.ShowDialog() == DialogResult.OK)
                     {
-                        BtnReflexClear_Click(btnReflexClear, new EventArgs());
+                        BtnReflexClear_Click(null, null);
                         _currentState.CriticalChange(sender, e);
                     }
             }, () =>
             {
                 RefreshImagesCount();
-                BtnImageNext_Click(null, null);
                 tmrImagesCount.Enabled = true;
             });
 
@@ -296,17 +295,23 @@ namespace DynamicMosaicExample
                         _imageLastCount = -1;
                         SymbolBrowseClear();
                         btnImageDelete.Enabled = false;
+                        txtImagesCount.Enabled = false;
                         btnImageNext.Enabled = false;
                         btnImagePrev.Enabled = false;
+                        txtSymbolName.Enabled = false;
+                        pbBrowse.Enabled = false;
                         return;
                     }
 
-                    if (!btnImageNext.Enabled || !btnImagePrev.Enabled || _imageLastCount != count)
+                    if (_imageLastCount != count)
                         BtnImageNext_Click(null, null);
                     _imageLastCount = count;
                     btnImageDelete.Enabled = btnImageCreate.Enabled;
+                    txtImagesCount.Enabled = btnImageCreate.Enabled;
                     btnImageNext.Enabled = true;
                     btnImagePrev.Enabled = true;
+                    txtSymbolName.Enabled = true;
+                    pbBrowse.Enabled = true;
                 }
                 catch
                 {
@@ -380,14 +385,8 @@ namespace DynamicMosaicExample
                                 break;
                         }
 
-                        if (IsWorking)
-                            continue;
-                        InvokeAction(() =>
-                        {
-                            /*if (lstWords.Items.Count > 0)
-                                lstWords.SelectedIndex = 0;*/
-                        });
-                        return;
+                        if (!IsWorking)
+                            return;
                     }
 
                     #endregion
@@ -416,8 +415,10 @@ namespace DynamicMosaicExample
             _workReflex = null;
             lstResults.Items.Clear();
             lstResults.SelectedIndex = -1;
-            _currentReflexMapIndex = 0;
             lstResults.Items.Add(_createReflexString);
+            _currentReflexMapIndex = 0;
+            txtConSymbol.Enabled = false;
+            pbConSymbol.Enabled = false;
             btnConNext.Enabled = false;
             btnConPrevious.Enabled = false;
             btnConSaveImage.Enabled = false;
@@ -759,6 +760,8 @@ namespace DynamicMosaicExample
                 Processor p = _workReflex[0];
                 pbConSymbol.Image = ImageRect.GetBitmap(p);
                 txtConSymbol.Text = p.Tag;
+                txtConSymbol.Enabled = true;
+                pbConSymbol.Enabled = true;
                 btnConNext.Enabled = true;
                 btnConPrevious.Enabled = true;
                 btnReflexRemove.Enabled = true;
@@ -768,6 +771,8 @@ namespace DynamicMosaicExample
                 return;
             }
             _workReflex = null;
+            txtConSymbol.Enabled = false;
+            pbConSymbol.Enabled = false;
             btnConNext.Enabled = false;
             btnConPrevious.Enabled = false;
             btnReflexRemove.Enabled = false;
@@ -794,6 +799,8 @@ namespace DynamicMosaicExample
             ReflexBrowseClear();
             if (lstResults.Items.Count > 1)
                 return;
+            txtConSymbol.Enabled = false;
+            pbConSymbol.Enabled = false;
             btnConNext.Enabled = false;
             btnConPrevious.Enabled = false;
             btnReflexRemove.Enabled = false;

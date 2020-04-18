@@ -125,6 +125,7 @@
             // 
             // btnImageCreate
             // 
+            this.btnImageCreate.Enabled = false;
             this.btnImageCreate.Location = new System.Drawing.Point(149, 38);
             this.btnImageCreate.Name = "btnImageCreate";
             this.btnImageCreate.Size = new System.Drawing.Size(114, 23);
@@ -153,6 +154,7 @@
             // 
             // txtSymbolName
             // 
+            this.txtSymbolName.Enabled = false;
             this.txtSymbolName.Location = new System.Drawing.Point(66, 15);
             this.txtSymbolName.Name = "txtSymbolName";
             this.txtSymbolName.ReadOnly = true;
@@ -161,6 +163,7 @@
             // 
             // txtImagesCount
             // 
+            this.txtImagesCount.Enabled = false;
             this.txtImagesCount.Location = new System.Drawing.Point(185, 15);
             this.txtImagesCount.Name = "txtImagesCount";
             this.txtImagesCount.ReadOnly = true;
@@ -187,6 +190,7 @@
             // 
             // btnImageDelete
             // 
+            this.btnImageDelete.Enabled = false;
             this.btnImageDelete.Location = new System.Drawing.Point(149, 62);
             this.btnImageDelete.Name = "btnImageDelete";
             this.btnImageDelete.Size = new System.Drawing.Size(114, 23);
@@ -197,6 +201,7 @@
             // 
             // btnImagePrev
             // 
+            this.btnImagePrev.Enabled = false;
             this.btnImagePrev.Location = new System.Drawing.Point(55, 62);
             this.btnImagePrev.Name = "btnImagePrev";
             this.btnImagePrev.Size = new System.Drawing.Size(88, 23);
@@ -207,6 +212,7 @@
             // 
             // btnImageNext
             // 
+            this.btnImageNext.Enabled = false;
             this.btnImageNext.Location = new System.Drawing.Point(55, 38);
             this.btnImageNext.Name = "btnImageNext";
             this.btnImageNext.Size = new System.Drawing.Size(88, 23);
@@ -218,6 +224,7 @@
             // pbBrowse
             // 
             this.pbBrowse.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pbBrowse.Enabled = false;
             this.pbBrowse.Location = new System.Drawing.Point(6, 35);
             this.pbBrowse.Name = "pbBrowse";
             this.pbBrowse.Size = new System.Drawing.Size(43, 50);
@@ -238,6 +245,7 @@
             // 
             // btnReflexRemove
             // 
+            this.btnReflexRemove.Enabled = false;
             this.btnReflexRemove.Location = new System.Drawing.Point(145, 17);
             this.btnReflexRemove.Name = "btnReflexRemove";
             this.btnReflexRemove.Size = new System.Drawing.Size(114, 23);
@@ -402,6 +410,7 @@
             // 
             // btnConSaveAllImages
             // 
+            this.btnConSaveAllImages.Enabled = false;
             this.btnConSaveAllImages.Location = new System.Drawing.Point(59, 14);
             this.btnConSaveAllImages.Name = "btnConSaveAllImages";
             this.btnConSaveAllImages.Size = new System.Drawing.Size(36, 36);
@@ -411,6 +420,7 @@
             // 
             // btnConSaveImage
             // 
+            this.btnConSaveImage.Enabled = false;
             this.btnConSaveImage.Location = new System.Drawing.Point(7, 14);
             this.btnConSaveImage.Name = "btnConSaveImage";
             this.btnConSaveImage.Size = new System.Drawing.Size(36, 36);
@@ -420,6 +430,7 @@
             // 
             // txtConSymbol
             // 
+            this.txtConSymbol.Enabled = false;
             this.txtConSymbol.Location = new System.Drawing.Point(101, 18);
             this.txtConSymbol.Name = "txtConSymbol";
             this.txtConSymbol.ReadOnly = true;
@@ -451,6 +462,7 @@
             // pbConSymbol
             // 
             this.pbConSymbol.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pbConSymbol.Enabled = false;
             this.pbConSymbol.Location = new System.Drawing.Point(101, 41);
             this.pbConSymbol.Name = "pbConSymbol";
             this.pbConSymbol.Size = new System.Drawing.Size(43, 50);

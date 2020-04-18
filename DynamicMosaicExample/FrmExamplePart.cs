@@ -344,6 +344,7 @@ namespace DynamicMosaicExample
                     pbDraw.Enabled = value;
                     btnImageCreate.Enabled = value;
                     btnImageDelete.Enabled = value;
+                    txtImagesCount.Enabled = value;
                     tmrImagesCount.Enabled = value;
                     txtWord.Enabled = value;
                     btnSaveImage.Enabled = value;
