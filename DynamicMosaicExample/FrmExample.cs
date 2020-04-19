@@ -524,7 +524,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Претотвращает сигналы недопустимого ввода в текстовое поле ввода искомого слова.
+        ///     Предотвращает сигналы недопустимого ввода в текстовое поле ввода искомого слова.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -590,7 +590,6 @@ namespace DynamicMosaicExample
         void FrmExample_Shown(object sender, EventArgs e)
         {
             BtnClearImage_Click(null, null);
-            BtnImageNext_Click(null, null);
             RefreshImagesCount();
         }
 
@@ -608,7 +607,7 @@ namespace DynamicMosaicExample
             }, () => pbDraw.Refresh());
 
         /// <summary>
-        ///     Обрабатывает событие нажатие кнопки сохранения созданного изображения.
+        ///     Обрабатывает событие нажатия кнопки сохранения созданного изображения.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>

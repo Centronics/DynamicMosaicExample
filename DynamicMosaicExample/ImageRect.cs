@@ -39,7 +39,6 @@ namespace DynamicMosaicExample
                 return;
             SymbolString = tag.Substring(1);
             Symbol = char.ToUpper(tag[1]);
-            SymbolName = new string(Symbol, 1);
             Number = number;
             Bitm = btm;
             ImagePath = imagePath;
@@ -86,11 +85,6 @@ namespace DynamicMosaicExample
         ///     Определяет значение поля <see cref="DynamicParser.Processor.Tag" />.
         /// </summary>
         internal string SymbolString { get; }
-
-        /// <summary>
-        ///     Символ текущей буквы в виде строки.
-        /// </summary>
-        internal string SymbolName { get; }
 
         /// <summary>
         ///     Символьное обозначение текущей буквы.
@@ -166,7 +160,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="number">Возвращает номер текущей буквы.</param>
         /// <param name="tag">Имя файла без расширения.</param>
-        /// <returns>Возвращает значение true в случае, если разбор имени файла прошёл успешно, в противном случае - false.</returns>
+        /// <returns>Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном случае - <see langword="false" />.</returns>
         static bool NameParser(out ulong number, string tag)
         {
             number = 0;

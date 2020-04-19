@@ -130,7 +130,6 @@ namespace DynamicMosaicExample
             /// </summary>
             public RecognizeState State
             {
-                get => _state;
                 set
                 {
                     if (_state != RecognizeState.UNKNOWN)
@@ -366,8 +365,8 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Возвращает значение true в случае, если пользователь нарисовал что-либо в окне создания исходного изображения.
-        ///     В противном случае возвращает значение false.
+        ///     Возвращает значение <see langword="true" /> в случае, если пользователь нарисовал что-либо в окне создания исходного изображения.
+        ///     В противном случае возвращает значение <see langword="false" />.
         /// </summary>
         bool IsPainting
         {

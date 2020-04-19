@@ -1,6 +1,6 @@
 ﻿namespace DynamicMosaicExample
 {
-    partial class FrmSymbol
+    sealed partial class FrmSymbol
     {
         /// <summary>
         /// Required designer variable.
@@ -46,7 +46,7 @@
             this.txtSymbol.Name = "txtSymbol";
             this.txtSymbol.Size = new System.Drawing.Size(18, 22);
             this.txtSymbol.TabIndex = 0;
-            this.txtSymbol.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtSymbol_KeyPress);
+            this.txtSymbol.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TxtSymbol_KeyPress);
             // 
             // label1
             // 
@@ -66,7 +66,7 @@
             this.btnOK.TabIndex = 2;
             this.btnOK.Text = "OK";
             this.btnOK.UseVisualStyleBackColor = true;
-            this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
+            this.btnOK.Click += new System.EventHandler(this.BtnOK_Click);
             // 
             // pbBox
             // 
@@ -77,10 +77,10 @@
             this.pbBox.Size = new System.Drawing.Size(43, 50);
             this.pbBox.TabIndex = 3;
             this.pbBox.TabStop = false;
-            this.pbBox.MouseDown += new System.Windows.Forms.MouseEventHandler(this.pbBox_MouseDown);
-            this.pbBox.MouseLeave += new System.EventHandler(this.pbBox_MouseLeave);
-            this.pbBox.MouseMove += new System.Windows.Forms.MouseEventHandler(this.pbBox_MouseMove);
-            this.pbBox.MouseUp += new System.Windows.Forms.MouseEventHandler(this.pbBox_MouseUp);
+            this.pbBox.MouseDown += new System.Windows.Forms.MouseEventHandler(this.PbBox_MouseDown);
+            this.pbBox.MouseLeave += new System.EventHandler(this.PbBox_MouseLeave);
+            this.pbBox.MouseMove += new System.Windows.Forms.MouseEventHandler(this.PbBox_MouseMove);
+            this.pbBox.MouseUp += new System.Windows.Forms.MouseEventHandler(this.PbBox_MouseUp);
             // 
             // btnClear
             // 
@@ -91,12 +91,12 @@
             this.btnClear.TabIndex = 4;
             this.btnClear.Text = "Очистить";
             this.btnClear.UseVisualStyleBackColor = true;
-            this.btnClear.Click += new System.EventHandler(this.btnClear_Click);
+            this.btnClear.Click += new System.EventHandler(this.BtnClear_Click);
             // 
             // tmrPressWait
             // 
             this.tmrPressWait.Interval = 1000;
-            this.tmrPressWait.Tick += new System.EventHandler(this.tmrPressWait_Tick);
+            this.tmrPressWait.Tick += new System.EventHandler(this.TmrPressWait_Tick);
             // 
             // FrmSymbol
             // 

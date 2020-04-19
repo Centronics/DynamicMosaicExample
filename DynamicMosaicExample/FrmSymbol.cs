@@ -7,7 +7,7 @@ namespace DynamicMosaicExample
     /// <summary>
     ///     Форма ввода нового искомого символа.
     /// </summary>
-    public partial class FrmSymbol : Form
+    sealed partial class FrmSymbol : Form
     {
         /// <summary>
         ///     Задаёт толщину и цвет выводимой линии.
@@ -32,7 +32,7 @@ namespace DynamicMosaicExample
 
         /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
-        ///     Значение true - вывод разрешён, в противном случае - false.
+        ///     Значение <see langword="true" /> - вывод разрешён, в противном случае - <see langword="false" />.
         /// </summary>
         bool _draw;
 
@@ -44,7 +44,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Конструктор формы ввода нового искомого символа.
         /// </summary>
-        public FrmSymbol()
+        internal FrmSymbol()
         {
             InitializeComponent();
             _btmFront = new Bitmap(pbBox.Width, pbBox.Height);
@@ -53,17 +53,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Текущий образ, который был сохранён.
-        ///     Если образ не сохранён, то содержит null, в противном случае содержит образ искомой буквы.
-        /// </summary>
-        public ImageRect LastImage { get; private set; }
-
-        /// <summary>
         ///     Запрещает вывод создаваемой пользователем линии на экран.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void pbBox_MouseUp(object sender, MouseEventArgs e)
+        void PbBox_MouseUp(object sender, MouseEventArgs e)
         {
             _draw = false;
         }
@@ -73,7 +67,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void pbBox_MouseLeave(object sender, EventArgs e)
+        void PbBox_MouseLeave(object sender, EventArgs e)
         {
             _draw = false;
         }
@@ -83,7 +77,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void pbBox_MouseDown(object sender, MouseEventArgs e)
+        void PbBox_MouseDown(object sender, MouseEventArgs e)
         {
             RunAction(() =>
             {
@@ -99,7 +93,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void pbBox_MouseMove(object sender, MouseEventArgs e)
+        void PbBox_MouseMove(object sender, MouseEventArgs e)
         {
             RunAction(() =>
             {
@@ -116,29 +110,26 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnOK_Click(object sender, EventArgs e)
+        void BtnOK_Click(object sender, EventArgs e) => RunAction(() =>
         {
-            RunAction(() =>
+            if (string.IsNullOrWhiteSpace(txtSymbol.Text))
             {
-                if (string.IsNullOrWhiteSpace(txtSymbol.Text))
-                {
-                    MessageBox.Show(this,
-                        @"Необходимо вписать название символа. Оно не может быть более одного знака и состоять из невидимых символов.");
-                    tmrPressWait.Enabled = true;
-                    _timedOut = false;
-                    return;
-                }
-                LastImage = ImageRect.Save(txtSymbol.Text[0], _btmFront);
-                DialogResult = DialogResult.OK;
-            });
-        }
+                MessageBox.Show(this,
+                    @"Необходимо вписать название символа. Оно не может быть более одного знака и состоять из невидимых символов.");
+                tmrPressWait.Enabled = true;
+                _timedOut = false;
+                return;
+            }
+            ImageRect.Save(txtSymbol.Text[0], _btmFront);
+            DialogResult = DialogResult.OK;
+        });
 
         /// <summary>
         ///     Очищает поверхность для рисования искомого образа.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void btnClear_Click(object sender, EventArgs e)
+        void BtnClear_Click(object sender, EventArgs e)
         {
             RunAction(() =>
             {
@@ -153,14 +144,11 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void FrmSymbol_Shown(object sender, EventArgs e)
+        void FrmSymbol_Shown(object sender, EventArgs e) => RunAction(() =>
         {
-            RunAction(() =>
-            {
-                btnClear_Click(null, null);
-                tmrPressWait.Enabled = true;
-            });
-        }
+            BtnClear_Click(null, null);
+            tmrPressWait.Enabled = true;
+        });
 
         /// <summary>
         ///     Обрабатывает нажатия клавиш пользователем.
@@ -179,7 +167,7 @@ namespace DynamicMosaicExample
                 switch (e.KeyCode)
                 {
                     case Keys.Enter:
-                        btnOK_Click(null, null);
+                        BtnOK_Click(null, null);
                         break;
                     case Keys.Escape:
                         DialogResult = DialogResult.Cancel;
@@ -193,38 +181,32 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void txtSymbol_KeyPress(object sender, KeyPressEventArgs e)
+        void TxtSymbol_KeyPress(object sender, KeyPressEventArgs e) => RunAction(() =>
         {
-            RunAction(() =>
-            {
-                if ((Keys) e.KeyChar == Keys.Enter || (Keys) e.KeyChar == Keys.Tab ||
-                    (Keys) e.KeyChar == Keys.Escape ||
-                    (Keys) e.KeyChar == Keys.Pause || (Keys) e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
-                    e.Handled = true;
-            });
-        }
+            if ((Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab ||
+                (Keys)e.KeyChar == Keys.Escape ||
+                (Keys)e.KeyChar == Keys.Pause || (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
+                e.Handled = true;
+        });
 
         /// <summary>
         ///     Предотвращает реакцию системы на некорректный ввод.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void FrmSymbol_KeyPress(object sender, KeyPressEventArgs e)
+        void FrmSymbol_KeyPress(object sender, KeyPressEventArgs e) => RunAction(() =>
         {
-            RunAction(() =>
-            {
-                if ((Keys) e.KeyChar == Keys.Enter || (Keys) e.KeyChar == Keys.Tab || (Keys) e.KeyChar == Keys.Escape ||
-                    (Keys) e.KeyChar == Keys.Pause || (Keys) e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
-                    e.Handled = true;
-            });
-        }
+            if ((Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab || (Keys)e.KeyChar == Keys.Escape ||
+                (Keys)e.KeyChar == Keys.Pause || (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
+                e.Handled = true;
+        });
 
         /// <summary>
         ///     Происходит, когда отсчитываемое время реакции на нажатую клавишу подошло к концу.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void tmrPressWait_Tick(object sender, EventArgs e)
+        void TmrPressWait_Tick(object sender, EventArgs e)
         {
             _timedOut = true;
             tmrPressWait.Enabled = false;
