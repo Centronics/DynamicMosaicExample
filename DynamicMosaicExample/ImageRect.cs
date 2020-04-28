@@ -13,20 +13,15 @@ namespace DynamicMosaicExample
     /// <summary>
     ///     Предназначен для работы с образами искомых букв.
     /// </summary>
-    public sealed class ImageRect
+    sealed class ImageRect
     {
-        /// <summary>
-        ///     Расширение изображения образа искомой буквы.
-        /// </summary>
-        const string ExtImg = "bmp";
-
         /// <summary>
         ///     Инициализирует экземпляр образа буквы для распознавания.
         /// </summary>
         /// <param name="btm">Изображение буквы.</param>
         /// <param name="tag">Название буквы.</param>
         /// <param name="imagePath">Полный путь к изображению буквы.</param>
-        ImageRect(Bitmap btm, string tag, string imagePath)
+        internal ImageRect(Bitmap btm, string tag, string imagePath)
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm), $@"{nameof(ImageRect)}: {nameof(btm)} = null.");
@@ -62,16 +57,6 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Путь, по которому осуществляется поиск искомых образов букв.
-        /// </summary>
-        static string SearchPath { get; } = Application.StartupPath;
-
-        /// <summary>
-        ///     Получает изображения букв, поиск которых следует осуществить.
-        /// </summary>
-        static IEnumerable<string> BitmapFiles => Directory.GetFiles(SearchPath, $"*.{ExtImg}");
-
-        /// <summary>
         ///     Содержит текущее изображение.
         /// </summary>
         internal Bitmap Bitm { get; }
@@ -100,7 +85,7 @@ namespace DynamicMosaicExample
         ///     Получает значение, является ли данный файл образом, предназначенным для распознавания.
         ///     Значение <see langword="true" /> означает, что данный файл является образом для распознавания, <see langword="false" /> - нет.
         /// </summary>
-        bool IsSymbol { get; }
+        internal bool IsSymbol { get; }
 
         /// <summary>
         ///     Получает текущее изображение в виде набора знаков объектов карты.
@@ -116,23 +101,6 @@ namespace DynamicMosaicExample
                     for (int x = 0; x < Bitm.Width; x++)
                         mas[x, y] = new SignValue(Bitm.GetPixel(x, y));
                 return mas;
-            }
-        }
-
-        /// <summary>
-        ///     Получает все имеющиеся на данный момент образы букв для распознавания.
-        /// </summary>
-        internal static IEnumerable<ImageRect> Images
-        {
-            get
-            {
-                foreach (string fname in BitmapFiles)
-                    using (FileStream fs = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    {
-                        ImageRect ir = new ImageRect(new Bitmap(fs), Path.GetFileNameWithoutExtension(fname), fname);
-                        if (ir.IsSymbol)
-                            yield return ir;
-                    }
             }
         }
 

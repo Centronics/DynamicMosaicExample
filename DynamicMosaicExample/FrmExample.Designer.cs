@@ -28,7 +28,6 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmExample));
             this.btnRecognizeImage = new System.Windows.Forms.Button();
             this.btnClearImage = new System.Windows.Forms.Button();
@@ -65,9 +64,9 @@
             this.btnConPrevious = new System.Windows.Forms.Button();
             this.btnConNext = new System.Windows.Forms.Button();
             this.pbConSymbol = new System.Windows.Forms.PictureBox();
-            this.tmrImagesCount = new System.Windows.Forms.Timer(this.components);
             this.dlgSaveImage = new System.Windows.Forms.SaveFileDialog();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
+            this.fswImageChanged = new System.IO.FileSystemWatcher();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
             this.grpResults.SuspendLayout();
@@ -77,6 +76,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.pbSuccess)).BeginInit();
             this.grpContains.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.fswImageChanged)).BeginInit();
             this.SuspendLayout();
             // 
             // btnRecognizeImage
@@ -155,10 +155,10 @@
             // txtSymbolName
             // 
             this.txtSymbolName.Enabled = false;
-            this.txtSymbolName.Location = new System.Drawing.Point(66, 15);
+            this.txtSymbolName.Location = new System.Drawing.Point(61, 15);
             this.txtSymbolName.Name = "txtSymbolName";
             this.txtSymbolName.ReadOnly = true;
-            this.txtSymbolName.Size = new System.Drawing.Size(77, 20);
+            this.txtSymbolName.Size = new System.Drawing.Size(82, 20);
             this.txtSymbolName.TabIndex = 19;
             // 
             // txtImagesCount
@@ -469,12 +469,6 @@
             this.pbConSymbol.TabIndex = 19;
             this.pbConSymbol.TabStop = false;
             // 
-            // tmrImagesCount
-            // 
-            this.tmrImagesCount.Enabled = true;
-            this.tmrImagesCount.Interval = 1000;
-            this.tmrImagesCount.Tick += new System.EventHandler(this.TmrImagesCount_Tick);
-            // 
             // dlgSaveImage
             // 
             this.dlgSaveImage.Filter = "BMP|*.bmp";
@@ -482,6 +476,14 @@
             // dlgOpenImage
             // 
             this.dlgOpenImage.Filter = "BMP|*.bmp";
+            // 
+            // fswImageChanged
+            // 
+            this.fswImageChanged.EnableRaisingEvents = true;
+            this.fswImageChanged.Filter = "*.bmp";
+            this.fswImageChanged.IncludeSubdirectories = true;
+            this.fswImageChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
+            this.fswImageChanged.SynchronizingObject = this;
             // 
             // FrmExample
             // 
@@ -499,6 +501,7 @@
             this.Name = "FrmExample";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Пример применения библиотеки DynamicMosaic";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmExample_FormClosing);
             this.Shown += new System.EventHandler(this.FrmExample_Shown);
             this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.FrmExample_KeyUp);
             this.grpImages.ResumeLayout(false);
@@ -514,6 +517,7 @@
             this.grpContains.ResumeLayout(false);
             this.grpContains.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.fswImageChanged)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -540,7 +544,6 @@
         private System.Windows.Forms.GroupBox grpWords;
         private System.Windows.Forms.TextBox txtImagesCount;
         private System.Windows.Forms.Label label4;
-        private System.Windows.Forms.Timer tmrImagesCount;
         private System.Windows.Forms.Button btnLoadImage;
         private System.Windows.Forms.Button btnSaveImage;
         private System.Windows.Forms.SaveFileDialog dlgSaveImage;
@@ -558,6 +561,7 @@
         private System.Windows.Forms.TextBox txtConSymbol;
         private System.Windows.Forms.Button btnConSaveImage;
         private System.Windows.Forms.Button btnConSaveAllImages;
+        private System.IO.FileSystemWatcher fswImageChanged;
     }
 }
 

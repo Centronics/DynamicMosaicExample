@@ -186,52 +186,50 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnImageNext_Click(object sender, EventArgs e) =>
-            SafetyExecute(() =>
+        void BtnImageNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
+            if (lst.Count <= 0)
             {
-                List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
-                if (lst.Count <= 0)
-                {
-                    SymbolBrowseClear();
-                    MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    return;
-                }
+                SymbolBrowseClear();
+                MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
 
-                if (_currentImage >= lst.Count - 1)
-                    _currentImage = 0;
-                else
-                    _currentImage++;
-                ImageRect ir = lst[_currentImage];
-                pbBrowse.Image = ir.Bitm;
-                txtSymbolName.Text = ir.SymbolString;
-            }, () => tmrImagesCount.Enabled = true);
+            if (_currentImage >= lst.Count - 1)
+                _currentImage = 0;
+            else
+                _currentImage++;
+            ImageRect ir = lst[_currentImage];
+            pbBrowse.Image = ir.Bitm;
+            txtSymbolName.Text = ir.SymbolString;
+        }, () => tmrImagesCount.Enabled = true);
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Предыдущий" в искомых образах букв.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnImagePrev_Click(object sender, EventArgs e) =>
-            SafetyExecute(() =>
+        void BtnImagePrev_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
+            if (lst.Count <= 0)
             {
-                List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
-                if (lst.Count <= 0)
-                {
-                    SymbolBrowseClear();
-                    MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
-                    return;
-                }
+                SymbolBrowseClear();
+                MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
 
-                if (_currentImage <= 0)
-                    _currentImage = lst.Count - 1;
-                else
-                    _currentImage--;
-                ImageRect ir = lst[_currentImage];
-                pbBrowse.Image = ir.Bitm;
-                txtSymbolName.Text = ir.SymbolString;
-            }, () => tmrImagesCount.Enabled = true);
+            if (_currentImage <= 0)
+                _currentImage = lst.Count - 1;
+            else
+                _currentImage--;
+            ImageRect ir = lst[_currentImage];
+            pbBrowse.Image = ir.Bitm;
+            txtSymbolName.Text = ir.SymbolString;
+        }, () => tmrImagesCount.Enabled = true);
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Удалить".
@@ -239,168 +237,164 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnImageDelete_Click(object sender, EventArgs e) =>
-            SafetyExecute(() =>
+        void BtnImageDelete_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
+            if (lst.Count <= 0)
             {
-                List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
-                if (lst.Count <= 0)
-                {
-                    SymbolBrowseClear();
-                    return;
-                }
+                SymbolBrowseClear();
+                return;
+            }
 
-                if (_currentImage >= lst.Count || _currentImage < 0) return;
-                File.Delete(lst[_currentImage].ImagePath);
-                BtnImagePrev_Click(null, null);
-                BtnReflexClear_Click(null, null);
-            }, () =>
-            {
-                RefreshImagesCount();
-                tmrImagesCount.Enabled = true;
-            });
+            if (_currentImage >= lst.Count || _currentImage < 0) return;
+            File.Delete(lst[_currentImage].ImagePath);
+            BtnImagePrev_Click(null, null);
+            BtnReflexClear_Click(null, null);
+        }, () =>
+        {
+            RefreshImagesCount();
+            tmrImagesCount.Enabled = true;
+        });
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Создать образ".
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnImageCreate_Click(object sender, EventArgs e) =>
-            SafetyExecute(() =>
-            {
-                using (FrmSymbol fs = new FrmSymbol())
-                    if (fs.ShowDialog() == DialogResult.OK)
-                    {
-                        BtnReflexClear_Click(null, null);
-                        _currentState.CriticalChange(sender, e);
-                    }
-            }, () =>
-            {
-                RefreshImagesCount();
-                tmrImagesCount.Enabled = true;
-            });
+        void BtnImageCreate_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            using (FrmSymbol fs = new FrmSymbol())
+                if (fs.ShowDialog() == DialogResult.OK)
+                {
+                    BtnReflexClear_Click(null, null);
+                    _currentState.CriticalChange(sender, e);
+                }
+        }, () =>
+        {
+            RefreshImagesCount();
+            tmrImagesCount.Enabled = true;
+        });
 
         /// <summary>
         ///     Выполняет подсчёт количества изображений для поиска.
         ///     Обновляет состояния кнопок, связанных с изображениями.
         /// </summary>
-        void RefreshImagesCount() =>
-            InvokeAction(() =>
+        void RefreshImagesCount() => InvokeAction(() =>
+        {
+            try
             {
-                try
+                long count = ImageRect.Images.LongCount();
+                txtImagesCount.Text = count.ToString();
+                if (count <= 0)
                 {
-                    long count = ImageRect.Images.LongCount();
-                    txtImagesCount.Text = count.ToString();
-                    if (count <= 0)
-                    {
-                        _imageLastCount = -1;
-                        SymbolBrowseClear();
-                        btnImageDelete.Enabled = false;
-                        txtImagesCount.Enabled = false;
-                        btnImageNext.Enabled = false;
-                        btnImagePrev.Enabled = false;
-                        txtSymbolName.Enabled = false;
-                        pbBrowse.Enabled = false;
-                        return;
-                    }
+                    _imageLastCount = -1;
+                    SymbolBrowseClear();
+                    btnImageDelete.Enabled = false;
+                    txtImagesCount.Enabled = false;
+                    btnImageNext.Enabled = false;
+                    btnImagePrev.Enabled = false;
+                    txtSymbolName.Enabled = false;
+                    pbBrowse.Enabled = false;
+                    return;
+                }
 
-                    if (_imageLastCount != count)
-                        BtnImageNext_Click(null, null);
-                    _imageLastCount = count;
-                    btnImageDelete.Enabled = btnImageCreate.Enabled;
-                    txtImagesCount.Enabled = btnImageCreate.Enabled;
-                    btnImageNext.Enabled = true;
-                    btnImagePrev.Enabled = true;
-                    txtSymbolName.Enabled = true;
-                    pbBrowse.Enabled = true;
-                }
-                catch
-                {
-                    tmrImagesCount.Enabled = false;
-                    throw;
-                }
-            });
+                if (_imageLastCount != count)
+                    BtnImageNext_Click(null, null);
+                _imageLastCount = count;
+                btnImageDelete.Enabled = btnImageCreate.Enabled;
+                txtImagesCount.Enabled = btnImageCreate.Enabled;
+                btnImageNext.Enabled = true;
+                btnImagePrev.Enabled = true;
+                txtSymbolName.Enabled = true;
+                pbBrowse.Enabled = true;
+            }
+            catch
+            {
+                tmrImagesCount.Enabled = false;
+                throw;
+            }
+        });
 
         /// <summary>
         ///     Запускает или останавливает таймер, выполняющий замер времени, затраченного на распознавание.
         /// </summary>
-        void WaitableTimer() =>
-            new Thread(() => SafetyExecute(() =>
+        void WaitableTimer() => new Thread(() => SafetyExecute(() =>
+        {
+            _stopwatch.Restart();
+            try
             {
-                _stopwatch.Restart();
-                try
+                #region Switcher
+
+                for (int k = 0; k < 4; k++)
                 {
-                    #region Switcher
-
-                    for (int k = 0; k < 4; k++)
+                    switch (k)
                     {
-                        switch (k)
-                        {
-                            case 0:
-                                InvokeAction(() =>
-                                {
-                                    btnRecognizeImage.Text = StrRecognize;
-                                    lblElapsedTime.Text =
-                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                            _stopwatch
-                                                .Elapsed.Seconds:00}";
-                                });
-                                Thread.Sleep(100);
-                                break;
-                            case 1:
-                                InvokeAction(() =>
-                                {
-                                    btnRecognizeImage.Text = StrRecognize1;
-                                    lblElapsedTime.Text =
-                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                            _stopwatch
-                                                .Elapsed.Seconds:00}";
-                                });
-                                Thread.Sleep(100);
-                                break;
-                            case 2:
-                                InvokeAction(() =>
-                                {
-                                    btnRecognizeImage.Text = StrRecognize2;
-                                    lblElapsedTime.Text =
-                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                            _stopwatch
-                                                .Elapsed.Seconds:00}";
-                                });
-                                Thread.Sleep(100);
-                                break;
-                            case 3:
-                                InvokeAction(() =>
-                                {
-                                    btnRecognizeImage.Text = StrRecognize3;
-                                    lblElapsedTime.Text =
-                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                            _stopwatch
-                                                .Elapsed.Seconds:00}";
-                                });
-                                k = -1;
-                                Thread.Sleep(100);
-                                break;
-                            default:
-                                k = -1;
-                                break;
-                        }
-
-                        if (!IsWorking)
-                            return;
+                        case 0:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text = StrRecognize;
+                                lblElapsedTime.Text =
+                                    $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
+                                        _stopwatch
+                                            .Elapsed.Seconds:00}";
+                            });
+                            Thread.Sleep(100);
+                            break;
+                        case 1:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text = StrRecognize1;
+                                lblElapsedTime.Text =
+                                    $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
+                                        _stopwatch
+                                            .Elapsed.Seconds:00}";
+                            });
+                            Thread.Sleep(100);
+                            break;
+                        case 2:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text = StrRecognize2;
+                                lblElapsedTime.Text =
+                                    $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
+                                        _stopwatch
+                                            .Elapsed.Seconds:00}";
+                            });
+                            Thread.Sleep(100);
+                            break;
+                        case 3:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text = StrRecognize3;
+                                lblElapsedTime.Text =
+                                    $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
+                                        _stopwatch
+                                            .Elapsed.Seconds:00}";
+                            });
+                            k = -1;
+                            Thread.Sleep(100);
+                            break;
+                        default:
+                            k = -1;
+                            break;
                     }
 
-                    #endregion
+                    if (!IsWorking)
+                        return;
                 }
-                finally
-                {
-                    _stopwatch.Stop();
-                    EnableButtons = true;
-                }
-            }, () => InvokeAction(() => btnRecognizeImage.Text = _strRecog)))
+
+                #endregion
+            }
+            finally
             {
-                IsBackground = true,
-                Name = nameof(WaitableTimer)
-            }.Start();
+                _stopwatch.Stop();
+                EnableButtons = true;
+            }
+        }, () => InvokeAction(() => btnRecognizeImage.Text = _strRecog)))
+        {
+            IsBackground = true,
+            Name = nameof(WaitableTimer)
+        }.Start();
 
         /// <summary>
         ///     Сбрасывает сведения, накопившиеся в процессе обучения программы при распознавании.
@@ -436,63 +430,62 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnRecognizeImage_Click(object sender, EventArgs e) =>
-            SafetyExecute(() =>
+        void BtnRecognizeImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            if (IsWorking)
+                return;
+            EnableButtons = false;
+            (_workThread = new Thread(() => SafetyExecute(() =>
             {
-                if (IsWorking)
+                WaitableTimer();
+                List<ImageRect> images = new List<ImageRect>(ImageRect.Images);
+                if (images.Count < 2 && _workReflexes.Count <= 0)
+                {
+                    MessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
                     return;
-                EnableButtons = false;
-                (_workThread = new Thread(() => SafetyExecute(() =>
+                }
+
+                if (txtWord.Text.Length <= 0)
                 {
-                    WaitableTimer();
-                    List<ImageRect> images = new List<ImageRect>(ImageRect.Images);
-                    if (images.Count < 2 && _workReflexes.Count <= 0)
-                    {
-                        MessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
-                        return;
-                    }
+                    MessageInOtherThread(
+                        @"Слова отсутствуют. Добавьте какое-нибудь слово, которое можно составить из одного или нескольких образов.");
+                    return;
+                }
 
-                    if (txtWord.Text.Length <= 0)
-                    {
-                        MessageInOtherThread(
-                            @"Слова отсутствуют. Добавьте какое-нибудь слово, которое можно составить из одного или нескольких образов.");
-                        return;
-                    }
-
-                    if (!IsPainting)
-                    {
-                        MessageInOtherThread(@"Необходимо нарисовать какой-нибудь рисунок на рабочей поверхности.");
-                        return;
-                    }
-
-                    Reflex workReflex = _workReflex ?? new Reflex(new ProcessorContainer((from ir in images
-                                                                                          select new Processor(ir.ImageMap, ir.SymbolString)).ToArray()));
-                    _currentState.CriticalChange(sender, e);
-                    _currentState.WordChange(sender, e);
-                    Reflex result = workReflex.FindRelation(new Processor(_btmFront, "Main"), txtWord.Text);
-                    if (result != null)
-                        InvokeAction(() =>
-                        {
-                            _workReflexes.Insert(0, result);
-                            _currentReflexMapIndex = 0;
-                            lstResults.Items.Insert(1, DateTime.Now.ToString(@"HH:mm:ss"));
-                            lstResults.SelectedIndex = 1;
-                            btnReflexClear.Enabled = true;
-                            grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
-                            pbSuccess.Image = Resources.OK_128;
-                            _currentState.State = RecognizeState.SUCCESS;
-                        });
-                    else
-                    {
-                        pbSuccess.Image = Resources.Error_128;
-                        _currentState.State = RecognizeState.ERROR;
-                    }
-                }))
+                if (!IsPainting)
                 {
-                    IsBackground = true,
-                    Name = "Recognizer"
-                }).Start();
-            });
+                    MessageInOtherThread(@"Необходимо нарисовать какой-нибудь рисунок на рабочей поверхности.");
+                    return;
+                }
+
+                Reflex workReflex = _workReflex ?? new Reflex(new ProcessorContainer((from ir in images
+                                                                                      select new Processor(ir.ImageMap, ir.SymbolString)).ToArray()));
+                _currentState.CriticalChange(sender, e);
+                _currentState.WordChange(sender, e);
+                Reflex result = workReflex.FindRelation(new Processor(_btmFront, "Main"), txtWord.Text);
+                if (result != null)
+                    InvokeAction(() =>
+                    {
+                        _workReflexes.Insert(0, result);
+                        _currentReflexMapIndex = 0;
+                        lstResults.Items.Insert(1, DateTime.Now.ToString(@"HH:mm:ss"));
+                        lstResults.SelectedIndex = 1;
+                        btnReflexClear.Enabled = true;
+                        grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
+                        pbSuccess.Image = Resources.OK_128;
+                        _currentState.State = RecognizeState.SUCCESS;
+                    });
+                else
+                {
+                    pbSuccess.Image = Resources.Error_128;
+                    _currentState.State = RecognizeState.ERROR;
+                }
+            }))
+            {
+                IsBackground = true,
+                Name = "Recognizer"
+            }).Start();
+        });
 
         /// <summary>
         ///     Осуществляет выход из программы по нажатию клавиши Escape.
@@ -878,7 +871,7 @@ namespace DynamicMosaicExample
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             List<ImageRect> images = new List<ImageRect>(ImageRect.Images);
-            ProcessorStorage ps = new ProcessorStorage();
+            ConcurrentProcessorStorage ps = new ConcurrentProcessorStorage();
             foreach (Processor p in from ir in images select new Processor(ir.ImageMap, ir.SymbolString))
                 ps.AddProcessor(p);
             for (int k = 0; k < _workReflex.Count; k++)
@@ -887,6 +880,18 @@ namespace DynamicMosaicExample
                 if (ps.Contains(p))
                     ImageRect.Save(p.Tag[0], ImageRect.GetBitmap(p));
             }
+        });
+
+        /// <summary>
+        /// Обрабатывает событие завершения работы программы.
+        /// Закрывает файлы, потоки.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void FrmExample_FormClosing(object sender, FormClosingEventArgs e) => SafetyExecute(() =>
+        {
+            _stopFileThreadFlag = true;
+            _fileThread?.Join();
         });
     }
 }

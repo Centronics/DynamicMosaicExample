@@ -32,7 +32,7 @@ namespace DynamicMosaicExample
 
         /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
-        ///     Значение <see langword="true" /> - вывод разрешён, в противном случае - <see langword="false" />.
+        ///     Значение <see langword="true" /> - вывод разрешён, в противном случае запрещён.
         /// </summary>
         bool _draw;
 

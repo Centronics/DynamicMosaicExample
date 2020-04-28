@@ -1,10 +1,13 @@
 ﻿using DynamicMosaic;
 using DynamicParser;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace DynamicMosaicExample
@@ -282,14 +285,58 @@ namespace DynamicMosaicExample
         Reflex _workReflex;
 
         /// <summary>
+        /// Уведомляет о необходимости запустить поток для обновления списка файлов изображений.
+        /// </summary>
+        readonly AutoResetEvent _needRefreshEvent = new AutoResetEvent(false);
+
+        /// <summary>
+        /// Предназначена для хранения задач, связанных с изменениями в файловой системе.
+        /// </summary>
+        readonly ConcurrentQueue<FileTask> _concurrentFileTasks;
+
+        /// <summary>
+        /// Хранит загруженные карты, которые требуется искать на основной карте.
+        /// Предназначена для использования несколькими потоками одновременно.
+        /// </summary>
+        readonly ConcurrentProcessorStorage _processorStorage = new ConcurrentProcessorStorage();
+
+        /// <summary>
+        /// Содержит данные о задаче, связанной с изменениями в файловой системе.
+        /// </summary>
+        struct FileTask
+        {
+            /// <summary>
+            /// Изменения, возникшие в файле или папке.
+            /// </summary>
+            public WatcherChangeTypes? TaskType { get; private set; }
+
+            /// <summary>
+            /// Путь к файлу или папке, в которой произошли изменения.
+            /// </summary>
+            public string FilePath { get; private set; }
+
+            /// <summary>
+            /// Инициализирует новый экземпляр параметрами добавляемой задачи.
+            /// Параметры предназначены только для чтения.
+            /// </summary>
+            /// <param name="changes">Изменения, возникшие в файле или папке.</param>
+            /// <param name="filePath">Путь к файлу или папке, в которой произошли изменения.</param>
+            public FileTask(WatcherChangeTypes changes, string filePath)
+            {
+                TaskType = changes;
+                FilePath = filePath;
+            }
+        }
+
+        /// <summary>
         ///     Конструктор основной формы приложения.
         /// </summary>
         internal FrmExample()
         {
             try
             {
-                _whitePen = new Pen(_defaultColor, 2.0f);
                 InitializeComponent();
+                _whitePen = new Pen(_defaultColor, 2.0f);
                 Initialize();
                 _strRecog = btnRecognizeImage.Text;
                 _unknownSymbolName = txtSymbolName.Text;
@@ -307,6 +354,22 @@ namespace DynamicMosaicExample
                 btnClearImage.Click += _currentState.CriticalChange;
                 btnImageDelete.Click += _currentState.CriticalChange;
                 txtWord.TextChanged += _currentState.WordChange;
+                fswImageChanged.Path = SearchPath;
+                fswImageChanged.NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size;
+                fswImageChanged.Filter = $"*.{ExtImg}";
+
+                void OnChanged(object source, FileSystemEventArgs e) => InvokeAction(() =>
+                {
+                    _concurrentFileTasks.Enqueue(new FileTask(e.ChangeType, e.FullPath));
+                    _needRefreshEvent.Set();
+                });
+
+                fswImageChanged.Changed += OnChanged;
+                fswImageChanged.Created += OnChanged;
+                fswImageChanged.Deleted += OnChanged;
+                fswImageChanged.Renamed += OnChanged;
+                fswImageChanged.EnableRaisingEvents = true;
+                _fileThread = FileRefreshThread();
             }
             catch (Exception ex)
             {
@@ -332,6 +395,26 @@ namespace DynamicMosaicExample
         internal static int ImageHeight { get; private set; }
 
         /// <summary>
+        /// Путь, по которому ищутся изображения, которые интерпретируются как карты <see cref="Processor"/>, поиск которых будет осуществляться на основной карте.
+        /// </summary>
+        internal static string SearchPath { get; } = Application.StartupPath;
+
+        /// <summary>
+        /// Расширение изображений, которые интерпретируются как карты <see cref="Processor"/>.
+        /// </summary>
+        internal static string ExtImg { get; } = "bmp";
+
+        /// <summary>
+        /// Поток, отвечающий за актуализацию содержимого карт <see cref="Processor"/>, загруженных в программу.
+        /// </summary>
+        readonly Thread _fileThread;
+
+        /// <summary>
+        /// Сигнал остановки потоку, актуализирующему содержимое карт <see cref="Processor"/>.
+        /// </summary>
+        bool _stopFileThreadFlag;
+
+        /// <summary>
         ///     Отключает или включает доступность кнопок на время выполнения операции.
         /// </summary>
         bool EnableButtons
@@ -344,12 +427,12 @@ namespace DynamicMosaicExample
                     btnImageCreate.Enabled = value;
                     btnImageDelete.Enabled = value;
                     txtImagesCount.Enabled = value;
-                    tmrImagesCount.Enabled = value;
                     txtWord.Enabled = value;
                     btnSaveImage.Enabled = value;
                     btnLoadImage.Enabled = value;
                     btnClearImage.Enabled = value && IsPainting;
                     btnReflexClear.Enabled = value;
+
                     if (value)
                     {
                         btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
@@ -398,6 +481,67 @@ namespace DynamicMosaicExample
                 for (int k = pbDraw.MaximumSize.Width, min = pbDraw.MinimumSize.Width; k >= min; k -= WidthCount)
                     yield return k;
             }
+        }
+
+        /// <summary>
+        /// Создаёт новый поток для обновления списка файлов изображений, в случае, если переменная <see cref="_fileThread"/> равна <see langword="null"/>.
+        /// Поток находится в запущенном состоянии.
+        /// Поток служит для получения всех имеющихся на данный момент образов букв для распознавания, в том числе, для обновления этого списка с диска.
+        /// Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если переменная <see cref="_fileThread"/> не равна <see langword="null"/>.
+        /// </summary>
+        /// <returns>Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если переменная <see cref="_fileThread"/> не равна <see langword="null"/>.</returns>
+        Thread FileRefreshThread()
+        {
+            if (_fileThread?.IsAlive == true)
+                return null;
+
+            Thread t = new Thread(() => SafetyExecute(() =>
+            {
+                ThreadPool.SetMinThreads(20, 20);//РАЗОБРАТЬСЯ
+                ThreadPool.SetMaxThreads(20, 20);//РАЗОБРАТЬСЯ
+                ParallelOptions options = new ParallelOptions()
+                { MaxDegreeOfParallelism = 2 };//ИСПОЛЬЗОВАТЬ
+                ParallelLoopResult result = Parallel.ForEach(Directory.EnumerateFiles(SearchPath, $"*.{ExtImg}", SearchOption.AllDirectories), options, (fName, state) => SafetyExecute(() =>
+                {
+                    if (!string.IsNullOrWhiteSpace(fName) && string.Compare(Path.GetExtension(fName), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0)
+                        _processorStorage.AddProcessor(fName);
+                }));
+                if (!result.IsCompleted)
+                    MessageInOtherThread(@"Не все изображения (карты) были загружены.");
+                while (!_stopFileThreadFlag)
+                {
+                    _needRefreshEvent.WaitOne();
+                    while (!_stopFileThreadFlag && _concurrentFileTasks.TryDequeue(out FileTask task)) SafetyExecute(() =>
+                    {
+                        switch (task.TaskType.Value)
+                        {
+                            case WatcherChangeTypes.Created:
+                                _processorStorage.AddProcessor(task.FilePath);
+                                break;
+                            case WatcherChangeTypes.Deleted:
+                                _processorStorage.RemoveProcessor(task.FilePath);
+                                break;
+                            case WatcherChangeTypes.Changed:
+                            case WatcherChangeTypes.All:
+                                _processorStorage.RemoveProcessor(task.FilePath);//УСЛОВНО
+                                _processorStorage.AddProcessor(task.FilePath);
+                                break;
+                            case WatcherChangeTypes.Renamed:
+                                _processorStorage.RemoveProcessor(task.FilePath);//УСЛОВНО
+                                break;
+                            default:
+                                throw new ArgumentOutOfRangeException(nameof(task));
+                        }
+                    });
+                }
+
+            }))
+            {
+                IsBackground = true,
+                Name = nameof(FileRefreshThread)
+            };
+            t.Start();
+            return t;
         }
     }
 }
