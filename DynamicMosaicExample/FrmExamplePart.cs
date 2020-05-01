@@ -500,7 +500,9 @@ namespace DynamicMosaicExample
                 ThreadPool.SetMinThreads(20, 20);//РАЗОБРАТЬСЯ
                 ThreadPool.SetMaxThreads(20, 20);//РАЗОБРАТЬСЯ
                 ParallelOptions options = new ParallelOptions()
-                { MaxDegreeOfParallelism = 2 };//ИСПОЛЬЗОВАТЬ
+                {
+                    MaxDegreeOfParallelism = 2
+                };//ИСПОЛЬЗОВАТЬ
                 ParallelLoopResult result = Parallel.ForEach(Directory.EnumerateFiles(SearchPath, $"*.{ExtImg}", SearchOption.AllDirectories), options, (fName, state) => SafetyExecute(() =>
                 {
                     if (!string.IsNullOrWhiteSpace(fName) && string.Compare(Path.GetExtension(fName), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0)

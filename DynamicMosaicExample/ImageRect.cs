@@ -1,11 +1,6 @@
 ﻿using DynamicProcessor;
 using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Imaging;
-using System.IO;
-using System.Linq;
-using System.Windows.Forms;
 using Processor = DynamicParser.Processor;
 
 namespace DynamicMosaicExample
@@ -25,18 +20,18 @@ namespace DynamicMosaicExample
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm), $@"{nameof(ImageRect)}: {nameof(btm)} = null.");
-            if (string.IsNullOrWhiteSpace(imagePath))
-                throw new ArgumentNullException(nameof(imagePath),
-                    $@"{nameof(ImageRect)}: {nameof(imagePath)} = null.");
-            if (!NameParser(out ulong number, tag))
-                return;
             if (btm.Width != FrmExample.ImageWidth || btm.Height != FrmExample.ImageHeight)
                 return;
-            SymbolString = tag.Substring(1);
-            Symbol = char.ToUpper(tag[1]);
+            if (string.IsNullOrWhiteSpace(imagePath))
+                throw new ArgumentNullException(nameof(imagePath), $@"{nameof(ImageRect)}: {nameof(imagePath)} = null.");
+            if (!NameParser(out ulong number, tag))
+                return;
+            SymbolString = tag;
+            Symbol = char.ToUpper(tag[0]);
             Number = number;
             Bitm = btm;
             ImagePath = imagePath;
+            CurrentProcessor = new Processor(ImageMap(btm), SymbolString);
             IsSymbol = true;
         }
 
@@ -74,12 +69,12 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Символьное обозначение текущей буквы.
         /// </summary>
-        char Symbol { get; }
+        internal char Symbol { get; }
 
         /// <summary>
         ///     Номер текущего образа.
         /// </summary>
-        ulong Number { get; }
+        internal ulong Number { get; }
 
         /// <summary>
         ///     Получает значение, является ли данный файл образом, предназначенным для распознавания.
@@ -88,39 +83,22 @@ namespace DynamicMosaicExample
         internal bool IsSymbol { get; }
 
         /// <summary>
-        ///     Получает текущее изображение в виде набора знаков объектов карты.
+        /// Получает текущее изображение в виде карты <see cref="Processor"/>.
         /// </summary>
-        internal SignValue[,] ImageMap
-        {
-            get
-            {
-                if (!IsSymbol)
-                    return null;
-                SignValue[,] mas = new SignValue[Bitm.Width, Bitm.Height];
-                for (int y = 0; y < Bitm.Height; y++)
-                    for (int x = 0; x < Bitm.Width; x++)
-                        mas[x, y] = new SignValue(Bitm.GetPixel(x, y));
-                return mas;
-            }
-        }
+        internal Processor CurrentProcessor { get; }
 
         /// <summary>
-        ///     Сохраняет указанный образ буквы с указанным названием.
+        ///     Получает текущее изображение в виде набора знаков объектов карты.
         /// </summary>
-        /// <param name="name">Название буквы.</param>
-        /// <param name="btm">Изображение буквы.</param>
-        /// <returns>Возвращает экземпляр текущего класса образа буквы.</returns>
-        internal static ImageRect Save(char name, Bitmap btm)
+        static SignValue[,] ImageMap(Bitmap bitm)
         {
-            if (btm == null)
-                throw new ArgumentNullException(nameof(btm), $@"{nameof(Save)}: Сохраняемое изображение не указано.");
-            string path = NewFileName(name);
-            using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write))
-                btm.Save(fs, ImageFormat.Bmp);
-            ImageRect ir = new ImageRect(btm, Path.GetFileNameWithoutExtension(path), path);
-            if (!ir.IsSymbol)
-                throw new Exception($"{nameof(Save)}: Неизвестная ошибка при сохранении изображения.");
-            return ir;
+            if (bitm == null)
+                throw new ArgumentNullException(nameof(bitm));
+            SignValue[,] mas = new SignValue[bitm.Width, bitm.Height];
+            for (int y = 0; y < bitm.Height; y++)
+                for (int x = 0; x < bitm.Width; x++)
+                    mas[x, y] = new SignValue(bitm.GetPixel(x, y));
+            return mas;
         }
 
         /// <summary>
@@ -132,35 +110,17 @@ namespace DynamicMosaicExample
         static bool NameParser(out ulong number, string tag)
         {
             number = 0;
-            if (string.IsNullOrWhiteSpace(tag) || tag.Length < 2)
+            if (string.IsNullOrWhiteSpace(tag) || tag.Length < 1)
                 return false;
-            char ch = char.ToUpper(tag[0]);
-            if (ch != 'M' && ch != 'B')
-                return false;
-            return tag.Length <= 2 || ulong.TryParse(tag.Substring(2), out number);
-        }
-
-        /// <summary>
-        ///     Генерирует имя нового образа, увеличивая его номер.
-        /// </summary>
-        /// <param name="name">Имя образа, на основании которого требуется сгенерировать новое имя.</param>
-        /// <returns>Возвращает строку полного пути к файлу нового образа.</returns>
-        static string NewFileName(char name)
-        {
-            ImageRect imageRect = null;
-            {
-                char nm = char.ToUpper(name);
-                ulong max = 0;
-                foreach (ImageRect ir in Images.Where(i => i.Symbol == nm).Where(i => i.Number >= max))
-                {
-                    max = ir.Number;
-                    imageRect = ir;
-                }
-            }
-            char prefix = char.IsUpper(name) ? 'b' : 'm';
-            return imageRect != null
-                ? $@"{SearchPath}\{prefix}{name}{unchecked(imageRect.Number + 1)}.{ExtImg}"
-                : $@"{SearchPath}\{prefix}{name}.{ExtImg}";
+            int k = tag.Length - 1;
+            for (; k > 0; k--)
+                if (!char.IsDigit(tag[k]))
+                    break;
+            if (k >= tag.Length - 1)
+                return true;
+            if (ulong.TryParse(tag.Substring(k + 1), out ulong n))
+                number = n;
+            return true;
         }
     }
 }

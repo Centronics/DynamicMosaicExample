@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using Processor = DynamicParser.Processor;
@@ -21,7 +22,12 @@ namespace DynamicMosaicExample
         /// <summary>
         /// Коллекция карт, идентифицируемых по путям.
         /// </summary>
-        readonly Dictionary<string, Processor> _dictionaryByPath = new Dictionary<string, Processor>();
+        readonly Dictionary<string, ImageRect> _dictionaryByPath = new Dictionary<string, ImageRect>();
+
+        /// <summary>
+        /// Содержит количество файлов с именами, начинающимися на одно и то же слово.
+        /// </summary>
+        readonly Dictionary<string, uint> _dictionaryFileNames = new Dictionary<string, uint>();
 
         /// <summary>
         /// Объект для синхронизации доступа к экземпляру класса <see cref="ConcurrentProcessorStorage"/>, с использованием конструкции <see langword="lock"/>.
@@ -119,24 +125,50 @@ namespace DynamicMosaicExample
         /// Добавляет карту в коллекцию, по указанному пути.
         /// </summary>
         /// <param name="fullPath">Полный путь к изображению, которое будет интерпретировано как карта <see cref="Processor"/>.</param>
-        public void AddProcessor(string fullPath)
+        public ImageRect AddProcessor(string fullPath)
         {
-            Processor p = null;
+            fullPath = Path.GetFullPath(fullPath);
+            ImageRect ir = null;
             using (FileStream fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            {
-                ImageRect ir = new ImageRect(new Bitmap(fs), Path.GetFileNameWithoutExtension(fullPath), fullPath);
-                if (ir.IsSymbol)
-                    p = new Processor(ir.ImageMap, ir.SymbolString);
-            }
-            int hashCode = CRCIntCalc.GetHash(p);
+                ir = new ImageRect(new Bitmap(fs), Path.GetFileNameWithoutExtension(fullPath), fullPath);
+            if (!ir.IsSymbol)
+                return null;
+            (uint count, string name) = GetFilesNumberByName(fullPath);
+            if (!_dictionaryFileNames.TryGetValue(name, out uint value))
+                _dictionaryFileNames[name] = count;
+            else
+                if (value < count)
+                _dictionaryFileNames[name] = count;
+            int hashCode = CRCIntCalc.GetHash(ir.CurrentProcessor);
             lock (_syncObject)
             {
                 if (!_dictionary.TryGetValue(hashCode, out ProcHash ph))
-                    _dictionary.Add(hashCode, new ProcHash(new ProcPath(p, fullPath)));
-                else if (ph.Elements.All(px => !ProcessorCompare(p, px.CurrentProcessor)))
-                    ph.AddProcessor(new ProcPath(p, fullPath));
-                _dictionaryByPath.Add(fullPath, p);
+                    _dictionary.Add(hashCode, new ProcHash(new ProcPath(ir.CurrentProcessor, fullPath)));
+                else if (ph.Elements.All(px => !ProcessorCompare(ir.CurrentProcessor, px.CurrentProcessor)))
+                    ph.AddProcessor(new ProcPath(ir.CurrentProcessor, fullPath));
+                _dictionaryByPath.Add(fullPath, ir);
             }
+            return ir;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        internal static (uint count, string name) GetFilesNumberByName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentNullException(nameof(name), nameof(GetFilesNumberByName));
+            uint count = 0;
+            int k = name.Length - 1;
+            for (; k > 0; k--)
+            {
+                if (name[k] != '0')
+                    break;
+                count++;
+            }
+            return (count, name.Substring(0, k + 1));
         }
 
         /// <summary>
@@ -166,7 +198,7 @@ namespace DynamicMosaicExample
             get
             {
                 lock (_syncObject)
-                    return _dictionary.SelectMany(pair => pair.Value.Elements.Select(sel => sel.CurrentProcessor)).ToArray();
+                    return _dictionaryByPath.Select(pair => pair.Value.CurrentProcessor).ToArray();
             }
         }
 
@@ -180,7 +212,7 @@ namespace DynamicMosaicExample
             if (string.IsNullOrWhiteSpace(path))
                 return null;
             lock (_syncObject)
-                return _dictionaryByPath[path];
+                return _dictionaryByPath[path].CurrentProcessor;
         }
 
         /// <summary>
@@ -249,6 +281,46 @@ namespace DynamicMosaicExample
                     if (pOne[x, y] != pTwo[x, y])
                         return false;
             return true;
+        }
+
+        /// <summary>
+        ///     Сохраняет указанный образ буквы с указанным названием.
+        /// </summary>
+        /// <param name="name">Название буквы.</param>
+        /// <param name="btm">Изображение буквы.</param>
+        /// <returns>Возвращает экземпляр текущего класса образа буквы.</returns>
+        internal ImageRect Save(string name, Bitmap btm)
+        {
+            if (btm == null)
+                throw new ArgumentNullException(nameof(btm), $@"{nameof(Save)}: Сохраняемое изображение не указано.");
+            ImageRect ir = new ImageRect(btm, name, SaveFile(name, btm));
+            if (!ir.IsSymbol)
+                throw new Exception($"{nameof(Save)}: Неизвестная ошибка при сохранении изображения.");
+            return ir;
+        }
+
+        /// <summary>
+        ///     Генерирует имя нового образа, увеличивая его номер.
+        /// </summary>
+        /// <param name="imageName">Имя образа, на основании которого требуется сгенерировать новое имя.</param>
+        /// <param name="btm">Изображение буквы.</param>
+        /// <returns>Возвращает строку полного пути к файлу нового образа.</returns>
+        string SaveFile(string imageName, Bitmap btm)
+        {
+            if (string.IsNullOrWhiteSpace(imageName))
+                throw new ArgumentNullException(nameof(imageName), nameof(SaveFile));
+            (_, string name) = GetFilesNumberByName(imageName);
+            lock (_syncObject)
+            {
+                if (!_dictionaryFileNames.TryGetValue(name, out uint value))
+                    value = 1;
+                else
+                    value++;
+                using (FileStream fs = new FileStream(Path.Combine(FrmExample.SearchPath, $@"{name}{unchecked(value)}.{FrmExample.ExtImg}"), FileMode.Create, FileAccess.Write))
+                    btm.Save(fs, ImageFormat.Bmp);
+                _dictionaryFileNames[name] = value;
+                return Path.GetFullPath(imageName);
+            }
         }
 
         /// <summary>
