@@ -133,15 +133,14 @@ namespace DynamicMosaicExample
                 ir = new ImageRect(new Bitmap(fs), Path.GetFileNameWithoutExtension(fullPath), fullPath);
             if (!ir.IsSymbol)
                 return null;
-            (uint count, string name) = GetFilesNumberByName(fullPath);
-            if (!_dictionaryFileNames.TryGetValue(name, out uint value))
-                _dictionaryFileNames[name] = count;
-            else
-                if (value < count)
-                _dictionaryFileNames[name] = count;
             int hashCode = CRCIntCalc.GetHash(ir.CurrentProcessor);
             lock (_syncObject)
             {
+                if (!_dictionaryFileNames.TryGetValue(ir.SymbolString, out uint value))
+                    _dictionaryFileNames[ir.SymbolString] = ir.Number;
+                else
+                if (value < ir.Number)
+                    _dictionaryFileNames[ir.SymbolString] = ir.Number;
                 if (!_dictionary.TryGetValue(hashCode, out ProcHash ph))
                     _dictionary.Add(hashCode, new ProcHash(new ProcPath(ir.CurrentProcessor, fullPath)));
                 else if (ph.Elements.All(px => !ProcessorCompare(ir.CurrentProcessor, px.CurrentProcessor)))
@@ -152,23 +151,23 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// 
+        /// Преобразует название карты, заканчивающееся символами '0', в параметры, включающие имя и количество символов '0' в конце названия карты <see cref="Processor"/>.
         /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        internal static (uint count, string name) GetFilesNumberByName(string name)
+        /// <param name="tag">Значение свойства <see cref="Processor.Tag"/> карты <see cref="Processor"/>.</param>
+        /// <returns>Возвращает параметры, включающие имя и количество символов '0' в конце названия карты <see cref="Processor"/>.</returns>
+        internal static (uint count, string name) GetFilesNumberByName(string tag)
         {
-            if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentNullException(nameof(name), nameof(GetFilesNumberByName));
+            if (string.IsNullOrWhiteSpace(tag))
+                throw new ArgumentNullException(nameof(tag), nameof(GetFilesNumberByName));
             uint count = 0;
-            int k = name.Length - 1;
+            int k = tag.Length - 1;
             for (; k > 0; k--)
             {
-                if (name[k] != '0')
+                if (tag[k] != '0')
                     break;
                 count++;
             }
-            return (count, name.Substring(0, k + 1));
+            return (count, tag.Substring(0, k + 1));
         }
 
         /// <summary>
@@ -312,15 +311,15 @@ namespace DynamicMosaicExample
             (_, string name) = GetFilesNumberByName(imageName);
             lock (_syncObject)
             {
-                if (!_dictionaryFileNames.TryGetValue(name, out uint value))
-                    value = 1;
+                if (_dictionaryFileNames.TryGetValue(name, out uint value))
+                    value = unchecked(value + 1);
                 else
-                    value++;
-                using (FileStream fs = new FileStream(Path.Combine(FrmExample.SearchPath, $@"{name}{unchecked(value)}.{FrmExample.ExtImg}"), FileMode.Create, FileAccess.Write))
+                    value = 1;
+                using (FileStream fs = new FileStream(Path.Combine(FrmExample.SearchPath, $@"{name}{unchecked(value)}.{FrmExample.ExtImg}"), FileMode.Create, FileAccess.Write))//ПРОВЕРИТЬ на перезапись существующего файла
                     btm.Save(fs, ImageFormat.Bmp);
                 _dictionaryFileNames[name] = value;
-                return Path.GetFullPath(imageName);
             }
+            return Path.GetFullPath(imageName);
         }
 
         /// <summary>

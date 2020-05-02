@@ -24,7 +24,7 @@ namespace DynamicMosaicExample
                 return;
             if (string.IsNullOrWhiteSpace(imagePath))
                 throw new ArgumentNullException(nameof(imagePath), $@"{nameof(ImageRect)}: {nameof(imagePath)} = null.");
-            if (!NameParser(out ulong number, tag))
+            if (!NameParser(out uint number, tag))
                 return;
             SymbolString = tag;
             Symbol = char.ToUpper(tag[0]);
@@ -74,7 +74,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Номер текущего образа.
         /// </summary>
-        internal ulong Number { get; }
+        internal uint Number { get; }
 
         /// <summary>
         ///     Получает значение, является ли данный файл образом, предназначенным для распознавания.
@@ -107,7 +107,7 @@ namespace DynamicMosaicExample
         /// <param name="number">Возвращает номер текущей буквы.</param>
         /// <param name="tag">Имя файла без расширения.</param>
         /// <returns>Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном случае - <see langword="false" />.</returns>
-        static bool NameParser(out ulong number, string tag)
+        static bool NameParser(out uint number, string tag)
         {
             number = 0;
             if (string.IsNullOrWhiteSpace(tag) || tag.Length < 1)
@@ -118,7 +118,7 @@ namespace DynamicMosaicExample
                     break;
             if (k >= tag.Length - 1)
                 return true;
-            if (ulong.TryParse(tag.Substring(k + 1), out ulong n))
+            if (uint.TryParse(tag.Substring(k + 1), out uint n))
                 number = n;
             return true;
         }
