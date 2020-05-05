@@ -35,6 +35,12 @@ namespace DynamicMosaicExample
         readonly object _syncObject = new object();
 
         /// <summary>
+        /// Показывает, пригоден ли текущий экземпляр к выполнению каких-либо операций.
+        /// Если нет, то при попытке выполнить операцию, выбрасывается исключение <see cref="InvalidOperationException"/>.
+        /// </summary>
+        public bool IsOperationAllowed { get; private set; } = true;
+
+        /// <summary>
         /// Хранит карту <see cref="Processor"/> и путь <see cref="string"/> к ней.
         /// </summary>
         struct ProcPath
@@ -42,23 +48,23 @@ namespace DynamicMosaicExample
             /// <summary>
             /// Хранимая карта.
             /// </summary>
-            public Processor CurrentProcessor { get; }
+            internal Processor CurrentProcessor { get; }
 
             /// <summary>
             /// Путь к карте <see cref="Processor"/>.
             /// </summary>
-            public string CurrentPath { get; }
+            internal string CurrentPath { get; }
 
             /// <summary>
             /// Инициализирует хранимые объекты: <see cref="Processor"/> и <see cref="string"/>.
             /// </summary>
             /// <param name="p">Хранимая карта.</param>
             /// <param name="path">Путь к карте <see cref="Processor"/>.</param>
-            public ProcPath(Processor p, string path)
+            internal ProcPath(Processor p, string path)
             {
                 if (string.IsNullOrWhiteSpace(path))
                     throw new ArgumentException($@"Параметр {nameof(path)} не может быть пустым.");
-                CurrentProcessor = p ?? throw new ArgumentNullException(nameof(p), $@"{nameof(p)} не может быть равен null."); ;
+                CurrentProcessor = p ?? throw new ArgumentNullException(nameof(p), $@"{nameof(p)} не может быть равен null.");
                 CurrentPath = path;
             }
         }
@@ -78,7 +84,7 @@ namespace DynamicMosaicExample
             /// Значение не может быть равно <see langword="null" />.
             /// </summary>
             /// <param name="p">Добавляемая карта.</param>
-            public ProcHash(ProcPath p)
+            internal ProcHash(ProcPath p)
             {
                 if (p.CurrentProcessor is null || string.IsNullOrWhiteSpace(p.CurrentPath))
                     throw new ArgumentNullException(nameof(p), $@"Функция (конструктор) {nameof(ProcHash)}.");
@@ -90,7 +96,7 @@ namespace DynamicMosaicExample
             /// Значение не может быть равно <see langword="null" />.
             /// </summary>
             /// <param name="p">Добавляемая карта.</param>
-            public void AddProcessor(ProcPath p)
+            internal void AddProcessor(ProcPath p)
             {
                 if (p.CurrentProcessor is null || string.IsNullOrWhiteSpace(p.CurrentPath))
                     throw new ArgumentNullException(nameof(p), $@"Функция {nameof(AddProcessor)}.");
@@ -100,21 +106,21 @@ namespace DynamicMosaicExample
             /// <summary>
             /// Получает все хранимые карты в текущем экземпляре <see cref="ProcHash"/>.
             /// </summary>
-            public IEnumerable<ProcPath> Elements => _lst;
+            internal IEnumerable<ProcPath> Elements => _lst;
 
             /// <summary>
             /// Получает <see cref="ProcHash"/> по указанному индексу.
             /// </summary>
             /// <param name="index">Индекс элемента <see cref="ProcHash"/>, который требуется получиться.</param>
             /// <returns>Возвращает <see cref="ProcHash"/> по указанному индексу.</returns>
-            public ProcPath this[int index] => _lst[index];
+            internal ProcPath this[int index] => _lst[index];
 
             /// <summary>
-            /// Удаляет одну карту <see cref="Processor"/> из коллекции.
-            /// Недопустимые значения игнорируются.
+            /// Удаляет карту <see cref="Processor"/>, с указанным индексом, из коллекции.
+            /// Недопустимые значения индекса игнорируются.
             /// </summary>
             /// <param name="index">Индекс удаляемой карты.</param>
-            public void RemoveProcessor(int index)
+            internal void RemoveProcessor(int index)
             {
                 if (index >= 0 && index < _lst.Count)
                     _lst.RemoveAt(index);
@@ -125,8 +131,10 @@ namespace DynamicMosaicExample
         /// Добавляет карту в коллекцию, по указанному пути.
         /// </summary>
         /// <param name="fullPath">Полный путь к изображению, которое будет интерпретировано как карта <see cref="Processor"/>.</param>
-        public void AddProcessor(string fullPath)
+        internal void AddProcessor(string fullPath)
         {
+            if (!IsOperationAllowed)
+                throw new InvalidOperationException($@"{nameof(AddProcessor)}: Операция недопустима.");
             fullPath = Path.GetFullPath(fullPath);
             Bitmap btm = null;
             using (FileStream fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -135,14 +143,21 @@ namespace DynamicMosaicExample
             if (!ir.IsSymbol)
                 return;
             int hashCode = CRCIntCalc.GetHash(ir.CurrentProcessor);
-            lock (_syncObject)
+            try
             {
-                AddElement(hashCode, fullPath, ir.CurrentProcessor);
-                if (!_dictionaryFileNames.TryGetValue(ir.SymbolString, out uint value))
-                    _dictionaryFileNames[ir.SymbolString] = ir.Number;
-                else
-                if (value < ir.Number)
-                    _dictionaryFileNames[ir.SymbolString] = ir.Number;
+                lock (_syncObject)
+                {
+                    AddElement(hashCode, fullPath, ir.CurrentProcessor);
+                    if (!_dictionaryFileNames.TryGetValue(ir.SymbolString, out uint value))
+                        _dictionaryFileNames[ir.SymbolString] = ir.Number;
+                    else if (value < ir.Number)
+                        _dictionaryFileNames[ir.SymbolString] = ir.Number;
+                }
+            }
+            catch
+            {
+                IsOperationAllowed = false;
+                throw;
             }
         }
 
@@ -192,8 +207,10 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="p">Проверяемая карта.</param>
         /// <returns>Возвращает значение <see langword="true" /> в случае, когда содержимое и первая буква свойства <see cref="Processor.Tag"/> совпадают, в противном случае - <see langword="false" />.</returns>
-        public bool Contains(Processor p)
+        internal bool Contains(Processor p)
         {
+            if (!IsOperationAllowed)
+                throw new InvalidOperationException($@"{nameof(Contains)}: Операция недопустима.");
             if (p is null)
                 throw new ArgumentNullException(nameof(p), $@"Функция {nameof(Contains)}.");
             int hash = CRCIntCalc.GetHash(p);
@@ -205,10 +222,12 @@ namespace DynamicMosaicExample
         /// Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage"/>.
         /// Возвращает копию коллекции в виде массива.
         /// </summary>
-        public Processor[] Elements
+        internal Processor[] Elements
         {
             get
             {
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
                 lock (_syncObject)
                     return _dictionaryByPath.Select(pair => pair.Value).ToArray();
             }
@@ -219,8 +238,10 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="path"></param>
         /// <returns></returns>
-        public Processor FindByPath(string path)
+        internal Processor FindByPath(string path)
         {
+            if (!IsOperationAllowed)
+                throw new InvalidOperationException($@"{nameof(FindByPath)}: Операция недопустима.");
             if (string.IsNullOrWhiteSpace(path))
                 return null;
             lock (_syncObject)
@@ -231,8 +252,10 @@ namespace DynamicMosaicExample
         /// Удаляет указанную карту <see cref="Processor"/> из коллекции <see cref="ConcurrentProcessorStorage"/>, идентифицируя её по пути к ней.
         /// </summary>
         /// <param name="path">Путь к карте <see cref="Processor"/>, которую необходимо удалить из коллекции.</param>
-        public void RemoveProcessor(string path)
+        internal void RemoveProcessor(string path)
         {
+            if (!IsOperationAllowed)
+                throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
             if (string.IsNullOrWhiteSpace(path))
                 return;
             lock (_syncObject)
@@ -243,26 +266,37 @@ namespace DynamicMosaicExample
         /// Удаляет карту <see cref="Processor"/> из коллекции <see cref="ConcurrentProcessorStorage"/>.
         /// </summary>
         /// <param name="p">Карта <see cref="Processor"/>, которую следует удалить.</param>
-        public void RemoveProcessor(Processor p)
+        internal void RemoveProcessor(Processor p)
         {
-            if (p == null)
+            if (!IsOperationAllowed)
+                throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
+            if (p is null)
                 return;
             int hash = CRCIntCalc.GetHash(p);
             lock (_syncObject)
             {
                 if (!_dictionary.TryGetValue(hash, out ProcHash ph))
                     return;
-                int index = 0;
-                foreach (ProcPath px in ph.Elements)
-                    if (ProcessorCompare(p, px.CurrentProcessor))
-                    {
-                        _dictionaryByPath.Remove(ph[index].CurrentPath);
-                        ph.RemoveProcessor(index);
-                    }
-                    else
-                        index++;
-                if (!ph.Elements.Any())
-                    _dictionary.Remove(hash);
+                try
+                {
+                    int index = 0;
+                    foreach (ProcPath px in ph.Elements)
+                        if (ProcessorCompare(p, px.CurrentProcessor))
+                        {
+                            _dictionaryByPath.Remove(ph[index].CurrentPath);
+                            ph.RemoveProcessor(index);
+                            break;
+                        }
+                        else
+                            index++;
+                    if (!ph.Elements.Any())
+                        _dictionary.Remove(hash);
+                }
+                catch
+                {
+                    IsOperationAllowed = false;
+                    throw;
+                }
             }
         }
 
@@ -302,23 +336,33 @@ namespace DynamicMosaicExample
         /// <returns>Возвращает строку полного пути к файлу нового образа или <see cref="string.Empty"/> в случае ошибки его сохранения.</returns>
         internal string SaveToFile(Processor processor)
         {
-            if(processor == null)
+            if (!IsOperationAllowed)
+                throw new InvalidOperationException($@"{nameof(SaveToFile)}: Операция недопустима.");
+            if (processor is null)
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}");
             (bool res, uint count, string name) = GetFilesNumberByName(processor.Tag);
             if (!res)
                 return string.Empty;
             string result = Path.Combine(FrmExample.SearchPath, $@"{name + count}.{FrmExample.ExtImg}");
             Bitmap btm = ImageRect.GetBitmap(processor);
-            lock (_syncObject)
+            using (FileStream fs = new FileStream(result, FileMode.Create, FileAccess.Write, FileShare.Read))
+                btm.Save(fs, ImageFormat.Bmp);
+            try
             {
-                using (FileStream fs = new FileStream(result, FileMode.Create, FileAccess.Write, FileShare.Read))
-                    btm.Save(fs, ImageFormat.Bmp);
-                AddElement(CRCIntCalc.GetHash(processor), result, processor);
-                _dictionaryFileNames.TryGetValue(name, out uint value);
-                if (count > value)
-                    _dictionaryFileNames[name] = count;
+                lock (_syncObject)
+                {
+                    AddElement(CRCIntCalc.GetHash(processor), result, processor);
+                    _dictionaryFileNames.TryGetValue(name, out uint value);
+                    if (count > value)
+                        _dictionaryFileNames[name] = count;
+                }
+                return result;
             }
-            return result;
+            catch
+            {
+                IsOperationAllowed = false;
+                throw;
+            }
         }
 
         /// <summary>
@@ -332,9 +376,9 @@ namespace DynamicMosaicExample
             /// </summary>
             /// <param name="p">Карта, для которой необходимо вычислить значение хеша.</param>
             /// <returns>Возвращает хеш заданной карты.</returns>
-            public static int GetHash(Processor p)
+            internal static int GetHash(Processor p)
             {
-                if (p == null)
+                if (p is null)
                     throw new ArgumentNullException(nameof(p), $@"Функция {nameof(GetHash)}.");
                 return GetHash(GetInts(p));
             }
@@ -346,7 +390,7 @@ namespace DynamicMosaicExample
             /// <returns>Возвращает значения элементов карты построчно.</returns>
             static IEnumerable<int> GetInts(Processor p)
             {
-                if (p == null)
+                if (p is null)
                     throw new ArgumentNullException(nameof(p), $@"Функция {nameof(GetInts)}.");
                 for (int j = 0; j < p.Height; j++)
                     for (int i = 0; i < p.Width; i++)
@@ -360,7 +404,7 @@ namespace DynamicMosaicExample
             /// <returns>Возвращает значение хеша для заданной последовательности целых чисел <see cref="int"/>.</returns>
             static int GetHash(IEnumerable<int> ints)
             {
-                if (ints == null)
+                if (ints is null)
                     throw new ArgumentNullException(nameof(ints), $@"Для подсчёта контрольной суммы необходимо указать массив байт. Функция {nameof(GetHash)}.");
                 return ints.Aggregate(255, (current, t) => Table[(byte)(current ^ t)]);
             }

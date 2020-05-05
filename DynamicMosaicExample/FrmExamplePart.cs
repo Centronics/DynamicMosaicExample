@@ -75,7 +75,7 @@ namespace DynamicMosaicExample
             /// Форма не может быть равна <see langword="null"/>.
             /// </summary>
             /// <param name="frm">Форма, за которое требуется наблюдение.</param>
-            public CurrentState(FrmExample frm)
+            internal CurrentState(FrmExample frm)
             {
                 _curForm = frm ?? throw new ArgumentNullException(nameof(frm));
             }
@@ -85,7 +85,7 @@ namespace DynamicMosaicExample
             /// </summary>
             /// <param name="sender">Вызывающий объект.</param>
             /// <param name="e">Данные о событии.</param>
-            public void CriticalChange(object sender, EventArgs e)
+            internal void CriticalChange(object sender, EventArgs e)
             {
                 _curForm.pbSuccess.Image = Resources.Unk_128;
                 _state = RecognizeState.UNKNOWN;
@@ -96,7 +96,7 @@ namespace DynamicMosaicExample
             /// </summary>
             /// <param name="sender">Вызывающий объект.</param>
             /// <param name="e">Данные о событии.</param>
-            public void WordChange(object sender, EventArgs e)
+            internal void WordChange(object sender, EventArgs e)
             {
                 if (_state == RecognizeState.ERROR || _state == RecognizeState.SUCCESS)
                 {
@@ -131,7 +131,7 @@ namespace DynamicMosaicExample
             /// В других случаях новое состояние будет игнорироваться.
             /// Установить можно либо <see cref="RecognizeState.ERROR"/>, либо <see cref="RecognizeState.SUCCESS"/>.
             /// </summary>
-            public RecognizeState State
+            internal RecognizeState State
             {
                 set
                 {
