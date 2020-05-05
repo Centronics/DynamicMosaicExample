@@ -22,7 +22,7 @@ namespace DynamicMosaicExample
         /// <summary>
         /// Коллекция карт, идентифицируемых по путям.
         /// </summary>
-        readonly Dictionary<string, ImageRect> _dictionaryByPath = new Dictionary<string, ImageRect>();
+        readonly Dictionary<string, Processor> _dictionaryByPath = new Dictionary<string, Processor>();
 
         /// <summary>
         /// Содержит количество файлов с именами, начинающимися на одно и то же слово.
@@ -125,29 +125,40 @@ namespace DynamicMosaicExample
         /// Добавляет карту в коллекцию, по указанному пути.
         /// </summary>
         /// <param name="fullPath">Полный путь к изображению, которое будет интерпретировано как карта <see cref="Processor"/>.</param>
-        public ImageRect AddProcessor(string fullPath)
+        public void AddProcessor(string fullPath)
         {
             fullPath = Path.GetFullPath(fullPath);
-            ImageRect ir = null;
-            using (FileStream fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                ir = new ImageRect(new Bitmap(fs), Path.GetFileNameWithoutExtension(fullPath), fullPath);
+            Bitmap btm = null;
+            using (FileStream fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                btm = new Bitmap(fs);
+            ImageRect ir = new ImageRect(btm, Path.GetFileNameWithoutExtension(fullPath), fullPath);
             if (!ir.IsSymbol)
-                return null;
+                return;
             int hashCode = CRCIntCalc.GetHash(ir.CurrentProcessor);
             lock (_syncObject)
             {
+                AddElement(hashCode, fullPath, ir.CurrentProcessor);
                 if (!_dictionaryFileNames.TryGetValue(ir.SymbolString, out uint value))
                     _dictionaryFileNames[ir.SymbolString] = ir.Number;
                 else
                 if (value < ir.Number)
                     _dictionaryFileNames[ir.SymbolString] = ir.Number;
-                if (!_dictionary.TryGetValue(hashCode, out ProcHash ph))
-                    _dictionary.Add(hashCode, new ProcHash(new ProcPath(ir.CurrentProcessor, fullPath)));
-                else if (ph.Elements.All(px => !ProcessorCompare(ir.CurrentProcessor, px.CurrentProcessor)))
-                    ph.AddProcessor(new ProcPath(ir.CurrentProcessor, fullPath));
-                _dictionaryByPath.Add(fullPath, ir);
             }
-            return ir;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="hashCode"></param>
+        /// <param name="fullPath"></param>
+        /// <param name="processor"></param>
+        void AddElement(int hashCode, string fullPath, Processor processor)
+        {
+            if (!_dictionary.TryGetValue(hashCode, out ProcHash ph))
+                _dictionary.Add(hashCode, new ProcHash(new ProcPath(processor, fullPath)));
+            else if (ph.Elements.All(px => !ProcessorCompare(processor, px.CurrentProcessor)))
+                ph.AddProcessor(new ProcPath(processor, fullPath));
+            _dictionaryByPath.Add(fullPath, processor);
         }
 
         /// <summary>
@@ -155,7 +166,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="tag">Значение свойства <see cref="Processor.Tag"/> карты <see cref="Processor"/>.</param>
         /// <returns>Возвращает параметры, включающие имя и количество символов '0' в конце названия карты <see cref="Processor"/>.</returns>
-        internal static (uint count, string name) GetFilesNumberByName(string tag)
+        static (bool result, uint count, string name) GetFilesNumberByName(string tag)
         {
             if (string.IsNullOrWhiteSpace(tag))
                 throw new ArgumentNullException(nameof(tag), nameof(GetFilesNumberByName));
@@ -165,9 +176,11 @@ namespace DynamicMosaicExample
             {
                 if (tag[k] != '0')
                     break;
-                count++;
+                if (count == uint.MaxValue)
+                    return (false, 0, string.Empty);
+                count = checked(count + 1);
             }
-            return (count, tag.Substring(0, k + 1));
+            return (true, count, tag.Substring(0, k + 1));
         }
 
         /// <summary>
@@ -197,7 +210,7 @@ namespace DynamicMosaicExample
             get
             {
                 lock (_syncObject)
-                    return _dictionaryByPath.Select(pair => pair.Value.CurrentProcessor).ToArray();
+                    return _dictionaryByPath.Select(pair => pair.Value).ToArray();
             }
         }
 
@@ -211,7 +224,7 @@ namespace DynamicMosaicExample
             if (string.IsNullOrWhiteSpace(path))
                 return null;
             lock (_syncObject)
-                return _dictionaryByPath[path].CurrentProcessor;
+                return _dictionaryByPath[path];
         }
 
         /// <summary>
@@ -283,43 +296,29 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Сохраняет указанный образ буквы с указанным названием.
+        ///     
         /// </summary>
-        /// <param name="name">Название буквы.</param>
-        /// <param name="btm">Изображение буквы.</param>
-        /// <returns>Возвращает экземпляр текущего класса образа буквы.</returns>
-        internal ImageRect Save(string name, Bitmap btm)
+        /// <param name="processor"></param>
+        /// <returns>Возвращает строку полного пути к файлу нового образа или <see cref="string.Empty"/> в случае ошибки его сохранения.</returns>
+        internal string SaveToFile(Processor processor)
         {
-            if (btm == null)
-                throw new ArgumentNullException(nameof(btm), $@"{nameof(Save)}: Сохраняемое изображение не указано.");
-            ImageRect ir = new ImageRect(btm, name, SaveFile(name, btm));
-            if (!ir.IsSymbol)
-                throw new Exception($"{nameof(Save)}: Неизвестная ошибка при сохранении изображения.");
-            return ir;
-        }
-
-        /// <summary>
-        ///     Генерирует имя нового образа, увеличивая его номер.
-        /// </summary>
-        /// <param name="imageName">Имя образа, на основании которого требуется сгенерировать новое имя.</param>
-        /// <param name="btm">Изображение буквы.</param>
-        /// <returns>Возвращает строку полного пути к файлу нового образа.</returns>
-        string SaveFile(string imageName, Bitmap btm)
-        {
-            if (string.IsNullOrWhiteSpace(imageName))
-                throw new ArgumentNullException(nameof(imageName), nameof(SaveFile));
-            (_, string name) = GetFilesNumberByName(imageName);
+            if(processor == null)
+                throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}");
+            (bool res, uint count, string name) = GetFilesNumberByName(processor.Tag);
+            if (!res)
+                return string.Empty;
+            string result = Path.Combine(FrmExample.SearchPath, $@"{name + count}.{FrmExample.ExtImg}");
+            Bitmap btm = ImageRect.GetBitmap(processor);
             lock (_syncObject)
             {
-                if (_dictionaryFileNames.TryGetValue(name, out uint value))
-                    value = unchecked(value + 1);
-                else
-                    value = 1;
-                using (FileStream fs = new FileStream(Path.Combine(FrmExample.SearchPath, $@"{name}{unchecked(value)}.{FrmExample.ExtImg}"), FileMode.Create, FileAccess.Write))//ПРОВЕРИТЬ на перезапись существующего файла
+                using (FileStream fs = new FileStream(result, FileMode.Create, FileAccess.Write, FileShare.Read))
                     btm.Save(fs, ImageFormat.Bmp);
-                _dictionaryFileNames[name] = value;
+                AddElement(CRCIntCalc.GetHash(processor), result, processor);
+                _dictionaryFileNames.TryGetValue(name, out uint value);
+                if (count > value)
+                    _dictionaryFileNames[name] = count;
             }
-            return Path.GetFullPath(imageName);
+            return result;
         }
 
         /// <summary>

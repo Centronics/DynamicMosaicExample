@@ -8,7 +8,7 @@ namespace DynamicMosaicExample
     /// <summary>
     ///     Предназначен для работы с образами искомых букв.
     /// </summary>
-    sealed class ImageRect
+    struct ImageRect
     {
         /// <summary>
         ///     Инициализирует экземпляр образа буквы для распознавания.
@@ -20,13 +20,21 @@ namespace DynamicMosaicExample
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm), $@"{nameof(ImageRect)}: {nameof(btm)} = null.");
-            if (btm.Width != FrmExample.ImageWidth || btm.Height != FrmExample.ImageHeight)
-                return;
             if (string.IsNullOrWhiteSpace(imagePath))
                 throw new ArgumentNullException(nameof(imagePath), $@"{nameof(ImageRect)}: {nameof(imagePath)} = null.");
-            if (!NameParser(out uint number, tag))
+            Bitm = null;
+            ImagePath = string.Empty;
+            SymbolString = string.Empty;
+            Symbol = '\0';
+            Number = 0U;
+            IsSymbol = false;
+            CurrentProcessor = null;
+            if (btm.Width != FrmExample.ImageWidth || btm.Height != FrmExample.ImageHeight)
                 return;
-            SymbolString = tag;
+            (bool result, uint number, bool isNumeric) = NameParser(tag);
+            if (!result)
+                return;
+            SymbolString = isNumeric ? $@"{tag}|" : tag;
             Symbol = char.ToUpper(tag[0]);
             Number = number;
             Bitm = btm;
@@ -107,20 +115,19 @@ namespace DynamicMosaicExample
         /// <param name="number">Возвращает номер текущей буквы.</param>
         /// <param name="tag">Имя файла без расширения.</param>
         /// <returns>Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном случае - <see langword="false" />.</returns>
-        static bool NameParser(out uint number, string tag)
+        static (bool result, uint number, bool isNumeric) NameParser(string tag)
         {
-            number = 0;
             if (string.IsNullOrWhiteSpace(tag) || tag.Length < 1)
-                return false;
+                return (false, 0, false);
             int k = tag.Length - 1;
             for (; k > 0; k--)
                 if (!char.IsDigit(tag[k]))
                     break;
             if (k >= tag.Length - 1)
-                return true;
-            if (uint.TryParse(tag.Substring(k + 1), out uint n))
-                number = n;
-            return true;
+                return (true, 0, false);
+            if (uint.TryParse(tag.Substring(k + 1), out uint number))
+                return (true, number, false);
+            return (true, 0, true);
         }
     }
 }

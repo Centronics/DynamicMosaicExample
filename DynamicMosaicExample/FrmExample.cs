@@ -857,11 +857,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
-        {
-            Processor p = _workReflex[_currentReflexMapIndex];
-            ImageRect.Save(p.Tag[0], ImageRect.GetBitmap(p));
-        });
+        void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() => _processorStorage.SaveToFile(_workReflex[_currentReflexMapIndex]));
 
         /// <summary>
         /// Сохраняет все карты <see cref="Processor"/> выбранной системы <see cref="Reflex"/> на жёсткий диск.
