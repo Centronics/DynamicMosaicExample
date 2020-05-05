@@ -382,7 +382,12 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает значение, отражающее статус рабочего процесса по распознаванию изображения.
         /// </summary>
-        bool IsWorking => _workThread?.IsAlive == true;
+        bool IsWorking => (_workThread?.ThreadState & (System.Threading.ThreadState.Stopped | System.Threading.ThreadState.Unstarted)) == 0;
+
+        /// <summary>
+        /// Останавливает процесс распознавания.
+        /// </summary>
+        void StopRecognize() => SafetyExecute(() => _workThread?.Abort());
 
         /// <summary>
         ///     Ширина образа для распознавания.

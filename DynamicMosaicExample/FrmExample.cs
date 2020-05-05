@@ -433,52 +433,65 @@ namespace DynamicMosaicExample
         void BtnRecognizeImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             if (IsWorking)
-                return;
+                StopRecognize();
             EnableButtons = false;
             (_workThread = new Thread(() => SafetyExecute(() =>
             {
                 WaitableTimer();
-                List<ImageRect> images = new List<ImageRect>(ImageRect.Images);
-                if (images.Count < 2 && _workReflexes.Count <= 0)
+                ProcessorContainer images = new ProcessorContainer(_processorStorage.Elements);
+                Reflex workReflex;
+                try
                 {
-                    MessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
-                    return;
-                }
-
-                if (txtWord.Text.Length <= 0)
-                {
-                    MessageInOtherThread(
-                        @"Слова отсутствуют. Добавьте какое-нибудь слово, которое можно составить из одного или нескольких образов.");
-                    return;
-                }
-
-                if (!IsPainting)
-                {
-                    MessageInOtherThread(@"Необходимо нарисовать какой-нибудь рисунок на рабочей поверхности.");
-                    return;
-                }
-
-                Reflex workReflex = _workReflex ?? new Reflex(new ProcessorContainer((from ir in images
-                                                                                      select new Processor(ir.ImageMap, ir.SymbolString)).ToArray()));
-                _currentState.CriticalChange(sender, e);
-                _currentState.WordChange(sender, e);
-                Reflex result = workReflex.FindRelation(new Processor(_btmFront, "Main"), txtWord.Text);
-                if (result != null)
-                    InvokeAction(() =>
+                    if (images.Count < 2 && _workReflexes.Count <= 0)
                     {
-                        _workReflexes.Insert(0, result);
-                        _currentReflexMapIndex = 0;
-                        lstResults.Items.Insert(1, DateTime.Now.ToString(@"HH:mm:ss"));
-                        lstResults.SelectedIndex = 1;
-                        btnReflexClear.Enabled = true;
-                        grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
-                        pbSuccess.Image = Resources.OK_128;
-                        _currentState.State = RecognizeState.SUCCESS;
-                    });
-                else
+                        MessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
+                        return;
+                    }
+
+                    if (txtWord.Text.Length <= 0)
+                    {
+                        MessageInOtherThread(
+                            @"Слова отсутствуют. Добавьте какое-нибудь слово, которое можно составить из одного или нескольких образов.");
+                        return;
+                    }
+
+                    if (!IsPainting)
+                    {
+                        MessageInOtherThread(@"Необходимо нарисовать какой-нибудь рисунок на рабочей поверхности.");
+                        return;
+                    }
+                }
+                finally
                 {
-                    pbSuccess.Image = Resources.Error_128;
-                    _currentState.State = RecognizeState.ERROR;
+                    workReflex = _workReflex ?? new Reflex(images);
+                    _currentState.CriticalChange(sender, e);
+                    _currentState.WordChange(sender, e);
+                }
+
+                Reflex result = null;
+                try
+                {
+                    result = workReflex.FindRelation(new Processor(_btmFront, "Main"), txtWord.Text);
+                }
+                finally
+                {
+                    if (result != null)
+                        InvokeAction(() =>
+                        {
+                            _workReflexes.Insert(0, result);
+                            _currentReflexMapIndex = 0;
+                            lstResults.Items.Insert(1, DateTime.Now.ToString(@"HH:mm:ss"));
+                            lstResults.SelectedIndex = 1;
+                            btnReflexClear.Enabled = true;
+                            grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
+                            pbSuccess.Image = Resources.OK_128;
+                            _currentState.State = RecognizeState.SUCCESS;
+                        });
+                    else
+                    {
+                        pbSuccess.Image = Resources.Error_128;
+                        _currentState.State = RecognizeState.ERROR;
+                    }
                 }
             }))
             {
@@ -591,39 +604,35 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnClearImage_Click(object sender, EventArgs e) =>
-            SafetyExecute(() =>
-            {
-                _grFront.Clear(_defaultColor);
-                btnClearImage.Enabled = false;
-                pbSuccess.Image = Resources.Unk_128;
-            }, () => pbDraw.Refresh());
+        void BtnClearImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            _grFront.Clear(_defaultColor);
+            btnClearImage.Enabled = false;
+            pbSuccess.Image = Resources.Unk_128;
+        }, () => pbDraw.Refresh());
 
         /// <summary>
         ///     Обрабатывает событие нажатия кнопки сохранения созданного изображения.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnSaveImage_Click(object sender, EventArgs e) =>
-            SafetyExecute(() =>
-            {
-                if (dlgSaveImage.ShowDialog(this) != DialogResult.OK) return;
-                using (FileStream fs = new FileStream(dlgSaveImage.FileName, FileMode.Create, FileAccess.Write))
-                    _btmFront.Save(fs, ImageFormat.Bmp);
-            });
+        void BtnSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            if (dlgSaveImage.ShowDialog(this) != DialogResult.OK) return;
+            using (FileStream fs = new FileStream(dlgSaveImage.FileName, FileMode.Create, FileAccess.Write))
+                _btmFront.Save(fs, ImageFormat.Bmp);
+        });
 
         /// <summary>
         ///     Обрабатывает событие нажатие кнопки загрузки созданного изображения.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnLoadImage_Click(object sender, EventArgs e) =>
-            SafetyExecute(() =>
-                {
-                    if (dlgOpenImage.ShowDialog(this) != DialogResult.OK) return;
-                    Initialize(dlgOpenImage.FileName);
-                },
-                () => btnClearImage.Enabled = IsPainting);
+        void BtnLoadImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            if (dlgOpenImage.ShowDialog(this) != DialogResult.OK) return;
+            Initialize(dlgOpenImage.FileName);
+        }, () => btnClearImage.Enabled = IsPainting);
 
         /// <summary>
         ///     Выполняет метод с помощью метода <see cref="Control.Invoke(Delegate)" />.
