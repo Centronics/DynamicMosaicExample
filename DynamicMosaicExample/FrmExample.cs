@@ -316,7 +316,7 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        ///     Запускает или останавливает таймер, выполняющий замер времени, затраченного на распознавание.
+        ///     Запускает таймер в другом потоке, выполняющий замер времени, затраченного на распознавание.
         /// </summary>
         void WaitableTimer() => new Thread(() => SafetyExecute(() =>
         {
@@ -437,11 +437,11 @@ namespace DynamicMosaicExample
             EnableButtons = false;
             (_workThread = new Thread(() => SafetyExecute(() =>
             {
-                WaitableTimer();
-                ProcessorContainer images = new ProcessorContainer(_processorStorage.Elements);
-                Reflex workReflex;
                 try
                 {
+                    WaitableTimer();
+                    ProcessorContainer images = new ProcessorContainer(_processorStorage.Elements);
+
                     if (images.Count < 2 && _workReflexes.Count <= 0)
                     {
                         MessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
@@ -460,23 +460,19 @@ namespace DynamicMosaicExample
                         MessageInOtherThread(@"Необходимо нарисовать какой-нибудь рисунок на рабочей поверхности.");
                         return;
                     }
-                }
-                finally
-                {
-                    workReflex = _workReflex ?? new Reflex(images);
+
+                    Reflex workReflex = _workReflex ?? new Reflex(images);
                     _currentState.CriticalChange(sender, e);
                     _currentState.WordChange(sender, e);
-                }
 
-                Reflex result = null;
-                try
-                {
-                    result = workReflex.FindRelation(new Processor(_btmFront, "Main"), txtWord.Text);
-                }
-                finally
-                {
-                    if (result != null)
-                        InvokeAction(() =>
+                    Reflex result = null;
+                    try
+                    {
+                        result = workReflex.FindRelation(new Processor(_btmFront, "Main"), txtWord.Text);
+                    }
+                    finally
+                    {
+                        if (result != null) InvokeAction(() =>
                         {
                             _workReflexes.Insert(0, result);
                             _currentReflexMapIndex = 0;
@@ -487,11 +483,20 @@ namespace DynamicMosaicExample
                             pbSuccess.Image = Resources.OK_128;
                             _currentState.State = RecognizeState.SUCCESS;
                         });
-                    else
-                    {
-                        pbSuccess.Image = Resources.Error_128;
-                        _currentState.State = RecognizeState.ERROR;
+                        else
+                        {
+                            pbSuccess.Image = Resources.Error_128;
+                            _currentState.State = RecognizeState.ERROR;
+                        }
                     }
+                }
+                catch (ThreadAbortException)
+                {
+                    //ignored
+                }
+                finally
+                {
+                    Thread.ResetAbort();
                 }
             }))
             {
