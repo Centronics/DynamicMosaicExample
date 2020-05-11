@@ -492,14 +492,16 @@ namespace DynamicMosaicExample
                 }
                 catch (ThreadAbortException)
                 {
-                    //ignored
+                    Thread.ResetAbort();
                 }
                 finally
                 {
-                    Thread.ResetAbort();
+                    if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)
+                        Thread.ResetAbort();
                 }
             }))
             {
+                Priority = ThreadPriority.Highest,
                 IsBackground = true,
                 Name = "Recognizer"
             }).Start();
