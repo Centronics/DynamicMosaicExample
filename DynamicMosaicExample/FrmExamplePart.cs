@@ -263,13 +263,6 @@ namespace DynamicMosaicExample
         Graphics _grFront;
 
         /// <summary>
-        ///     Содержит количество искомых образов, которое было на момент последней проверки.
-        ///     Предназначено для того, чтобы в случае уменьшения их количества (путём удаления файлов)
-        ///     обновить отображаемый образ.
-        /// </summary>
-        long _imageLastCount = -1;
-
-        /// <summary>
         /// Коллекция задействованных на данный момент элементов <see cref="Reflex" />.
         /// </summary>
         readonly List<Reflex> _workReflexes = new List<Reflex>();
@@ -336,6 +329,7 @@ namespace DynamicMosaicExample
             try
             {
                 InitializeComponent();
+                _concurrentFileTasks = new ConcurrentQueue<FileTask>();
                 _whitePen = new Pen(_defaultColor, 2.0f);
                 Initialize();
                 _strRecog = btnRecognizeImage.Text;

@@ -233,6 +233,17 @@ namespace DynamicMosaicExample
             }
         }
 
+        internal int Count
+        {
+            get
+            {
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(Count)}: Операция недопустима.");
+                lock (_syncObject)
+                    return _dictionaryByPath.Count;
+            }
+        }
+
         /// <summary>
         /// Находит карту <see cref="Processor"/> по указанному пути.
         /// </summary>
@@ -250,6 +261,7 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Удаляет указанную карту <see cref="Processor"/> из коллекции <see cref="ConcurrentProcessorStorage"/>, идентифицируя её по пути к ней.
+        /// В том числе, удаляет сам файл с диска.
         /// </summary>
         /// <param name="path">Путь к карте <see cref="Processor"/>, которую необходимо удалить из коллекции.</param>
         internal void RemoveProcessor(string path)
@@ -263,7 +275,8 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Удаляет карту <see cref="Processor"/> из коллекции <see cref="ConcurrentProcessorStorage"/>.
+        /// Удаляет указанную карту <see cref="Processor"/> из коллекции <see cref="ConcurrentProcessorStorage"/>.
+        /// В том числе, удаляет сам файл с диска.
         /// </summary>
         /// <param name="p">Карта <see cref="Processor"/>, которую следует удалить.</param>
         internal void RemoveProcessor(Processor p)
@@ -283,6 +296,7 @@ namespace DynamicMosaicExample
                     foreach (ProcPath px in ph.Elements)
                         if (ProcessorCompare(p, px.CurrentProcessor))
                         {
+                            File.Delete(ph[index].CurrentPath);
                             _dictionaryByPath.Remove(ph[index].CurrentPath);
                             ph.RemoveProcessor(index);
                             break;

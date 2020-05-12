@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
+using Processor = DynamicParser.Processor;
 
 namespace DynamicMosaicExample
 {
@@ -188,8 +189,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
-            if (lst.Count <= 0)
+            Processor[] lst = _processorStorage.Elements;
+            if (lst.Length <= 0)
             {
                 SymbolBrowseClear();
                 MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
@@ -197,14 +198,14 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            if (_currentImage >= lst.Count - 1)
+            if (_currentImage >= lst.Length - 1)
                 _currentImage = 0;
             else
                 _currentImage++;
-            ImageRect ir = lst[_currentImage];
-            pbBrowse.Image = ir.Bitm;
-            txtSymbolName.Text = ir.SymbolString;
-        }, () => tmrImagesCount.Enabled = true);
+            Processor p = lst[_currentImage];
+            pbBrowse.Image = ImageRect.GetBitmap(p);
+            txtSymbolName.Text = p.Tag;
+        });
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Предыдущий" в искомых образах букв.
@@ -213,8 +214,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImagePrev_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
-            if (lst.Count <= 0)
+            Processor[] lst = _processorStorage.Elements;
+            if (lst.Length <= 0)
             {
                 SymbolBrowseClear();
                 MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
@@ -223,13 +224,13 @@ namespace DynamicMosaicExample
             }
 
             if (_currentImage <= 0)
-                _currentImage = lst.Count - 1;
+                _currentImage = lst.Length - 1;
             else
                 _currentImage--;
-            ImageRect ir = lst[_currentImage];
-            pbBrowse.Image = ir.Bitm;
-            txtSymbolName.Text = ir.SymbolString;
-        }, () => tmrImagesCount.Enabled = true);
+            Processor p = lst[_currentImage];
+            pbBrowse.Image = ImageRect.GetBitmap(p);
+            txtSymbolName.Text = p.Tag;
+        }, RefreshImagesCount);
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Удалить".
@@ -239,22 +240,19 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageDelete_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            List<ImageRect> lst = new List<ImageRect>(ImageRect.Images);
-            if (lst.Count <= 0)
+            Processor[] lst = _processorStorage.Elements;
+            if (lst.Length <= 0)
             {
                 SymbolBrowseClear();
                 return;
             }
 
-            if (_currentImage >= lst.Count || _currentImage < 0) return;
-            File.Delete(lst[_currentImage].ImagePath);
+            if (_currentImage >= lst.Length || _currentImage < 0)
+                return;
+            _processorStorage.RemoveProcessor(lst[_currentImage]);
             BtnImagePrev_Click(null, null);
             BtnReflexClear_Click(null, null);
-        }, () =>
-        {
-            RefreshImagesCount();
-            tmrImagesCount.Enabled = true;
-        });
+        }, RefreshImagesCount);
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Создать образ".
@@ -263,17 +261,10 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageCreate_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            using (FrmSymbol fs = new FrmSymbol())
+            using (FrmSymbol fs = new FrmSymbol(_processorStorage))
                 if (fs.ShowDialog() == DialogResult.OK)
-                {
                     BtnReflexClear_Click(null, null);
-                    _currentState.CriticalChange(sender, e);
-                }
-        }, () =>
-        {
-            RefreshImagesCount();
-            tmrImagesCount.Enabled = true;
-        });
+        }, RefreshImagesCount);
 
         /// <summary>
         ///     Выполняет подсчёт количества изображений для поиска.
@@ -281,38 +272,26 @@ namespace DynamicMosaicExample
         /// </summary>
         void RefreshImagesCount() => InvokeAction(() =>
         {
-            try
+            int count = _processorStorage.Count;
+            txtImagesCount.Text = count.ToString();
+            if (count <= 0)
             {
-                long count = ImageRect.Images.LongCount();
-                txtImagesCount.Text = count.ToString();
-                if (count <= 0)
-                {
-                    _imageLastCount = -1;
-                    SymbolBrowseClear();
-                    btnImageDelete.Enabled = false;
-                    txtImagesCount.Enabled = false;
-                    btnImageNext.Enabled = false;
-                    btnImagePrev.Enabled = false;
-                    txtSymbolName.Enabled = false;
-                    pbBrowse.Enabled = false;
-                    return;
-                }
+                SymbolBrowseClear();
+                btnImageDelete.Enabled = false;
+                txtImagesCount.Enabled = false;
+                btnImageNext.Enabled = false;
+                btnImagePrev.Enabled = false;
+                txtSymbolName.Enabled = false;
+                pbBrowse.Enabled = false;
+                return;
+            }
 
-                if (_imageLastCount != count)
-                    BtnImageNext_Click(null, null);
-                _imageLastCount = count;
-                btnImageDelete.Enabled = btnImageCreate.Enabled;
-                txtImagesCount.Enabled = btnImageCreate.Enabled;
-                btnImageNext.Enabled = true;
-                btnImagePrev.Enabled = true;
-                txtSymbolName.Enabled = true;
-                pbBrowse.Enabled = true;
-            }
-            catch
-            {
-                tmrImagesCount.Enabled = false;
-                throw;
-            }
+            btnImageDelete.Enabled = btnImageCreate.Enabled;
+            txtImagesCount.Enabled = btnImageCreate.Enabled;
+            btnImageNext.Enabled = true;
+            btnImagePrev.Enabled = true;
+            txtSymbolName.Enabled = true;
+            pbBrowse.Enabled = true;
         });
 
         /// <summary>
@@ -422,6 +401,7 @@ namespace DynamicMosaicExample
             grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
             ReflexBrowseClear();
             pbSuccess.Image = Resources.Unk_128;
+            _currentState.CriticalChange(sender, e);
         });
 
         /// <summary>
@@ -882,16 +862,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            List<ImageRect> images = new List<ImageRect>(ImageRect.Images);
-            ConcurrentProcessorStorage ps = new ConcurrentProcessorStorage();
-            foreach (Processor p in from ir in images select new Processor(ir.ImageMap, ir.SymbolString))
-                ps.AddProcessor(p);
             for (int k = 0; k < _workReflex.Count; k++)
-            {
-                Processor p = _workReflex[k];
-                if (ps.Contains(p))
-                    ImageRect.Save(p.Tag[0], ImageRect.GetBitmap(p));
-            }
+                _processorStorage.SaveToFile(_workReflex[k]);
         });
 
         /// <summary>

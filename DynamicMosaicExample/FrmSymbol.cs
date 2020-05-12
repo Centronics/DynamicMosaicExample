@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Windows.Forms;
+using DynamicParser;
 
 namespace DynamicMosaicExample
 {
@@ -42,11 +43,18 @@ namespace DynamicMosaicExample
         bool _timedOut;
 
         /// <summary>
+        /// Ссылается на основное хранилище карт программы.
+        /// </summary>
+        readonly ConcurrentProcessorStorage _processorStorage;
+
+        /// <summary>
         ///     Конструктор формы ввода нового искомого символа.
         /// </summary>
-        internal FrmSymbol()
+        /// <param name="processorStorage">Ссылка на основное хранилище карт программы.</param>
+        internal FrmSymbol(ConcurrentProcessorStorage processorStorage)
         {
             InitializeComponent();
+            _processorStorage = processorStorage ?? throw new ArgumentNullException(nameof(processorStorage));
             _btmFront = new Bitmap(pbBox.Width, pbBox.Height);
             _grFront = Graphics.FromImage(_btmFront);
             pbBox.Image = _btmFront;
@@ -57,20 +65,14 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbBox_MouseUp(object sender, MouseEventArgs e)
-        {
-            _draw = false;
-        }
+        void PbBox_MouseUp(object sender, MouseEventArgs e) => _draw = false;
 
         /// <summary>
         ///     Запрещает вывод создаваемой пользователем линии на экран.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbBox_MouseLeave(object sender, EventArgs e)
-        {
-            _draw = false;
-        }
+        void PbBox_MouseLeave(object sender, EventArgs e) => _draw = false;
 
         /// <summary>
         ///     Разрешает вывод создаваемой пользователем линии на экран.
@@ -120,7 +122,7 @@ namespace DynamicMosaicExample
                 _timedOut = false;
                 return;
             }
-            ImageRect.Save(txtSymbol.Text[0], _btmFront);
+            _processorStorage.SaveToFile(new Processor(_btmFront, new string(txtSymbol.Text[0],1)));
             DialogResult = DialogResult.OK;
         });
 
