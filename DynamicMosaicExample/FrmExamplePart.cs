@@ -496,14 +496,18 @@ namespace DynamicMosaicExample
 
             Thread t = new Thread(() => SafetyExecute(() =>
             {
-                ThreadPool.SetMinThreads(20, 20);//РАЗОБРАТЬСЯ
-                ThreadPool.SetMaxThreads(20, 20);//РАЗОБРАТЬСЯ
-                ParallelOptions options = new ParallelOptions()
+                ThreadPool.GetMinThreads(out _, out int comPortMin);
+                ThreadPool.SetMinThreads(Environment.ProcessorCount * 3, comPortMin);
+                ThreadPool.GetMaxThreads(out _, out int comPortMax);
+                ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
+                ParallelLoopResult result = Parallel.ForEach(Directory.EnumerateFiles(SearchPath, $"*.{ExtImg}", SearchOption.AllDirectories), (fName, state) => SafetyExecute(() =>
                 {
-                    MaxDegreeOfParallelism = 2
-                };//ИСПОЛЬЗОВАТЬ
-                ParallelLoopResult result = Parallel.ForEach(Directory.EnumerateFiles(SearchPath, $"*.{ExtImg}", SearchOption.AllDirectories), options, (fName, state) => SafetyExecute(() =>
-                {
+                    if (_stopFileThreadFlag || state.IsStopped)
+                    {
+                        state.Stop();
+                        return;
+                    }
+
                     if (!string.IsNullOrWhiteSpace(fName) && string.Compare(Path.GetExtension(fName), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0)
                         _processorStorage.AddProcessor(fName);
                 }));

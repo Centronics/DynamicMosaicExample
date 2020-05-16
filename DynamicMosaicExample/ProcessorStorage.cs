@@ -148,10 +148,10 @@ namespace DynamicMosaicExample
                 lock (_syncObject)
                 {
                     AddElement(hashCode, fullPath, ir.CurrentProcessor);
-                    if (!_dictionaryFileNames.TryGetValue(ir.SymbolString, out uint value))
-                        _dictionaryFileNames[ir.SymbolString] = ir.Number;
+                    if (!_dictionaryFileNames.TryGetValue(ir.SymbolicName, out uint value))
+                        _dictionaryFileNames[ir.SymbolicName] = ir.Number;
                     else if (value < ir.Number)
-                        _dictionaryFileNames[ir.SymbolString] = ir.Number;
+                        _dictionaryFileNames[ir.SymbolicName] = ir.Number;//сделать так, чтобы при выходе не зависало даже в работе Parallel.ForEach
                 }
             }
             catch

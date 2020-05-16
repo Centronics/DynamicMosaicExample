@@ -26,16 +26,18 @@ namespace DynamicMosaicExample
             ImagePath = string.Empty;
             SymbolString = string.Empty;
             Symbol = '\0';
+            SymbolicName=string.Empty;
             Number = 0U;
             IsSymbol = false;
             CurrentProcessor = null;
             if (btm.Width != FrmExample.ImageWidth || btm.Height != FrmExample.ImageHeight)
                 return;
-            (bool result, uint number, bool isNumeric) = NameParser(tag);
+            (bool result, uint number, bool isNumeric, string symbolicName) = NameParser(tag);
             if (!result)
                 return;
             SymbolString = isNumeric ? $@"{tag}|" : tag;
             Symbol = char.ToUpper(tag[0]);
+            SymbolicName = symbolicName;
             Number = number;
             Bitm = btm;
             ImagePath = imagePath;
@@ -80,6 +82,11 @@ namespace DynamicMosaicExample
         internal char Symbol { get; }
 
         /// <summary>
+        /// Отражает название текущего образа без цифровой составляющей.
+        /// </summary>
+        internal string SymbolicName { get; }
+
+        /// <summary>
         ///     Номер текущего образа.
         /// </summary>
         internal uint Number { get; }
@@ -112,22 +119,22 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Выполняет разбор имени файла с образом буквы, выделяя номер буквы.
         /// </summary>
-        /// <param name="number">Возвращает номер текущей буквы.</param>
         /// <param name="tag">Имя файла без расширения.</param>
         /// <returns>Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном случае - <see langword="false" />.</returns>
-        static (bool result, uint number, bool isNumeric) NameParser(string tag)
+        static (bool result, uint number, bool isNumeric, string symbolicName) NameParser(string tag)
         {
             if (string.IsNullOrWhiteSpace(tag) || tag.Length < 1)
-                return (false, 0, false);
+                return (false, 0, false, string.Empty);
             int k = tag.Length - 1;
             for (; k > 0; k--)
                 if (!char.IsDigit(tag[k]))
                     break;
+            string symbName = tag.Substring(0, k + 1);
             if (k >= tag.Length - 1)
-                return (true, 0, false);
+                return (true, 0, false, symbName);
             if (uint.TryParse(tag.Substring(k + 1), out uint number))
-                return (true, number, false);
-            return (true, 0, true);
+                return (true, number, false, symbName);
+            return (true, 0, true, symbName);
         }
     }
 }
