@@ -151,7 +151,7 @@ namespace DynamicMosaicExample
                     if (!_dictionaryFileNames.TryGetValue(ir.SymbolicName, out uint value))
                         _dictionaryFileNames[ir.SymbolicName] = ir.Number;
                     else if (value < ir.Number)
-                        _dictionaryFileNames[ir.SymbolicName] = ir.Number;//сделать так, чтобы при выходе не зависало даже в работе Parallel.ForEach
+                        _dictionaryFileNames[ir.SymbolicName] = ir.Number;
                 }
             }
             catch
@@ -246,9 +246,11 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Находит карту <see cref="Processor"/> по указанному пути.
+        /// От наличия файла на жёстком диске не зависит.
+        /// Возвращает карту <see cref="Processor"/> или <see langword="null"/> в случае, если карта <see cref="Processor"/> не найдена в коллекции.
         /// </summary>
         /// <param name="path"></param>
-        /// <returns></returns>
+        /// <returns>Возвращает карту <see cref="Processor"/> или <see langword="null"/> в случае, если карта <see cref="Processor"/> не найдена в коллекции.</returns>
         internal Processor FindByPath(string path)
         {
             if (!IsOperationAllowed)
@@ -256,7 +258,10 @@ namespace DynamicMosaicExample
             if (string.IsNullOrWhiteSpace(path))
                 return null;
             lock (_syncObject)
-                return _dictionaryByPath[path];
+            {
+                _dictionaryByPath.TryGetValue(path, out Processor p);
+                return p;
+            }
         }
 
         /// <summary>
@@ -264,14 +269,15 @@ namespace DynamicMosaicExample
         /// В том числе, удаляет сам файл с диска.
         /// </summary>
         /// <param name="path">Путь к карте <see cref="Processor"/>, которую необходимо удалить из коллекции.</param>
-        internal void RemoveProcessor(string path)
+        /// <param name="removeFile">Значение <see langword="true"/> означает, что требуется удалить файл с диска.</param>
+        internal void RemoveProcessor(string path, bool removeFile)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
             if (string.IsNullOrWhiteSpace(path))
                 return;
             lock (_syncObject)
-                RemoveProcessor(FindByPath(path));
+                RemoveProcessor(FindByPath(path), removeFile);
         }
 
         /// <summary>
@@ -279,7 +285,8 @@ namespace DynamicMosaicExample
         /// В том числе, удаляет сам файл с диска.
         /// </summary>
         /// <param name="p">Карта <see cref="Processor"/>, которую следует удалить.</param>
-        internal void RemoveProcessor(Processor p)
+        /// <param name="removeFile">Значение <see langword="true"/> означает, что требуется удалить файл с диска.</param>
+        internal void RemoveProcessor(Processor p, bool removeFile)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
@@ -296,7 +303,8 @@ namespace DynamicMosaicExample
                     foreach (ProcPath px in ph.Elements)
                         if (ProcessorCompare(p, px.CurrentProcessor))
                         {
-                            File.Delete(ph[index].CurrentPath);
+                            if (removeFile)
+                                File.Delete(ph[index].CurrentPath);
                             _dictionaryByPath.Remove(ph[index].CurrentPath);
                             ph.RemoveProcessor(index);
                             break;

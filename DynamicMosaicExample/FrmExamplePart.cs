@@ -294,6 +294,21 @@ namespace DynamicMosaicExample
         readonly ConcurrentProcessorStorage _processorStorage = new ConcurrentProcessorStorage();
 
         /// <summary>
+        /// Синхронизирует потоки, пытающиеся записать сообщение в лог-файл.
+        /// </summary>
+        static readonly object _logLockerObject = new object();
+
+        /// <summary>
+        /// Служит для блокировки одновременного доступа к процедуре отображения сообщения об ошибке.
+        /// </summary>
+        static readonly object _logLocker = new object();
+
+        /// <summary>
+        /// Указывает, было ли просмотрено сообщение о том, что в процессе работы программы уже произошла ошибка.
+        /// </summary>
+        static bool _errorMessageIsShowed;
+
+        /// <summary>
         /// Содержит данные о задаче, связанной с изменениями в файловой системе.
         /// </summary>
         struct FileTask
@@ -491,55 +506,75 @@ namespace DynamicMosaicExample
         /// <returns>Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если переменная <see cref="_fileThread"/> не равна <see langword="null"/>.</returns>
         Thread FileRefreshThread()
         {
-            if (_fileThread?.IsAlive == true)
+            if ((_fileThread?.ThreadState & (System.Threading.ThreadState.Stopped | System.Threading.ThreadState.Unstarted)) == 0)
                 return null;
 
             Thread t = new Thread(() => SafetyExecute(() =>
             {
-                ThreadPool.GetMinThreads(out _, out int comPortMin);
-                ThreadPool.SetMinThreads(Environment.ProcessorCount * 3, comPortMin);
-                ThreadPool.GetMaxThreads(out _, out int comPortMax);
-                ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
-                ParallelLoopResult result = Parallel.ForEach(Directory.EnumerateFiles(SearchPath, $"*.{ExtImg}", SearchOption.AllDirectories), (fName, state) => SafetyExecute(() =>
+                try
                 {
-                    if (_stopFileThreadFlag || state.IsStopped)
+                    ThreadPool.GetMinThreads(out _, out int comPortMin);
+                    ThreadPool.SetMinThreads(Environment.ProcessorCount * 3, comPortMin);
+                    ThreadPool.GetMaxThreads(out _, out int comPortMax);
+                    ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
+                    Parallel.ForEach(Directory.EnumerateFiles(SearchPath, $"*.{ExtImg}", SearchOption.AllDirectories), (fName, state) => SafetyExecute(() =>
                     {
-                        state.Stop();
-                        return;
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(fName) && string.Compare(Path.GetExtension(fName), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0)
-                        _processorStorage.AddProcessor(fName);
-                }));
-                if (!result.IsCompleted)
-                    MessageInOtherThread(@"Не все изображения (карты) были загружены.");
-                while (!_stopFileThreadFlag)
-                {
-                    _needRefreshEvent.WaitOne();
-                    while (!_stopFileThreadFlag && _concurrentFileTasks.TryDequeue(out FileTask task)) SafetyExecute(() =>
-                    {
-                        switch (task.TaskType.Value)
+                        try
                         {
-                            case WatcherChangeTypes.Created:
-                                _processorStorage.AddProcessor(task.FilePath);
-                                break;
-                            case WatcherChangeTypes.Deleted:
-                                _processorStorage.RemoveProcessor(task.FilePath);
-                                break;
-                            case WatcherChangeTypes.Changed:
-                            case WatcherChangeTypes.All:
-                                _processorStorage.RemoveProcessor(task.FilePath);//УСЛОВНО
-                                _processorStorage.AddProcessor(task.FilePath);
-                                break;
-                            case WatcherChangeTypes.Renamed:
-                                _processorStorage.RemoveProcessor(task.FilePath);//УСЛОВНО
-                                break;
-                            default:
-                                throw new ArgumentOutOfRangeException(nameof(task));
-                        }
-                    });
-                }
+                            if (_stopFileThreadFlag || state.IsStopped)
+                            {
+                                state.Stop();
+                                return;
+                            }
 
+                            if (!string.IsNullOrWhiteSpace(fName) && string.Compare(Path.GetExtension(fName),
+                                $".{ExtImg}",
+                                StringComparison.OrdinalIgnoreCase) == 0)
+                                _processorStorage.AddProcessor(fName);
+                        }
+                        catch (Exception ex)
+                        {
+                            WriteLog(ex.Message);
+                        }
+                    }));
+                    while (!_stopFileThreadFlag)
+                    {
+                        _needRefreshEvent.WaitOne();
+                        while (!_stopFileThreadFlag && _concurrentFileTasks.TryDequeue(out FileTask task)) SafetyExecute(() =>
+                        {
+                            try
+                            {
+                                switch (task.TaskType.Value)
+                                {
+                                    case WatcherChangeTypes.Created:
+                                        _processorStorage.AddProcessor(task.FilePath);
+                                        break;
+                                    case WatcherChangeTypes.Deleted:
+                                        _processorStorage.RemoveProcessor(task.FilePath, false);
+                                        break;
+                                    case WatcherChangeTypes.Changed:
+                                    case WatcherChangeTypes.All:
+                                        _processorStorage.RemoveProcessor(task.FilePath, false);
+                                        _processorStorage.AddProcessor(task.FilePath);
+                                        break;
+                                    case WatcherChangeTypes.Renamed:
+                                        _processorStorage.RemoveProcessor(task.FilePath, false);
+                                        break;
+                                    default:
+                                        throw new ArgumentOutOfRangeException(nameof(task));
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                WriteLog(ex.Message);
+                            }
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($@"{ex.Message}{Environment.NewLine}Список карт теперь обновляться не будет.");
+                }
             }))
             {
                 IsBackground = true,
@@ -547,6 +582,51 @@ namespace DynamicMosaicExample
             };
             t.Start();
             return t;
+        }
+
+        /// <summary>
+        /// Пишет сообщение в лог-файл, в синхронном режиме.
+        /// Доступ к этому методу синхронизируется.
+        /// К сообщению автоматически прибавляется текущая дата в полном формате.
+        /// </summary>
+        /// <param name="logstr">Строка лога, которую надо записать.</param>
+        public void WriteLog(string logstr)
+        {
+            void ShowMessage(string addMes)
+            {
+                if (!_errorMessageIsShowed && Monitor.TryEnter(_logLocker))
+                {
+                    try
+                    {
+                        if (!_errorMessageIsShowed)
+                        {
+                            _errorMessageIsShowed = true;
+                            ErrorMessageInOtherThread(string.IsNullOrWhiteSpace(addMes) ? @"Содержимое лог-файла обновлено. Есть новые сообщения." : addMes);
+                        }
+                    }
+                    finally
+                    {
+                        Monitor.Exit(_logLocker);
+                    }
+                }
+            }
+
+            try
+            {
+                logstr = $@"{DateTime.Now:dd.MM.yyyy HH:mm:ss} {logstr}";
+                string path = Path.Combine(SearchPath, "DynamicMosaicExampleLog.log");
+                lock (_logLockerObject)
+                {
+                    using (FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
+                    using (StreamWriter sw = new StreamWriter(fs, System.Text.Encoding.UTF8))
+                        sw.WriteLine(logstr);
+                }
+                ShowMessage(string.Empty);
+            }
+            catch (Exception ex)
+            {
+                ShowMessage($@"Ошибка при записи логов: {ex.Message}{Environment.NewLine}Сообщение: {logstr}");
+            }
         }
     }
 }

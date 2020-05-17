@@ -1,7 +1,6 @@
 ﻿using DynamicMosaic;
 using DynamicParser;
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -249,7 +248,9 @@ namespace DynamicMosaicExample
 
             if (_currentImage >= lst.Length || _currentImage < 0)
                 return;
-            _processorStorage.RemoveProcessor(lst[_currentImage]);
+            fswImageChanged.EnableRaisingEvents = false;
+            _errorMessageIsShowed = false;
+            _processorStorage.RemoveProcessor(lst[_currentImage], true);
             BtnImagePrev_Click(null, null);
             BtnReflexClear_Click(null, null);
         }, RefreshImagesCount);
@@ -272,6 +273,7 @@ namespace DynamicMosaicExample
         /// </summary>
         void RefreshImagesCount() => InvokeAction(() =>
         {
+            fswImageChanged.EnableRaisingEvents = true;
             int count = _processorStorage.Count;
             txtImagesCount.Text = count.ToString();
             if (count <= 0)
@@ -413,7 +415,12 @@ namespace DynamicMosaicExample
         void BtnRecognizeImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             if (IsWorking)
+            {
                 StopRecognize();
+                return;
+            }
+
+            _errorMessageIsShowed = false;
             EnableButtons = false;
             (_workThread = new Thread(() => SafetyExecute(() =>
             {
@@ -424,20 +431,20 @@ namespace DynamicMosaicExample
 
                     if (images.Count < 2 && _workReflexes.Count <= 0)
                     {
-                        MessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
+                        ErrorMessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
                         return;
                     }
 
                     if (txtWord.Text.Length <= 0)
                     {
-                        MessageInOtherThread(
+                        ErrorMessageInOtherThread(
                             @"Слова отсутствуют. Добавьте какое-нибудь слово, которое можно составить из одного или нескольких образов.");
                         return;
                     }
 
                     if (!IsPainting)
                     {
-                        MessageInOtherThread(@"Необходимо нарисовать какой-нибудь рисунок на рабочей поверхности.");
+                        ErrorMessageInOtherThread(@"Необходимо нарисовать какой-нибудь рисунок на рабочей поверхности.");
                         return;
                     }
 
@@ -717,7 +724,7 @@ namespace DynamicMosaicExample
         ///     Отображает сообщение с указанным текстом в другом потоке.
         /// </summary>
         /// <param name="message">Текст отображаемого сообщения.</param>
-        void MessageInOtherThread(string message)
+        void ErrorMessageInOtherThread(string message)
         {
             if (string.IsNullOrWhiteSpace(message))
                 return;
@@ -731,8 +738,6 @@ namespace DynamicMosaicExample
                 Name = @"Message"
             }.Start());
         }
-
-
 
         /// <summary>
         /// Обрабатывает событие выбора исследуемой системы.
@@ -853,7 +858,11 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() => _processorStorage.SaveToFile(_workReflex[_currentReflexMapIndex]));
+        void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
+        {
+            fswImageChanged.EnableRaisingEvents = false;
+            _processorStorage.SaveToFile(_workReflex[_currentReflexMapIndex]);
+        }, () => fswImageChanged.EnableRaisingEvents = true);
 
         /// <summary>
         /// Сохраняет все карты <see cref="Processor"/> выбранной системы <see cref="Reflex"/> на жёсткий диск.
@@ -862,9 +871,10 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
+            fswImageChanged.EnableRaisingEvents = false;
             for (int k = 0; k < _workReflex.Count; k++)
                 _processorStorage.SaveToFile(_workReflex[k]);
-        });
+        }, () => fswImageChanged.EnableRaisingEvents = true);
 
         /// <summary>
         /// Обрабатывает событие завершения работы программы.
