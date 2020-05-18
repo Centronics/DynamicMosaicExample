@@ -306,7 +306,7 @@ namespace DynamicMosaicExample
         /// <summary>
         /// Указывает, было ли просмотрено сообщение о том, что в процессе работы программы уже произошла ошибка.
         /// </summary>
-        static bool _errorMessageIsShowed;
+        static volatile bool _errorMessageIsShowed;
 
         /// <summary>
         /// Содержит данные о задаче, связанной с изменениями в файловой системе.
@@ -426,7 +426,7 @@ namespace DynamicMosaicExample
         /// <summary>
         /// Сигнал остановки потоку, актуализирующему содержимое карт <see cref="Processor"/>.
         /// </summary>
-        bool _stopFileThreadFlag;
+        volatile bool _stopFileThreadFlag;
 
         /// <summary>
         ///     Отключает или включает доступность кнопок на время выполнения операции.
@@ -537,6 +537,7 @@ namespace DynamicMosaicExample
                             WriteLog(ex.Message);
                         }
                     }));
+                    InvokeAction(RefreshImagesCount);
                     while (!_stopFileThreadFlag)
                     {
                         _needRefreshEvent.WaitOne();
@@ -569,6 +570,7 @@ namespace DynamicMosaicExample
                                 WriteLog(ex.Message);
                             }
                         });
+                        InvokeAction(RefreshImagesCount);
                     }
                 }
                 catch (Exception ex)
@@ -585,7 +587,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Пишет сообщение в лог-файл, в синхронном режиме.
+        /// Записывает сообщение в лог-файл, в синхронном режиме.
         /// Доступ к этому методу синхронизируется.
         /// К сообщению автоматически прибавляется текущая дата в полном формате.
         /// </summary>
@@ -594,20 +596,19 @@ namespace DynamicMosaicExample
         {
             void ShowMessage(string addMes)
             {
-                if (!_errorMessageIsShowed && Monitor.TryEnter(_logLocker))
+                if (_errorMessageIsShowed)
+                    return;
+                try
                 {
-                    try
-                    {
-                        if (!_errorMessageIsShowed)
-                        {
-                            _errorMessageIsShowed = true;
-                            ErrorMessageInOtherThread(string.IsNullOrWhiteSpace(addMes) ? @"Содержимое лог-файла обновлено. Есть новые сообщения." : addMes);
-                        }
-                    }
-                    finally
-                    {
+                    if (!Monitor.TryEnter(_logLocker) || _errorMessageIsShowed)
+                        return;
+                    _errorMessageIsShowed = true;
+                    ErrorMessageInOtherThread(string.IsNullOrWhiteSpace(addMes) ? @"Содержимое лог-файла обновлено. Есть новые сообщения." : addMes);
+                }
+                finally
+                {
+                    if (Monitor.IsEntered(_logLocker))
                         Monitor.Exit(_logLocker);
-                    }
                 }
             }
 
@@ -625,7 +626,7 @@ namespace DynamicMosaicExample
             }
             catch (Exception ex)
             {
-                ShowMessage($@"Ошибка при записи логов: {ex.Message}{Environment.NewLine}Сообщение: {logstr}");
+                ShowMessage($@"Ошибка при записи логов: {ex.Message}{Environment.NewLine}Сообщение лога: {logstr}");
             }
         }
     }

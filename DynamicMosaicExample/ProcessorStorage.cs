@@ -149,7 +149,7 @@ namespace DynamicMosaicExample
                 {
                     AddElement(hashCode, fullPath, ir.CurrentProcessor);
                     if (!_dictionaryFileNames.TryGetValue(ir.SymbolicName, out uint value))
-                        _dictionaryFileNames[ir.SymbolicName] = ir.Number;
+                        _dictionaryFileNames.Add(ir.SymbolicName,ir.Number);
                     else if (value < ir.Number)
                         _dictionaryFileNames[ir.SymbolicName] = ir.Number;
                 }
@@ -162,11 +162,14 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// 
+        /// Добавляет указанную карту <see cref="Processor"/> в <see cref="ConcurrentProcessorStorage"/>.
+        /// Добавляет её в массив, содержащий хеши, так и в массив, содержащий пути.
+        /// Хеш добавляемой карты может совпадать с другими картами.
+        /// Полный путь к добавляемой карте на достоверность не проверяется.
         /// </summary>
-        /// <param name="hashCode"></param>
-        /// <param name="fullPath"></param>
-        /// <param name="processor"></param>
+        /// <param name="hashCode">Хеш добавляемой карты.</param>
+        /// <param name="fullPath">Полный путь к добавляемой карте.</param>
+        /// <param name="processor">Добавляемая карта <see cref="Processor"/>.</param>
         void AddElement(int hashCode, string fullPath, Processor processor)
         {
             if (!_dictionary.TryGetValue(hashCode, out ProcHash ph))
@@ -233,6 +236,9 @@ namespace DynamicMosaicExample
             }
         }
 
+        /// <summary>
+        /// Получает количество карт, содержащихся в коллекции <see cref="ConcurrentProcessorStorage"/>.
+        /// </summary>
         internal int Count
         {
             get
@@ -352,9 +358,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     
+        ///     Сохраняет указанную карту <see cref="Processor"/> на жёсткий диск в формате BMP.
+        ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
+        ///     Так же карта будет добавлена в базу данных класса <see cref="ConcurrentProcessorStorage"/>, счётчик максимального номера карты будет актуализирован.
         /// </summary>
-        /// <param name="processor"></param>
+        /// <param name="processor">Карта <see cref="Processor"/>, которую требуется сохранить.</param>
         /// <returns>Возвращает строку полного пути к файлу нового образа или <see cref="string.Empty"/> в случае ошибки его сохранения.</returns>
         internal string SaveToFile(Processor processor)
         {
