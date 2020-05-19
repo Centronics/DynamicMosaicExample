@@ -188,22 +188,18 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            Processor[] lst = _processorStorage.Elements;
-            if (lst.Length <= 0)
+            Processor processor = _processorStorage[_currentImage];
+            if (processor == null)
             {
+                _currentImage = 0;
                 SymbolBrowseClear();
                 MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
                 return;
             }
-
-            if (_currentImage >= lst.Length - 1)
-                _currentImage = 0;
-            else
-                _currentImage++;
-            Processor p = lst[_currentImage];
-            pbBrowse.Image = ImageRect.GetBitmap(p);
-            txtSymbolName.Text = p.Tag;
+            _currentImage++;
+            pbBrowse.Image = ImageRect.GetBitmap(processor);
+            txtSymbolName.Text = processor.Tag;
         });
 
         /// <summary>
@@ -213,22 +209,18 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImagePrev_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            Processor[] lst = _processorStorage.Elements;
-            if (lst.Length <= 0)
+            (Processor processor, int count) = _processorStorage.GetProcessorAndCount(_currentImage);//ИСПРАВИТЬ!!
+            if (processor == null)
             {
+                _currentImage = count;
                 SymbolBrowseClear();
                 MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
                 return;
             }
-
-            if (_currentImage <= 0)
-                _currentImage = lst.Length - 1;
-            else
-                _currentImage--;
-            Processor p = lst[_currentImage];
-            pbBrowse.Image = ImageRect.GetBitmap(p);
-            txtSymbolName.Text = p.Tag;
+            _currentImage--;
+            pbBrowse.Image = ImageRect.GetBitmap(processor);
+            txtSymbolName.Text = processor.Tag;
         }, RefreshImagesCount);
 
         /// <summary>

@@ -550,6 +550,7 @@ namespace DynamicMosaicExample
                                     case WatcherChangeTypes.Created:
                                         _processorStorage.AddProcessor(task.FilePath);
                                         break;
+                                    case WatcherChangeTypes.Renamed:
                                     case WatcherChangeTypes.Deleted:
                                         _processorStorage.RemoveProcessor(task.FilePath, false);
                                         break;
@@ -557,9 +558,6 @@ namespace DynamicMosaicExample
                                     case WatcherChangeTypes.All:
                                         _processorStorage.RemoveProcessor(task.FilePath, false);
                                         _processorStorage.AddProcessor(task.FilePath);
-                                        break;
-                                    case WatcherChangeTypes.Renamed:
-                                        _processorStorage.RemoveProcessor(task.FilePath, false);
                                         break;
                                     default:
                                         throw new ArgumentOutOfRangeException(nameof(task));

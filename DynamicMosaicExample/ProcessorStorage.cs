@@ -149,7 +149,7 @@ namespace DynamicMosaicExample
                 {
                     AddElement(hashCode, fullPath, ir.CurrentProcessor);
                     if (!_dictionaryFileNames.TryGetValue(ir.SymbolicName, out uint value))
-                        _dictionaryFileNames.Add(ir.SymbolicName,ir.Number);
+                        _dictionaryFileNames.Add(ir.SymbolicName, ir.Number);
                     else if (value < ir.Number)
                         _dictionaryFileNames[ir.SymbolicName] = ir.Number;
                 }
@@ -222,21 +222,6 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage"/>.
-        /// Возвращает копию коллекции в виде массива.
-        /// </summary>
-        internal Processor[] Elements
-        {
-            get
-            {
-                if (!IsOperationAllowed)
-                    throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
-                lock (_syncObject)
-                    return _dictionaryByPath.Select(pair => pair.Value).ToArray();
-            }
-        }
-
-        /// <summary>
         /// Получает количество карт, содержащихся в коллекции <see cref="ConcurrentProcessorStorage"/>.
         /// </summary>
         internal int Count
@@ -251,22 +236,59 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
+        /// Возвращает карту <see cref="Processor"/> по указанному индексу.
+        /// Если индекс представляет собой недопустимое значение, возвращается <see langword="null"/>.
+        /// </summary>
+        /// <param name="index">Индекс карты <see cref="Processor"/>, которую надо вернуть.</param>
+        /// <returns>Возвращает карту <see cref="Processor"/> по указанному индексу.</returns>
+        public Processor this[int index]
+        {
+            get
+            {
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(ConcurrentProcessorStorage)}.indexer(int): Операция недопустима.");
+                lock (_syncObject)
+                    return index >= 0 && index < _dictionaryByPath.Count
+                        ? _dictionaryByPath.Values.ElementAt(index)
+                        : null;
+            }
+        }
+
+        /// <summary>
         /// Находит карту <see cref="Processor"/> по указанному пути.
         /// От наличия файла на жёстком диске не зависит.
         /// Возвращает карту <see cref="Processor"/> или <see langword="null"/> в случае, если карта <see cref="Processor"/> не найдена в коллекции.
         /// </summary>
-        /// <param name="path"></param>
+        /// <param name="fullPath">Полный путь к карте <see cref="Processor"/>.</param>
         /// <returns>Возвращает карту <see cref="Processor"/> или <see langword="null"/> в случае, если карта <see cref="Processor"/> не найдена в коллекции.</returns>
-        internal Processor FindByPath(string path)
+        public Processor this[string fullPath]
+        {
+            get
+            {
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(ConcurrentProcessorStorage)}.indexer(string): Операция недопустима.");
+                if (string.IsNullOrWhiteSpace(fullPath))
+                    return null;
+                lock (_syncObject)
+                {
+                    _dictionaryByPath.TryGetValue(fullPath, out Processor p);
+                    return p;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Получает последнюю карту <see cref="Processor"/> и количество карт в коллекции <see cref="ConcurrentProcessorStorage"/> на момент получения карты.
+        /// </summary>
+        /// <returns>Возвращает последнюю карту <see cref="Processor"/> и количество карт в коллекции <see cref="ConcurrentProcessorStorage"/> на момент получения карты.</returns>
+        public (Processor processor, int count) GetLastProcessor()
         {
             if (!IsOperationAllowed)
-                throw new InvalidOperationException($@"{nameof(FindByPath)}: Операция недопустима.");
-            if (string.IsNullOrWhiteSpace(path))
-                return null;
+                throw new InvalidOperationException($@"{nameof(GetLastProcessor)}: Операция недопустима.");
             lock (_syncObject)
             {
-                _dictionaryByPath.TryGetValue(path, out Processor p);
-                return p;
+                int count = Count;
+                return (this[count - 1], count);
             }
         }
 
@@ -274,16 +296,16 @@ namespace DynamicMosaicExample
         /// Удаляет указанную карту <see cref="Processor"/> из коллекции <see cref="ConcurrentProcessorStorage"/>, идентифицируя её по пути к ней.
         /// В том числе, удаляет сам файл с диска.
         /// </summary>
-        /// <param name="path">Путь к карте <see cref="Processor"/>, которую необходимо удалить из коллекции.</param>
+        /// <param name="fullPath">Полный путь к карте <see cref="Processor"/>, которую необходимо удалить из коллекции.</param>
         /// <param name="removeFile">Значение <see langword="true"/> означает, что требуется удалить файл с диска.</param>
-        internal void RemoveProcessor(string path, bool removeFile)
+        internal void RemoveProcessor(string fullPath, bool removeFile)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
-            if (string.IsNullOrWhiteSpace(path))
+            if (string.IsNullOrWhiteSpace(fullPath))
                 return;
             lock (_syncObject)
-                RemoveProcessor(FindByPath(path), removeFile);
+                RemoveProcessor(this[fullPath], removeFile);
         }
 
         /// <summary>
