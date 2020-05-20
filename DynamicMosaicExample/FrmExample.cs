@@ -188,18 +188,19 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            Processor processor = _processorStorage[_currentImage];
-            if (processor == null)
+            (Processor processor, int count) = _processorStorage.GetFirstProcessor(ref _currentImage);
+            if (processor == null || count <= 0)
             {
-                _currentImage = 0;
                 SymbolBrowseClear();
                 MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
+                RefreshImagesCount(count);
                 return;
             }
             _currentImage++;
             pbBrowse.Image = ImageRect.GetBitmap(processor);
-            txtSymbolName.Text = processor.Tag;
+            txtSymbolName.Text = processor.Tag;//полный путь надо отображать
+            RefreshImagesCount(count);
         });
 
         /// <summary>
@@ -209,19 +210,20 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImagePrev_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            (Processor processor, int count) = _processorStorage.GetProcessorAndCount(_currentImage);//ИСПРАВИТЬ!!
-            if (processor == null)
+            (Processor processor, int count) = _processorStorage.GetLastProcessor(ref _currentImage);
+            if (processor == null || count <= 0)
             {
-                _currentImage = count;
                 SymbolBrowseClear();
                 MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
+                RefreshImagesCount(count);
                 return;
             }
             _currentImage--;
             pbBrowse.Image = ImageRect.GetBitmap(processor);
             txtSymbolName.Text = processor.Tag;
-        }, RefreshImagesCount);
+            RefreshImagesCount(count);
+        });
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Удалить".
@@ -231,10 +233,11 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageDelete_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            Processor[] lst = _processorStorage.Elements;
+            Processor[] lst = _processorStorage.Elements;//необходимо возвращать путь к карте; при выборе карты отображать путь к ней, но с конца строки, чтобы было видно название
             if (lst.Length <= 0)
             {
                 SymbolBrowseClear();
+                RefreshImagesCount(count);
                 return;
             }
 
@@ -245,7 +248,8 @@ namespace DynamicMosaicExample
             _processorStorage.RemoveProcessor(lst[_currentImage], true);
             BtnImagePrev_Click(null, null);
             BtnReflexClear_Click(null, null);
-        }, RefreshImagesCount);
+            RefreshImagesCount(count);
+        });
 
         /// <summary>
         ///     Вызывается по нажатию кнопки "Создать образ".
@@ -257,17 +261,17 @@ namespace DynamicMosaicExample
             using (FrmSymbol fs = new FrmSymbol(_processorStorage))
                 if (fs.ShowDialog() == DialogResult.OK)
                     BtnReflexClear_Click(null, null);
-        }, RefreshImagesCount);
+        });
 
         /// <summary>
         ///     Выполняет подсчёт количества изображений для поиска.
         ///     Обновляет состояния кнопок, связанных с изображениями.
         /// </summary>
-        void RefreshImagesCount() => InvokeAction(() =>
+        /// <param name="count">Количество карт в коллекции <see cref="ConcurrentProcessorStorage"/>.</param>
+        void RefreshImagesCount(int count) => InvokeAction(() =>
         {
             fswImageChanged.EnableRaisingEvents = true;
-            int count = _processorStorage.Count;
-            txtImagesCount.Text = count.ToString();
+            txtImagesCount.Text = $@"{_currentImage} / {count}";
             if (count <= 0)
             {
                 SymbolBrowseClear();

@@ -155,10 +155,10 @@
             // txtSymbolName
             // 
             this.txtSymbolName.Enabled = false;
-            this.txtSymbolName.Location = new System.Drawing.Point(61, 15);
+            this.txtSymbolName.Location = new System.Drawing.Point(55, 15);
             this.txtSymbolName.Name = "txtSymbolName";
             this.txtSymbolName.ReadOnly = true;
-            this.txtSymbolName.Size = new System.Drawing.Size(82, 20);
+            this.txtSymbolName.Size = new System.Drawing.Size(88, 20);
             this.txtSymbolName.TabIndex = 19;
             // 
             // txtImagesCount
@@ -184,9 +184,9 @@
             this.label1.AutoSize = true;
             this.label1.Location = new System.Drawing.Point(3, 16);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(60, 13);
+            this.label1.Size = new System.Drawing.Size(34, 13);
             this.label1.TabIndex = 3;
-            this.label1.Text = "Название:";
+            this.label1.Text = "Путь:";
             // 
             // btnImageDelete
             // 

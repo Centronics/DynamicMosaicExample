@@ -278,17 +278,56 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Получает последнюю карту <see cref="Processor"/> и количество карт в коллекции <see cref="ConcurrentProcessorStorage"/> на момент получения карты.
+        /// Получает указанную или последнюю карту в случае недопустимого значения в индексе карты <see cref="Processor"/>, которую необходимо получить.
+        /// Актуализирует номер полученной карты.
+        /// Получает количество карт в коллекции <see cref="ConcurrentProcessorStorage"/> на момент получения карты.
+        /// В случае отсутствия карт в коллекции, возвращается (null, 0), index тоже будет равен нолю.
         /// </summary>
-        /// <returns>Возвращает последнюю карту <see cref="Processor"/> и количество карт в коллекции <see cref="ConcurrentProcessorStorage"/> на момент получения карты.</returns>
-        public (Processor processor, int count) GetLastProcessor()
+        /// <param name="index">Индекс карты <see cref="Processor"/>, которую необходимо получить. В случае допустимого изначального значения значение остаётся прежним, иначе равняется индексу последней карты в коллекции.</param>
+        /// <returns>Возвращает карту и количество карт на момент её получения.</returns>
+        public (Processor processor, int count) GetLastProcessor(ref int index)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(GetLastProcessor)}: Операция недопустима.");
             lock (_syncObject)
             {
                 int count = Count;
-                return (this[count - 1], count);
+                if (count <= 0)
+                {
+                    index = 0;
+                    return (null, 0);
+                }
+
+                if (index < 0 || index >= count)
+                    index = count - 1;
+                return (this[index], count);
+            }
+        }
+
+        /// <summary>
+        /// Получает указанную или первую карту в случае недопустимого значения в индексе карты <see cref="Processor"/>, которую необходимо получить.
+        /// Актуализирует номер полученной карты.
+        /// Получает количество карт в коллекции <see cref="ConcurrentProcessorStorage"/> на момент получения карты.
+        /// В случае отсутствия карт в коллекции, возвращается (null, 0), index тоже будет равен нолю.
+        /// </summary>
+        /// <param name="index">Индекс карты <see cref="Processor"/>, которую необходимо получить. В случае допустимого изначального значения значение остаётся прежним, иначе равняется индексу первой карты в коллекции.</param>
+        /// <returns>Возвращает карту и количество карт на момент её получения.</returns>
+        public (Processor processor, int count) GetFirstProcessor(ref int index)
+        {
+            if (!IsOperationAllowed)
+                throw new InvalidOperationException($@"{nameof(GetFirstProcessor)}: Операция недопустима.");
+            lock (_syncObject)
+            {
+                int count = Count;
+                if (count <= 0)
+                {
+                    index = 0;
+                    return (null, 0);
+                }
+
+                if (index < 0 || index >= count)
+                    index = 0;
+                return (this[index], count);
             }
         }
 
