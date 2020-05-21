@@ -22,7 +22,7 @@ namespace DynamicMosaicExample
         /// <summary>
         /// Коллекция карт, идентифицируемых по путям.
         /// </summary>
-        readonly Dictionary<string, Processor> _dictionaryByPath = new Dictionary<string, Processor>();
+        readonly Dictionary<string, ProcPath> _dictionaryByPath = new Dictionary<string, ProcPath>();
 
         /// <summary>
         /// Содержит количество файлов с именами, начинающимися на одно и то же слово.
@@ -176,7 +176,7 @@ namespace DynamicMosaicExample
                 _dictionary.Add(hashCode, new ProcHash(new ProcPath(processor, fullPath)));
             else if (ph.Elements.All(px => !ProcessorCompare(processor, px.CurrentProcessor)))
                 ph.AddProcessor(new ProcPath(processor, fullPath));
-            _dictionaryByPath.Add(fullPath, processor);
+            _dictionaryByPath.Add(fullPath, new ProcPath(processor, fullPath));
         }
 
         /// <summary>
@@ -222,6 +222,21 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
+        /// Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage"/>.
+        /// Возвращает копию коллекции в виде массива.
+        /// </summary>
+        internal Processor[] Elements
+        {
+            get
+            {
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
+                lock (_syncObject)
+                    return _dictionaryByPath.Select(pair => pair.Value.CurrentProcessor).ToArray();
+            }
+        }
+
+        /// <summary>
         /// Получает количество карт, содержащихся в коллекции <see cref="ConcurrentProcessorStorage"/>.
         /// </summary>
         internal int Count
@@ -236,21 +251,24 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Возвращает карту <see cref="Processor"/> по указанному индексу.
-        /// Если индекс представляет собой недопустимое значение, возвращается <see langword="null"/>.
+        /// Возвращает карту <see cref="Processor"/> по указанному индексу, и путь к ней.
+        /// Если индекс представляет собой недопустимое значение, возвращается (<see langword="null"/>, <see cref="string.Empty"/>).
         /// </summary>
         /// <param name="index">Индекс карты <see cref="Processor"/>, которую надо вернуть.</param>
-        /// <returns>Возвращает карту <see cref="Processor"/> по указанному индексу.</returns>
-        public Processor this[int index]
+        /// <returns>Возвращает карту <see cref="Processor"/> по указанному индексу, и путь к ней.</returns>
+        public (Processor processor, string path) this[int index]
         {
             get
             {
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(ConcurrentProcessorStorage)}.indexer(int): Операция недопустима.");
                 lock (_syncObject)
-                    return index >= 0 && index < _dictionaryByPath.Count
-                        ? _dictionaryByPath.Values.ElementAt(index)
-                        : null;
+                    if (index >= 0 && index < _dictionaryByPath.Count)
+                    {
+                        ProcPath pp = _dictionaryByPath.Values.ElementAt(index);
+                        return (pp.CurrentProcessor, pp.CurrentPath);
+                    }
+                return (null, string.Empty);
             }
         }
 
@@ -271,21 +289,21 @@ namespace DynamicMosaicExample
                     return null;
                 lock (_syncObject)
                 {
-                    _dictionaryByPath.TryGetValue(fullPath, out Processor p);
-                    return p;
+                    _dictionaryByPath.TryGetValue(fullPath, out ProcPath p);
+                    return p.CurrentProcessor;
                 }
             }
         }
 
         /// <summary>
         /// Получает указанную или последнюю карту в случае недопустимого значения в индексе карты <see cref="Processor"/>, которую необходимо получить.
-        /// Актуализирует номер полученной карты.
+        /// Актуализирует номер полученной карты и путь к ней.
         /// Получает количество карт в коллекции <see cref="ConcurrentProcessorStorage"/> на момент получения карты.
-        /// В случае отсутствия карт в коллекции, возвращается (null, 0), index тоже будет равен нолю.
+        /// В случае отсутствия карт в коллекции, возвращается (<see langword="null"/>, 0), index тоже будет равен нолю.
         /// </summary>
-        /// <param name="index">Индекс карты <see cref="Processor"/>, которую необходимо получить. В случае допустимого изначального значения значение остаётся прежним, иначе равняется индексу последней карты в коллекции.</param>
-        /// <returns>Возвращает карту и количество карт на момент её получения.</returns>
-        public (Processor processor, int count) GetLastProcessor(ref int index)
+        /// <param name="index">Индекс карты <see cref="Processor"/>, которую необходимо получить. В случае допустимого изначального значения, это значение остаётся прежним, иначе равняется индексу последней карты в коллекции.</param>
+        /// <returns>Возвращает карту, путь к ней, и количество карт на момент её получения.</returns>
+        public (Processor processor, string path, int count) GetLastProcessor(ref int index)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(GetLastProcessor)}: Операция недопустима.");
@@ -295,24 +313,25 @@ namespace DynamicMosaicExample
                 if (count <= 0)
                 {
                     index = 0;
-                    return (null, 0);
+                    return (null, string.Empty, 0);
                 }
 
                 if (index < 0 || index >= count)
                     index = count - 1;
-                return (this[index], count);
+                (Processor processor, string path) = this[index];
+                return (processor, path, count);
             }
         }
 
         /// <summary>
         /// Получает указанную или первую карту в случае недопустимого значения в индексе карты <see cref="Processor"/>, которую необходимо получить.
-        /// Актуализирует номер полученной карты.
+        /// Актуализирует номер полученной карты и путь к ней.
         /// Получает количество карт в коллекции <see cref="ConcurrentProcessorStorage"/> на момент получения карты.
-        /// В случае отсутствия карт в коллекции, возвращается (null, 0), index тоже будет равен нолю.
+        /// В случае отсутствия карт в коллекции, возвращается (<see langword="null"/>, 0), index тоже будет равен нолю.
         /// </summary>
-        /// <param name="index">Индекс карты <see cref="Processor"/>, которую необходимо получить. В случае допустимого изначального значения значение остаётся прежним, иначе равняется индексу первой карты в коллекции.</param>
-        /// <returns>Возвращает карту и количество карт на момент её получения.</returns>
-        public (Processor processor, int count) GetFirstProcessor(ref int index)
+        /// <param name="index">Индекс карты <see cref="Processor"/>, которую необходимо получить. В случае допустимого изначального значения, это значение остаётся прежним, иначе равняется индексу первой карты в коллекции.</param>
+        /// <returns>Возвращает карту, путь к ней, и количество карт на момент её получения.</returns>
+        public (Processor processor, string path, int count) GetFirstProcessor(ref int index)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(GetFirstProcessor)}: Операция недопустима.");
@@ -322,12 +341,13 @@ namespace DynamicMosaicExample
                 if (count <= 0)
                 {
                     index = 0;
-                    return (null, 0);
+                    return (null, string.Empty, 0);
                 }
 
                 if (index < 0 || index >= count)
                     index = 0;
-                return (this[index], count);
+                (Processor processor, string path) = this[index];
+                return (processor, path, count);
             }
         }
 

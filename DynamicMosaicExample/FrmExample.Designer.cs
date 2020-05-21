@@ -35,7 +35,7 @@
             this.txtWord = new System.Windows.Forms.TextBox();
             this.btnImageCreate = new System.Windows.Forms.Button();
             this.grpImages = new System.Windows.Forms.GroupBox();
-            this.txtSymbolName = new System.Windows.Forms.TextBox();
+            this.txtSymbolPath = new System.Windows.Forms.TextBox();
             this.txtImagesCount = new System.Windows.Forms.TextBox();
             this.label4 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
@@ -136,7 +136,7 @@
             // 
             // grpImages
             // 
-            this.grpImages.Controls.Add(this.txtSymbolName);
+            this.grpImages.Controls.Add(this.txtSymbolPath);
             this.grpImages.Controls.Add(this.txtImagesCount);
             this.grpImages.Controls.Add(this.label4);
             this.grpImages.Controls.Add(this.label1);
@@ -152,14 +152,14 @@
             this.grpImages.TabStop = false;
             this.grpImages.Text = "Образы искомых букв";
             // 
-            // txtSymbolName
+            // txtSymbolPath
             // 
-            this.txtSymbolName.Enabled = false;
-            this.txtSymbolName.Location = new System.Drawing.Point(55, 15);
-            this.txtSymbolName.Name = "txtSymbolName";
-            this.txtSymbolName.ReadOnly = true;
-            this.txtSymbolName.Size = new System.Drawing.Size(88, 20);
-            this.txtSymbolName.TabIndex = 19;
+            this.txtSymbolPath.Enabled = false;
+            this.txtSymbolPath.Location = new System.Drawing.Point(55, 15);
+            this.txtSymbolPath.Name = "txtSymbolPath";
+            this.txtSymbolPath.ReadOnly = true;
+            this.txtSymbolPath.Size = new System.Drawing.Size(88, 20);
+            this.txtSymbolPath.TabIndex = 19;
             // 
             // txtImagesCount
             // 
@@ -557,7 +557,7 @@
         private System.Windows.Forms.Button btnConNext;
         private System.Windows.Forms.PictureBox pbSuccess;
         private System.Windows.Forms.Button btnReflexRemove;
-        private System.Windows.Forms.TextBox txtSymbolName;
+        private System.Windows.Forms.TextBox txtSymbolPath;
         private System.Windows.Forms.TextBox txtConSymbol;
         private System.Windows.Forms.Button btnConSaveImage;
         private System.Windows.Forms.Button btnConSaveAllImages;

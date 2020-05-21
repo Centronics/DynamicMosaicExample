@@ -348,7 +348,7 @@ namespace DynamicMosaicExample
                 _whitePen = new Pen(_defaultColor, 2.0f);
                 Initialize();
                 _strRecog = btnRecognizeImage.Text;
-                _unknownSymbolName = txtSymbolName.Text;
+                _unknownSymbolName = txtSymbolPath.Text;
                 _unknownSystemName = txtConSymbol.Text;
                 _createReflexString = (string)lstResults.Items[0];
                 _strGrpResults = grpResults.Text;

@@ -168,7 +168,7 @@ namespace DynamicMosaicExample
         /// </summary>
         void SymbolBrowseClear()
         {
-            txtSymbolName.Text = _unknownSymbolName;
+            txtSymbolPath.Text = _unknownSymbolName;
             pbBrowse.Image = new Bitmap(pbBrowse.Width, pbBrowse.Height);
         }
 
@@ -188,7 +188,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            (Processor processor, int count) = _processorStorage.GetFirstProcessor(ref _currentImage);
+            (Processor processor, string path, int count) = _processorStorage.GetFirstProcessor(ref _currentImage);
             if (processor == null || count <= 0)
             {
                 SymbolBrowseClear();
@@ -199,7 +199,7 @@ namespace DynamicMosaicExample
             }
             _currentImage++;
             pbBrowse.Image = ImageRect.GetBitmap(processor);
-            txtSymbolName.Text = processor.Tag;//полный путь надо отображать
+            txtSymbolPath.Text = path;
             RefreshImagesCount(count);
         });
 
@@ -210,7 +210,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImagePrev_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            (Processor processor, int count) = _processorStorage.GetLastProcessor(ref _currentImage);
+            (Processor processor, string path, int count) = _processorStorage.GetLastProcessor(ref _currentImage);
             if (processor == null || count <= 0)
             {
                 SymbolBrowseClear();
@@ -221,7 +221,8 @@ namespace DynamicMosaicExample
             }
             _currentImage--;
             pbBrowse.Image = ImageRect.GetBitmap(processor);
-            txtSymbolName.Text = processor.Tag;
+            txtSymbolPath.Text = path;
+            //txtSymbolName.select
             RefreshImagesCount(count);
         });
 
@@ -233,19 +234,19 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageDelete_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            Processor[] lst = _processorStorage.Elements;//необходимо возвращать путь к карте; при выборе карты отображать путь к ней, но с конца строки, чтобы было видно название
-            if (lst.Length <= 0)
+            int count = _processorStorage.Count;
+            if (count <= 0)
             {
                 SymbolBrowseClear();
                 RefreshImagesCount(count);
                 return;
             }
 
-            if (_currentImage >= lst.Length || _currentImage < 0)
+            if (_currentImage >= count || _currentImage < 0)
                 return;
             fswImageChanged.EnableRaisingEvents = false;
             _errorMessageIsShowed = false;
-            _processorStorage.RemoveProcessor(lst[_currentImage], true);
+            _processorStorage.RemoveProcessor(_processorStorage[txtSymbolPath.Text], true);
             BtnImagePrev_Click(null, null);
             BtnReflexClear_Click(null, null);
             RefreshImagesCount(count);
@@ -279,7 +280,7 @@ namespace DynamicMosaicExample
                 txtImagesCount.Enabled = false;
                 btnImageNext.Enabled = false;
                 btnImagePrev.Enabled = false;
-                txtSymbolName.Enabled = false;
+                txtSymbolPath.Enabled = false;
                 pbBrowse.Enabled = false;
                 return;
             }
@@ -288,7 +289,7 @@ namespace DynamicMosaicExample
             txtImagesCount.Enabled = btnImageCreate.Enabled;
             btnImageNext.Enabled = true;
             btnImagePrev.Enabled = true;
-            txtSymbolName.Enabled = true;
+            txtSymbolPath.Enabled = true;
             pbBrowse.Enabled = true;
         });
 
