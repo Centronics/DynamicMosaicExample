@@ -371,15 +371,15 @@ namespace DynamicMosaicExample
         /// Удаляет указанную карту <see cref="Processor"/> из коллекции <see cref="ConcurrentProcessorStorage"/>.
         /// В том числе, удаляет сам файл с диска.
         /// </summary>
-        /// <param name="p">Карта <see cref="Processor"/>, которую следует удалить.</param>
+        /// <param name="processor">Карта <see cref="Processor"/>, которую следует удалить.</param>
         /// <param name="removeFile">Значение <see langword="true"/> означает, что требуется удалить файл с диска.</param>
-        internal void RemoveProcessor(Processor p, bool removeFile)
+        internal void RemoveProcessor(Processor processor, bool removeFile)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
-            if (p is null)
+            if (processor is null)
                 return;
-            int hash = CRCIntCalc.GetHash(p);
+            int hash = CRCIntCalc.GetHash(processor);
             lock (_syncObject)
             {
                 if (!_dictionary.TryGetValue(hash, out ProcHash ph))
@@ -388,7 +388,7 @@ namespace DynamicMosaicExample
                 {
                     int index = 0;
                     foreach (ProcPath px in ph.Elements)
-                        if (ProcessorCompare(p, px.CurrentProcessor))
+                        if (ProcessorCompare(processor, px.CurrentProcessor))
                         {
                             if (removeFile)
                                 File.Delete(ph[index].CurrentPath);

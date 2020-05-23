@@ -160,6 +160,7 @@
             this.txtSymbolPath.ReadOnly = true;
             this.txtSymbolPath.Size = new System.Drawing.Size(88, 20);
             this.txtSymbolPath.TabIndex = 19;
+            this.txtSymbolPath.TextChanged += new System.EventHandler(this.TxtSymbolPath_TextChanged);
             // 
             // txtImagesCount
             // 
@@ -502,7 +503,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Пример применения библиотеки DynamicMosaic";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmExample_FormClosing);
-            this.Shown += new System.EventHandler(this.FrmExample_Shown);
+            this.Load += new System.EventHandler(this.FrmExample_Load);
             this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.FrmExample_KeyUp);
             this.grpImages.ResumeLayout(false);
             this.grpImages.PerformLayout();

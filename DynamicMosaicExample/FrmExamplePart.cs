@@ -9,6 +9,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using ThreadState = System.Threading.ThreadState;
 
 namespace DynamicMosaicExample
 {
@@ -178,6 +179,26 @@ namespace DynamicMosaicExample
         const string StrRecognize3 = "Ждите...";
 
         /// <summary>
+        ///     Надпись на кнопке "Распознать".
+        /// </summary>
+        const string StrLoading = "Загрузка   ";
+
+        /// <summary>
+        ///     Надпись на кнопке "Распознать".
+        /// </summary>
+        const string StrLoading1 = "Загрузка.  ";
+
+        /// <summary>
+        ///     Надпись на кнопке "Распознать".
+        /// </summary>
+        const string StrLoading2 = "Загрузка.. ";
+
+        /// <summary>
+        ///     Надпись на кнопке "Распознать".
+        /// </summary>
+        const string StrLoading3 = "Загрузка...";
+
+        /// <summary>
         ///     Текст ошибки в случае, если отсутствуют образы для поиска (распознавания).
         /// </summary>
         const string ImagesNoExists =
@@ -271,6 +292,11 @@ namespace DynamicMosaicExample
         ///     Поток, отвечающий за выполнение процедуры распознавания.
         /// </summary>
         Thread _workThread;
+
+        /// <summary>
+        /// Поток, отвечающий за отображение процесса ожидания завершения операции.
+        /// </summary>
+        Thread _workWaitThread;
 
         /// <summary>
         /// Текущий обрабатываемый объект <see cref="Reflex"/>.
@@ -379,6 +405,7 @@ namespace DynamicMosaicExample
                 fswImageChanged.Renamed += OnChanged;
                 fswImageChanged.EnableRaisingEvents = true;
                 _fileThread = FileRefreshThread();
+                _workWaitThread = WaitableTimer();
             }
             catch (Exception ex)
             {
@@ -389,14 +416,38 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
+        /// Получает значение, отражающее статус фонового процесса.
+        /// </summary>
+        bool IsWorkingBackground => (_workWaitThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0;
+
+        /// <summary>
         ///     Получает значение, отражающее статус рабочего процесса по распознаванию изображения.
         /// </summary>
-        bool IsWorking => (_workThread?.ThreadState & (System.Threading.ThreadState.Stopped | System.Threading.ThreadState.Unstarted)) == 0;
+        bool IsWorking => (_workThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0;
 
         /// <summary>
         /// Останавливает процесс распознавания.
+        /// Возвращает значение <see langword="true"/> в случае успешной остановки процесса распознавания, в противном случае возвращает значение <see langword="false"/>, в том числе, если распознавание не было запущено.
         /// </summary>
-        void StopRecognize() => SafetyExecute(() => _workThread?.Abort());
+        /// <returns>Возвращает значение <see langword="true"/> в случае успешной остановки процесса распознавания, в противном случае возвращает значение <see langword="false"/>, в том числе, если распознавание не было запущено.</returns>
+        bool StopRecognize()
+        {
+            try
+            {
+                if (!IsWorking)
+                    return false;
+                Thread t = _workThread;
+                t.Abort();
+                t.Join();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, $@"Во время остановки распознавания произошла ошибка:{Environment.NewLine}{ex.Message}", @"Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return true;
+            }
+        }
 
         /// <summary>
         ///     Ширина образа для распознавания.
@@ -498,18 +549,18 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Создаёт новый поток для обновления списка файлов изображений, в случае, если переменная <see cref="_fileThread"/> равна <see langword="null"/>.
-        /// Поток находится в запущенном состоянии.
-        /// Поток служит для получения всех имеющихся на данный момент образов букв для распознавания, в том числе, для обновления этого списка с диска.
-        /// Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если переменная <see cref="_fileThread"/> не равна <see langword="null"/>.
+        /// Создаёт новый поток для обновления списка файлов изображений, в случае, если поток (<see cref="_fileThread"/>) не выполняется.
+        /// Созданный поток находится в состоянии <see cref="ThreadState.Unstarted"/>.
+        /// Поток служит для получения всех имеющихся на данный момент образов букв для распознавания, в том числе, для обновления этого списка с жёсткого диска.
+        /// Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, этот поток выполняется.
         /// </summary>
-        /// <returns>Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если переменная <see cref="_fileThread"/> не равна <see langword="null"/>.</returns>
+        /// <returns>Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, этот поток выполняется.</returns>
         Thread FileRefreshThread()
         {
             if ((_fileThread?.ThreadState & (System.Threading.ThreadState.Stopped | System.Threading.ThreadState.Unstarted)) == 0)
                 return null;
 
-            Thread t = new Thread(() => SafetyExecute(() =>
+            return new Thread(() => SafetyExecute(() =>
             {
                 try
                 {
@@ -537,7 +588,8 @@ namespace DynamicMosaicExample
                             WriteLog(ex.Message);
                         }
                     }));
-                    InvokeAction(RefreshImagesCount);
+                    if (!_stopFileThreadFlag)
+                        InvokeAction(() => RefreshImagesCount(_processorStorage.Count));
                     while (!_stopFileThreadFlag)
                     {
                         _needRefreshEvent.WaitOne();
@@ -568,7 +620,8 @@ namespace DynamicMosaicExample
                                 WriteLog(ex.Message);
                             }
                         });
-                        InvokeAction(RefreshImagesCount);
+                        if (!_stopFileThreadFlag)
+                            InvokeAction(() => RefreshImagesCount(_processorStorage.Count));
                     }
                 }
                 catch (Exception ex)
@@ -580,8 +633,6 @@ namespace DynamicMosaicExample
                 IsBackground = true,
                 Name = nameof(FileRefreshThread)
             };
-            t.Start();
-            return t;
         }
 
         /// <summary>

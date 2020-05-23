@@ -1,6 +1,7 @@
 ﻿using DynamicMosaic;
 using DynamicParser;
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -8,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 using Processor = DynamicParser.Processor;
+using ThreadState = System.Threading.ThreadState;
 
 namespace DynamicMosaicExample
 {
@@ -222,7 +224,6 @@ namespace DynamicMosaicExample
             _currentImage--;
             pbBrowse.Image = ImageRect.GetBitmap(processor);
             txtSymbolPath.Text = path;
-            //txtSymbolName.select
             RefreshImagesCount(count);
         });
 
@@ -242,14 +243,12 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            if (_currentImage >= count || _currentImage < 0)
-                return;
             fswImageChanged.EnableRaisingEvents = false;
             _errorMessageIsShowed = false;
-            _processorStorage.RemoveProcessor(_processorStorage[txtSymbolPath.Text], true);
+            _processorStorage.RemoveProcessor(txtSymbolPath.Text, true);
             BtnImagePrev_Click(null, null);
             BtnReflexClear_Click(null, null);
-            RefreshImagesCount(count);
+            RefreshImagesCount(count - 1);
         });
 
         /// <summary>
@@ -293,86 +292,95 @@ namespace DynamicMosaicExample
             pbBrowse.Enabled = true;
         });
 
-        /// <summary>
-        ///     Запускает таймер в другом потоке, выполняющий замер времени, затраченного на распознавание.
+        /// /// <summary>
+        /// Создаёт новый поток для отображения статуса фоновой операции, в случае, если поток (<see cref="_workWaitThread"/>) не выполняется.
+        /// Созданный поток находится в состоянии <see cref="ThreadState.Unstarted"/>.
+        /// Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если этот поток выполняется.
         /// </summary>
-        void WaitableTimer() => new Thread(() => SafetyExecute(() =>
+        /// <returns>Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если этот поток выполняется.</returns>
+        Thread WaitableTimer()
         {
-            _stopwatch.Restart();
-            try
-            {
-                #region Switcher
+            if ((_workWaitThread?.ThreadState & (System.Threading.ThreadState.Stopped | System.Threading.ThreadState.Unstarted)) == 0)
+                return null;
 
-                for (int k = 0; k < 4; k++)
+            return new Thread(() => SafetyExecute(() =>
+            {
+                _stopwatch.Restart();
+                try
                 {
-                    switch (k)
+                    #region Switcher
+
+                    for (int k = 0; k < 4; k++)
                     {
-                        case 0:
-                            InvokeAction(() =>
-                            {
-                                btnRecognizeImage.Text = StrRecognize;
-                                lblElapsedTime.Text =
-                                    $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                        _stopwatch
-                                            .Elapsed.Seconds:00}";
-                            });
-                            Thread.Sleep(100);
-                            break;
-                        case 1:
-                            InvokeAction(() =>
-                            {
-                                btnRecognizeImage.Text = StrRecognize1;
-                                lblElapsedTime.Text =
-                                    $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                        _stopwatch
-                                            .Elapsed.Seconds:00}";
-                            });
-                            Thread.Sleep(100);
-                            break;
-                        case 2:
-                            InvokeAction(() =>
-                            {
-                                btnRecognizeImage.Text = StrRecognize2;
-                                lblElapsedTime.Text =
-                                    $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                        _stopwatch
-                                            .Elapsed.Seconds:00}";
-                            });
-                            Thread.Sleep(100);
-                            break;
-                        case 3:
-                            InvokeAction(() =>
-                            {
-                                btnRecognizeImage.Text = StrRecognize3;
-                                lblElapsedTime.Text =
-                                    $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                        _stopwatch
-                                            .Elapsed.Seconds:00}";
-                            });
-                            k = -1;
-                            Thread.Sleep(100);
-                            break;
-                        default:
-                            k = -1;
-                            break;
+                        switch (k)
+                        {
+                            case 0:
+                                InvokeAction(() =>
+                                {
+                                    btnRecognizeImage.Text = load ? StrLoading : StrRecognize;
+                                    lblElapsedTime.Text =
+                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
+                                            _stopwatch
+                                                .Elapsed.Seconds:00}";
+                                });
+                                Thread.Sleep(100);
+                                break;
+                            case 1:
+                                InvokeAction(() =>
+                                {
+                                    btnRecognizeImage.Text = load ? StrLoading1 : StrRecognize1;
+                                    lblElapsedTime.Text =
+                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
+                                            _stopwatch
+                                                .Elapsed.Seconds:00}";
+                                });
+                                Thread.Sleep(100);
+                                break;
+                            case 2:
+                                InvokeAction(() =>
+                                {
+                                    btnRecognizeImage.Text = load ? StrLoading2 : StrRecognize2;
+                                    lblElapsedTime.Text =
+                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
+                                            _stopwatch
+                                                .Elapsed.Seconds:00}";
+                                });
+                                Thread.Sleep(100);
+                                break;
+                            case 3:
+                                InvokeAction(() =>
+                                {
+                                    btnRecognizeImage.Text = load ? StrLoading3 : StrRecognize3;
+                                    lblElapsedTime.Text =
+                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
+                                            _stopwatch
+                                                .Elapsed.Seconds:00}";
+                                });
+                                k = -1;
+                                Thread.Sleep(100);
+                                break;
+                            default:
+                                k = -1;
+                                break;
+                        }
+
+                        if (!IsWorking)
+                            return;
                     }
 
-                    if (!IsWorking)
-                        return;
+                    #endregion
                 }
-
-                #endregion
-            }
-            finally
+                finally
+                {
+                    _stopwatch.Stop();
+                    EnableButtons = true;
+                }
+            }, () => InvokeAction(() => btnRecognizeImage.Text = _strRecog)))
             {
-                _stopwatch.Stop();
-                EnableButtons = true;
-            }
-        }, () => InvokeAction(() => btnRecognizeImage.Text = _strRecog)))
-        {
-            IsBackground = true,
-            Name = nameof(WaitableTimer)
-        }.Start();
+                IsBackground = true,
+                Name = nameof(WaitableTimer)
+            };
+        }
 
         /// <summary>
         ///     Сбрасывает сведения, накопившиеся в процессе обучения программы при распознавании.
@@ -411,11 +419,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnRecognizeImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            if (IsWorking)
-            {
-                StopRecognize();
+            if (StopRecognize())
                 return;
-            }
 
             _errorMessageIsShowed = false;
             EnableButtons = false;
@@ -423,7 +428,7 @@ namespace DynamicMosaicExample
             {
                 try
                 {
-                    WaitableTimer();
+                    WaitableTimer(false);
                     ProcessorContainer images = new ProcessorContainer(_processorStorage.Elements);
 
                     if (images.Count < 2 && _workReflexes.Count <= 0)
@@ -538,13 +543,6 @@ namespace DynamicMosaicExample
         void PbDraw_MouseLeave(object sender, EventArgs e) => _draw = false;
 
         /// <summary>
-        ///     Обновляет количество изображений для поиска.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void TmrImagesCount_Tick(object sender, EventArgs e) => RefreshImagesCount();
-
-        /// <summary>
         ///     Отвечает за отрисовку рисунка, создаваемого пользователем.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
@@ -577,18 +575,6 @@ namespace DynamicMosaicExample
                     break;
             }
         }, () => pbDraw.Refresh());
-
-        /// <summary>
-        ///     Вызывается во время первого отображения формы.
-        ///     Производит инициализацию.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void FrmExample_Shown(object sender, EventArgs e)
-        {
-            BtnClearImage_Click(null, null);
-            RefreshImagesCount();
-        }
 
         /// <summary>
         ///     Очищает поле рисования исходного изображения.
@@ -881,8 +867,67 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void FrmExample_FormClosing(object sender, FormClosingEventArgs e) => SafetyExecute(() =>
         {
-            _stopFileThreadFlag = true;
-            _fileThread?.Join();
+            try
+            {
+                StopRecognize();
+                _stopFileThreadFlag = true;
+                _needRefreshEvent.Set();
+                if (_fileThread?.ThreadState != ThreadState.Unstarted)
+                    _fileThread.Join();
+                if (_workWaitThread?.ThreadState != ThreadState.Unstarted)
+                    _workWaitThread.Join();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($@"{ex.Message}{Environment.NewLine}Программа будет завершена.", @"Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Process.GetCurrentProcess().Kill();
+            }
         });
+
+        /// <summary>
+        ///     Вызывается во время первого отображения формы.
+        ///     Производит инициализацию.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        private void FrmExample_Load(object sender, EventArgs e)
+        {
+            try
+            {
+                BtnClearImage_Click(null, null);
+                RefreshImagesCount(0);
+                if (_fileThread?.ThreadState == ThreadState.Unstarted)
+                    _fileThread.Start();
+                if (_workWaitThread?.ThreadState == ThreadState.Unstarted)
+                    _workWaitThread.Start();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($@"{ex.Message}{Environment.NewLine}Программа будет завершена.", @"Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Process.GetCurrentProcess().Kill();
+            }
+        }
+
+        /// <summary>
+        /// Служит для отображения имени файла карты при изменении выбранной карты.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        private void TxtSymbolPath_TextChanged(object sender, EventArgs e)
+        {
+            int pos = txtSymbolPath.Text.Length - 1;
+            if (pos <= 0)
+                return;
+            for (int k = pos; k >= 0; k--)
+                if (txtSymbolPath.Text[k] == '\\' || txtSymbolPath.Text[k] == '/')
+                {
+                    if (k < pos)
+                        txtSymbolPath.Select(k + 1, 0);
+                    return;
+                }
+            txtSymbolPath.Select(0, 0);
+        }
     }
 }
