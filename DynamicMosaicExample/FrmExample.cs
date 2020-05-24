@@ -292,93 +292,87 @@ namespace DynamicMosaicExample
             pbBrowse.Enabled = true;
         });
 
-        /// /// <summary>
+        /// <summary>
         /// Создаёт новый поток для отображения статуса фоновой операции, в случае, если поток (<see cref="_workWaitThread"/>) не выполняется.
         /// Созданный поток находится в состоянии <see cref="ThreadState.Unstarted"/>.
         /// Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если этот поток выполняется.
         /// </summary>
         /// <returns>Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если этот поток выполняется.</returns>
-        Thread WaitableTimer()
+        Thread CreateWaitThread()
         {
-            if ((_workWaitThread?.ThreadState & (System.Threading.ThreadState.Stopped | System.Threading.ThreadState.Unstarted)) == 0)
+            if ((_workWaitThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0)
                 return null;
 
             return new Thread(() => SafetyExecute(() =>
             {
-                _stopwatch.Restart();
-                try
+                for (int k = 0; k < 4; k++)
                 {
-                    #region Switcher
-
-                    for (int k = 0; k < 4; k++)
+                    if (!_imageActivity.WaitOne(1))
                     {
-                        switch (k)
+                        if (IsWorking)
                         {
-                            case 0:
-                                InvokeAction(() =>
-                                {
-                                    btnRecognizeImage.Text = load ? StrLoading : StrRecognize;
-                                    lblElapsedTime.Text =
-                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                            _stopwatch
-                                                .Elapsed.Seconds:00}";
-                                });
-                                Thread.Sleep(100);
-                                break;
-                            case 1:
-                                InvokeAction(() =>
-                                {
-                                    btnRecognizeImage.Text = load ? StrLoading1 : StrRecognize1;
-                                    lblElapsedTime.Text =
-                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                            _stopwatch
-                                                .Elapsed.Seconds:00}";
-                                });
-                                Thread.Sleep(100);
-                                break;
-                            case 2:
-                                InvokeAction(() =>
-                                {
-                                    btnRecognizeImage.Text = load ? StrLoading2 : StrRecognize2;
-                                    lblElapsedTime.Text =
-                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                            _stopwatch
-                                                .Elapsed.Seconds:00}";
-                                });
-                                Thread.Sleep(100);
-                                break;
-                            case 3:
-                                InvokeAction(() =>
-                                {
-                                    btnRecognizeImage.Text = load ? StrLoading3 : StrRecognize3;
-                                    lblElapsedTime.Text =
-                                        $@"{_stopwatch.Elapsed.Hours:00}:{_stopwatch.Elapsed.Minutes:00}:{
-                                            _stopwatch
-                                                .Elapsed.Seconds:00}";
-                                });
-                                k = -1;
-                                Thread.Sleep(100);
-                                break;
-                            default:
-                                k = -1;
-                                break;
+                            EnableButtons = false;
+                            _stopwatch.Start();
                         }
-
-                        if (!IsWorking)
-                            return;
+                        else
+                        {
+                            EnableButtons = true;
+                            _stopwatch.Reset();
+                        }
+                        _imageActivity.WaitOne();
                     }
 
-                    #endregion
-                }
-                finally
-                {
-                    _stopwatch.Stop();
-                    EnableButtons = true;
+                    if (_stopBackgroundThreadFlag)
+                        return;
+
+                    switch (k)
+                    {
+                        case 0:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text = IsWorking ? StrRecognize : _fileActivity ? StrLoading : _strRecog;
+                                TimeSpan ts = _stopwatch.Elapsed;
+                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+                            });
+                            Thread.Sleep(100);
+                            break;
+                        case 1:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text = IsWorking ? StrRecognize1 : _fileActivity ? StrLoading1 : _strRecog;
+                                TimeSpan ts = _stopwatch.Elapsed;
+                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+                            });
+                            Thread.Sleep(100);
+                            break;
+                        case 2:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text = IsWorking ? StrRecognize2 : _fileActivity ? StrLoading2 : _strRecog;
+                                TimeSpan ts = _stopwatch.Elapsed;
+                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+                            });
+                            Thread.Sleep(100);
+                            break;
+                        case 3:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text = IsWorking ? StrRecognize3 : _fileActivity ? StrLoading3 : _strRecog;
+                                TimeSpan ts = _stopwatch.Elapsed;
+                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+                            });
+                            Thread.Sleep(100);
+                            k = -1;
+                            break;
+                        default:
+                            k = -1;
+                            break;
+                    }
                 }
             }, () => InvokeAction(() => btnRecognizeImage.Text = _strRecog)))
             {
                 IsBackground = true,
-                Name = nameof(WaitableTimer)
+                Name = nameof(CreateWaitThread)
             };
         }
 
@@ -428,7 +422,7 @@ namespace DynamicMosaicExample
             {
                 try
                 {
-                    WaitableTimer(false);
+                    _imageActivity.Set();
                     ProcessorContainer images = new ProcessorContainer(_processorStorage.Elements);
 
                     if (images.Count < 2 && _workReflexes.Count <= 0)
@@ -487,6 +481,7 @@ namespace DynamicMosaicExample
                 {
                     if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)
                         Thread.ResetAbort();
+                    _imageActivity.Reset();
                 }
             }))
             {
@@ -870,8 +865,9 @@ namespace DynamicMosaicExample
             try
             {
                 StopRecognize();
-                _stopFileThreadFlag = true;
+                _stopBackgroundThreadFlag = true;
                 _needRefreshEvent.Set();
+                _imageActivity.Set();
                 if (_fileThread?.ThreadState != ThreadState.Unstarted)
                     _fileThread.Join();
                 if (_workWaitThread?.ThreadState != ThreadState.Unstarted)

@@ -296,7 +296,7 @@ namespace DynamicMosaicExample
         /// <summary>
         /// Поток, отвечающий за отображение процесса ожидания завершения операции.
         /// </summary>
-        Thread _workWaitThread;
+        readonly Thread _workWaitThread;
 
         /// <summary>
         /// Текущий обрабатываемый объект <see cref="Reflex"/>.
@@ -404,8 +404,8 @@ namespace DynamicMosaicExample
                 fswImageChanged.Deleted += OnChanged;
                 fswImageChanged.Renamed += OnChanged;
                 fswImageChanged.EnableRaisingEvents = true;
-                _fileThread = FileRefreshThread();
-                _workWaitThread = WaitableTimer();
+                _fileThread = CreateFileRefreshThread();
+                _workWaitThread = CreateWaitThread();
             }
             catch (Exception ex)
             {
@@ -414,11 +414,6 @@ namespace DynamicMosaicExample
                 Process.GetCurrentProcess().Kill();
             }
         }
-
-        /// <summary>
-        /// Получает значение, отражающее статус фонового процесса.
-        /// </summary>
-        bool IsWorkingBackground => (_workWaitThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0;
 
         /// <summary>
         ///     Получает значение, отражающее статус рабочего процесса по распознаванию изображения.
@@ -436,9 +431,8 @@ namespace DynamicMosaicExample
             {
                 if (!IsWorking)
                     return false;
-                Thread t = _workThread;
-                t.Abort();
-                t.Join();
+                _workThread.Abort();
+                _workThread.Join();
                 return true;
             }
             catch (Exception ex)
@@ -475,9 +469,24 @@ namespace DynamicMosaicExample
         readonly Thread _fileThread;
 
         /// <summary>
-        /// Сигнал остановки потоку, актуализирующему содержимое карт <see cref="Processor"/>.
+        /// Отражает статус работы потоков на фоне.
         /// </summary>
-        volatile bool _stopFileThreadFlag;
+        readonly ManualResetEvent _imageActivity = new ManualResetEvent(false);
+
+        /// <summary>
+        /// Отражает статус процесса актуализации содержимого карт с жёсткого диска.
+        /// </summary>
+        volatile bool _fileActivity;
+
+        /// <summary>
+        /// Сигнал остановки потокам, работающим на фоне.
+        /// </summary>
+        volatile bool _stopBackgroundThreadFlag;
+
+        /// <summary>
+        /// Отражает статус всех кнопок на данный момент.
+        /// </summary>
+        bool _buttonsEnabled = true;
 
         /// <summary>
         ///     Отключает или включает доступность кнопок на время выполнения операции.
@@ -486,6 +495,8 @@ namespace DynamicMosaicExample
         {
             set
             {
+                if (value == _buttonsEnabled)
+                    return;
                 InvokeAction(() =>
                 {
                     pbDraw.Enabled = value;
@@ -509,6 +520,7 @@ namespace DynamicMosaicExample
                     btnNarrow.Enabled = false;
                     grpResults.Text = _strGrpResults;
                 });
+                _buttonsEnabled = value;
             }
         }
 
@@ -555,15 +567,17 @@ namespace DynamicMosaicExample
         /// Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, этот поток выполняется.
         /// </summary>
         /// <returns>Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, этот поток выполняется.</returns>
-        Thread FileRefreshThread()
+        Thread CreateFileRefreshThread()
         {
-            if ((_fileThread?.ThreadState & (System.Threading.ThreadState.Stopped | System.Threading.ThreadState.Unstarted)) == 0)
+            if ((_fileThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0)
                 return null;
 
             return new Thread(() => SafetyExecute(() =>
             {
                 try
                 {
+                    _fileActivity = true;
+                    _imageActivity.Set();
                     ThreadPool.GetMinThreads(out _, out int comPortMin);
                     ThreadPool.SetMinThreads(Environment.ProcessorCount * 3, comPortMin);
                     ThreadPool.GetMaxThreads(out _, out int comPortMax);
@@ -572,7 +586,7 @@ namespace DynamicMosaicExample
                     {
                         try
                         {
-                            if (_stopFileThreadFlag || state.IsStopped)
+                            if (_stopBackgroundThreadFlag || state.IsStopped)
                             {
                                 state.Stop();
                                 return;
@@ -588,12 +602,16 @@ namespace DynamicMosaicExample
                             WriteLog(ex.Message);
                         }
                     }));
-                    if (!_stopFileThreadFlag)
+                    _fileActivity = false;
+                    _imageActivity.Reset();
+                    if (!_stopBackgroundThreadFlag)
                         InvokeAction(() => RefreshImagesCount(_processorStorage.Count));
-                    while (!_stopFileThreadFlag)
+                    while (!_stopBackgroundThreadFlag)
                     {
                         _needRefreshEvent.WaitOne();
-                        while (!_stopFileThreadFlag && _concurrentFileTasks.TryDequeue(out FileTask task)) SafetyExecute(() =>
+                        _fileActivity = true;
+                        _imageActivity.Set();
+                        while (!_stopBackgroundThreadFlag && _concurrentFileTasks.TryDequeue(out FileTask task)) SafetyExecute(() =>
                         {
                             try
                             {
@@ -620,7 +638,9 @@ namespace DynamicMosaicExample
                                 WriteLog(ex.Message);
                             }
                         });
-                        if (!_stopFileThreadFlag)
+                        _fileActivity = false;
+                        _imageActivity.Reset();
+                        if (!_stopBackgroundThreadFlag)
                             InvokeAction(() => RefreshImagesCount(_processorStorage.Count));
                     }
                 }
@@ -631,7 +651,7 @@ namespace DynamicMosaicExample
             }))
             {
                 IsBackground = true,
-                Name = nameof(FileRefreshThread)
+                Name = nameof(CreateFileRefreshThread)
             };
         }
 
