@@ -307,30 +307,32 @@ namespace DynamicMosaicExample
             {
                 for (int k = 0; k < 4; k++)
                 {
-                    if (!_imageActivity.WaitOne(1))
+                    if (!_imageActivity.WaitOne(0))
                     {
-                        if (IsWorking)
-                        {
-                            EnableButtons = false;
-                            _stopwatch.Start();
-                        }
-                        else
-                        {
-                            EnableButtons = true;
-                            _stopwatch.Reset();
-                        }
+                        btnRecognizeImage.Text = _strRecog;
                         _imageActivity.WaitOne();
                     }
 
                     if (_stopBackgroundThreadFlag)
                         return;
 
+                    if (IsWorking)
+                    {
+                        EnableButtons = false;
+                        _stopwatch.Start();
+                    }
+                    else
+                    {
+                        EnableButtons = true;
+                        _stopwatch.Reset();
+                    }
+
                     switch (k)
                     {
                         case 0:
                             InvokeAction(() =>
                             {
-                                btnRecognizeImage.Text = IsWorking ? StrRecognize : _fileActivity ? StrLoading : _strRecog;
+                                btnRecognizeImage.Text = IsWorking ? StrRecognize : IsFileActivity ? StrLoading : _strRecog;
                                 TimeSpan ts = _stopwatch.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -339,7 +341,7 @@ namespace DynamicMosaicExample
                         case 1:
                             InvokeAction(() =>
                             {
-                                btnRecognizeImage.Text = IsWorking ? StrRecognize1 : _fileActivity ? StrLoading1 : _strRecog;
+                                btnRecognizeImage.Text = IsWorking ? StrRecognize1 : IsFileActivity ? StrLoading1 : _strRecog;
                                 TimeSpan ts = _stopwatch.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -348,7 +350,7 @@ namespace DynamicMosaicExample
                         case 2:
                             InvokeAction(() =>
                             {
-                                btnRecognizeImage.Text = IsWorking ? StrRecognize2 : _fileActivity ? StrLoading2 : _strRecog;
+                                btnRecognizeImage.Text = IsWorking ? StrRecognize2 : IsFileActivity ? StrLoading2 : _strRecog;
                                 TimeSpan ts = _stopwatch.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -357,7 +359,7 @@ namespace DynamicMosaicExample
                         case 3:
                             InvokeAction(() =>
                             {
-                                btnRecognizeImage.Text = IsWorking ? StrRecognize3 : _fileActivity ? StrLoading3 : _strRecog;
+                                btnRecognizeImage.Text = IsWorking ? StrRecognize3 : IsFileActivity ? StrLoading3 : _strRecog;
                                 TimeSpan ts = _stopwatch.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -369,7 +371,7 @@ namespace DynamicMosaicExample
                             break;
                     }
                 }
-            }, () => InvokeAction(() => btnRecognizeImage.Text = _strRecog)))
+            }))
             {
                 IsBackground = true,
                 Name = nameof(CreateWaitThread)
@@ -422,7 +424,7 @@ namespace DynamicMosaicExample
             {
                 try
                 {
-                    _imageActivity.Set();
+                    SetActivityEvent();
                     ProcessorContainer images = new ProcessorContainer(_processorStorage.Elements);
 
                     if (images.Count < 2 && _workReflexes.Count <= 0)
@@ -481,7 +483,7 @@ namespace DynamicMosaicExample
                 {
                     if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)
                         Thread.ResetAbort();
-                    _imageActivity.Reset();
+                    ResetActivityEvent();
                 }
             }))
             {
