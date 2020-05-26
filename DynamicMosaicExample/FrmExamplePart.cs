@@ -464,24 +464,19 @@ namespace DynamicMosaicExample
         internal static string ExtImg { get; } = "bmp";
 
         /// <summary>
-        /// Поток, отвечающий за актуализацию содержимого карт <see cref="Processor"/>, загруженных в программу.
+        /// Поток, отвечающий за актуализацию содержимого карт <see cref="Processor"/>.
         /// </summary>
         readonly Thread _fileThread;
 
         /// <summary>
-        /// Отражает статус работы фоновых потоков.
+        /// Отражает статус работы потока, который служит для получения всех имеющихся на данный момент образов букв для распознавания, в том числе, для актуализации их содержимого.
         /// </summary>
         readonly ManualResetEvent _imageActivity = new ManualResetEvent(false);
 
         /// <summary>
-        /// Счётчик активных фоновых потоков. Когда он равен нолю, поток, предназначенный для отображения статуса, засыпает.
+        /// Отражает статус работы потока распознавания изображения.
         /// </summary>
-        volatile int _imageActivityCount;
-
-        /// <summary>
-        /// Защищает счётчик активных фоновых потоков.
-        /// </summary>
-        readonly object _lockActivityCount = new object();
+        readonly ManualResetEvent _workThreadActivity = new ManualResetEvent(false);
 
         /// <summary>
         /// Отражает статус процесса актуализации содержимого карт с жёсткого диска.
@@ -571,45 +566,9 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Символизирует об активности фоновых потоков. Количество вызовов учитывается.
-        /// Обратная функция должна быть вызвана столько же раз, сколько и эта.
-        /// </summary>
-        void SetActivityEvent()
-        {
-            lock (_lockActivityCount)
-            {
-                if (_imageActivityCount <= 0)
-                {
-                    _imageActivityCount = 1;
-                    _imageActivity.Set();
-                    return;
-                }
-                _imageActivityCount++;
-            }
-        }
-
-        /// <summary>
-        /// Уменьшает показатель активности фоновых потоков.
-        /// Если он станет равным нолю, то поток отображения активности фоновых потоков заснёт.
-        /// </summary>
-        void ResetActivityEvent()
-        {
-            lock (_lockActivityCount)
-            {
-                if (_imageActivityCount <= 1)
-                {
-                    _imageActivityCount = 0;
-                    _imageActivity.Reset();
-                    return;
-                }
-                _imageActivityCount--;
-            }
-        }
-
-        /// <summary>
         /// Создаёт новый поток для обновления списка файлов изображений, в случае, если поток (<see cref="_fileThread"/>) не выполняется.
         /// Созданный поток находится в состоянии <see cref="ThreadState.Unstarted"/>.
-        /// Поток служит для получения всех имеющихся на данный момент образов букв для распознавания, в том числе, для обновления этого списка с жёсткого диска.
+        /// Поток служит для получения всех имеющихся на данный момент образов букв для распознавания, в том числе, для актуализации их содержимого.
         /// Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, этот поток выполняется.
         /// </summary>
         /// <returns>Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, этот поток выполняется.</returns>
@@ -622,7 +581,7 @@ namespace DynamicMosaicExample
             {
                 try
                 {
-                    SetActivityEvent();
+                    _imageActivity.Set();
                     ThreadPool.GetMinThreads(out _, out int comPortMin);
                     ThreadPool.SetMinThreads(Environment.ProcessorCount * 3, comPortMin);
                     ThreadPool.GetMaxThreads(out _, out int comPortMax);
@@ -647,13 +606,13 @@ namespace DynamicMosaicExample
                             WriteLog(ex.Message);
                         }
                     }));
-                    ResetActivityEvent();
+                    _imageActivity.Reset();
                     if (!_stopBackgroundThreadFlag)
                         InvokeAction(() => RefreshImagesCount(_processorStorage.Count));
                     while (!_stopBackgroundThreadFlag)
                     {
                         _needRefreshEvent.WaitOne();
-                        SetActivityEvent();
+                        _imageActivity.Set();
                         while (!_stopBackgroundThreadFlag && _concurrentFileTasks.TryDequeue(out FileTask task)) SafetyExecute(() =>
                         {
                             try
@@ -681,7 +640,7 @@ namespace DynamicMosaicExample
                                 WriteLog(ex.Message);
                             }
                         });
-                        ResetActivityEvent();
+                        _imageActivity.Reset();
                         if (!_stopBackgroundThreadFlag)
                             InvokeAction(() => RefreshImagesCount(_processorStorage.Count));
                     }

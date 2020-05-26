@@ -305,12 +305,13 @@ namespace DynamicMosaicExample
 
             return new Thread(() => SafetyExecute(() =>
             {
+                WaitHandle[] waitHandles = new WaitHandle[] { _imageActivity, _workThreadActivity };
                 for (int k = 0; k < 4; k++)
                 {
-                    if (!_imageActivity.WaitOne(0))
+                    if (WaitHandle.WaitAny(waitHandles, 0) == WaitHandle.WaitTimeout)
                     {
                         btnRecognizeImage.Text = _strRecog;
-                        _imageActivity.WaitOne();
+                        WaitHandle.WaitAny(waitHandles);
                     }
 
                     if (_stopBackgroundThreadFlag)
@@ -424,7 +425,7 @@ namespace DynamicMosaicExample
             {
                 try
                 {
-                    SetActivityEvent();
+                    _workThreadActivity.Set();
                     ProcessorContainer images = new ProcessorContainer(_processorStorage.Elements);
 
                     if (images.Count < 2 && _workReflexes.Count <= 0)
@@ -483,7 +484,7 @@ namespace DynamicMosaicExample
                 {
                     if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)
                         Thread.ResetAbort();
-                    ResetActivityEvent();
+                    _workThreadActivity.Reset();
                 }
             }))
             {
@@ -870,6 +871,7 @@ namespace DynamicMosaicExample
                 _stopBackgroundThreadFlag = true;
                 _needRefreshEvent.Set();
                 _imageActivity.Set();
+                _workThreadActivity.Set();
                 if (_fileThread?.ThreadState != ThreadState.Unstarted)
                     _fileThread.Join();
                 if (_workWaitThread?.ThreadState != ThreadState.Unstarted)

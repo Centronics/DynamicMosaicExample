@@ -17,3 +17,4 @@ D:\Coding\DynamicMosaicExample\DynamicMosaicExample\obj\Debug\DynamicMosaicExamp
 D:\Coding\DynamicMosaicExample\DynamicMosaicExample\obj\Debug\DynamicMosaicExample.exe
 D:\Coding\DynamicMosaicExample\DynamicMosaicExample\obj\Debug\DynamicMosaicExample.pdb
 D:\Coding\DynamicMosaicExample\DynamicMosaicExample\bin\Debug\System.ValueTuple.dll
+D:\Coding\DynamicMosaicExample\DynamicMosaicExample\bin\Debug\DynamicMosaicExample.exe.config
