@@ -311,7 +311,7 @@ namespace DynamicMosaicExample
         /// <summary>
         /// Предназначена для хранения задач, связанных с изменениями в файловой системе.
         /// </summary>
-        readonly ConcurrentQueue<FileTask> _concurrentFileTasks;
+        readonly ConcurrentQueue<FileTask> _concurrentFileTasks = new ConcurrentQueue<FileTask>();
 
         /// <summary>
         /// Хранит загруженные карты, которые требуется искать на основной карте.
@@ -370,7 +370,6 @@ namespace DynamicMosaicExample
             try
             {
                 InitializeComponent();
-                _concurrentFileTasks = new ConcurrentQueue<FileTask>();
                 _whitePen = new Pen(_defaultColor, 2.0f);
                 Initialize();
                 _strRecog = btnRecognizeImage.Text;
@@ -582,65 +581,79 @@ namespace DynamicMosaicExample
                 try
                 {
                     _imageActivity.Set();
-                    ThreadPool.GetMinThreads(out _, out int comPortMin);
-                    ThreadPool.SetMinThreads(Environment.ProcessorCount * 3, comPortMin);
-                    ThreadPool.GetMaxThreads(out _, out int comPortMax);
-                    ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
-                    Parallel.ForEach(Directory.EnumerateFiles(SearchPath, $"*.{ExtImg}", SearchOption.AllDirectories), (fName, state) => SafetyExecute(() =>
+                    try
                     {
-                        try
-                        {
-                            if (_stopBackgroundThreadFlag || state.IsStopped)
+                        ThreadPool.GetMinThreads(out _, out int comPortMin);
+                        ThreadPool.SetMinThreads(Environment.ProcessorCount * 3, comPortMin);
+                        ThreadPool.GetMaxThreads(out _, out int comPortMax);
+                        ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
+                        Parallel.ForEach(
+                            Directory.EnumerateFiles(SearchPath, $"*.{ExtImg}", SearchOption.AllDirectories),
+                            (fName, state) => SafetyExecute(() =>
                             {
-                                state.Stop();
-                                return;
-                            }
+                                try
+                                {
+                                    if (_stopBackgroundThreadFlag || state.IsStopped)
+                                    {
+                                        state.Stop();
+                                        return;
+                                    }
 
-                            if (!string.IsNullOrWhiteSpace(fName) && string.Compare(Path.GetExtension(fName),
-                                $".{ExtImg}",
-                                StringComparison.OrdinalIgnoreCase) == 0)
-                                _processorStorage.AddProcessor(fName);
-                        }
-                        catch (Exception ex)
-                        {
-                            WriteLog(ex.Message);
-                        }
-                    }));
-                    _imageActivity.Reset();
+                                    if (!string.IsNullOrWhiteSpace(fName) && string.Compare(Path.GetExtension(fName),
+                                        $".{ExtImg}",
+                                        StringComparison.OrdinalIgnoreCase) == 0)
+                                        _processorStorage.AddProcessor(fName);
+                                }
+                                catch (Exception ex)
+                                {
+                                    WriteLog(ex.Message);
+                                }
+                            }));
+                    }
+                    finally
+                    {
+                        _imageActivity.Reset();
+                    }
                     if (!_stopBackgroundThreadFlag)
                         InvokeAction(() => RefreshImagesCount(_processorStorage.Count));
                     while (!_stopBackgroundThreadFlag)
                     {
                         _needRefreshEvent.WaitOne();
                         _imageActivity.Set();
-                        while (!_stopBackgroundThreadFlag && _concurrentFileTasks.TryDequeue(out FileTask task)) SafetyExecute(() =>
+                        try
                         {
-                            try
+                            while (!_stopBackgroundThreadFlag && _concurrentFileTasks.TryDequeue(out FileTask task)) SafetyExecute(() =>
                             {
-                                switch (task.TaskType.Value)
+                                try
                                 {
-                                    case WatcherChangeTypes.Created:
-                                        _processorStorage.AddProcessor(task.FilePath);
-                                        break;
-                                    case WatcherChangeTypes.Renamed:
-                                    case WatcherChangeTypes.Deleted:
-                                        _processorStorage.RemoveProcessor(task.FilePath, false);
-                                        break;
-                                    case WatcherChangeTypes.Changed:
-                                    case WatcherChangeTypes.All:
-                                        _processorStorage.RemoveProcessor(task.FilePath, false);
-                                        _processorStorage.AddProcessor(task.FilePath);
-                                        break;
-                                    default:
-                                        throw new ArgumentOutOfRangeException(nameof(task));
+                                    switch (task.TaskType.Value)
+                                    {
+                                        case WatcherChangeTypes.Created:
+                                            _processorStorage.AddProcessor(task.FilePath);
+                                            break;
+                                        case WatcherChangeTypes.Renamed:
+                                        case WatcherChangeTypes.Deleted:
+                                            _processorStorage.RemoveProcessor(task.FilePath, false);
+                                            break;
+                                        case WatcherChangeTypes.Changed:
+                                        case WatcherChangeTypes.All:
+                                            _processorStorage.RemoveProcessor(task.FilePath, false);
+                                            _processorStorage.AddProcessor(task.FilePath);
+                                            break;
+                                        default:
+                                            throw new ArgumentOutOfRangeException(nameof(task));
+                                    }
                                 }
-                            }
-                            catch (Exception ex)
-                            {
-                                WriteLog(ex.Message);
-                            }
-                        });
-                        _imageActivity.Reset();
+                                catch (Exception ex)
+                                {
+                                    WriteLog(ex.Message);
+                                }
+                            });
+                        }
+                        finally
+                        {
+                            _imageActivity.Reset();
+                        }
                         if (!_stopBackgroundThreadFlag)
                             InvokeAction(() => RefreshImagesCount(_processorStorage.Count));
                     }
