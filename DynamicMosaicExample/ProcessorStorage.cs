@@ -223,16 +223,16 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage"/>.
-        /// Возвращает копию коллекции в виде массива.
         /// </summary>
-        internal Processor[] Elements
+        internal IEnumerable<Processor> Elements
         {
             get
             {
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
                 lock (_syncObject)
-                    return _dictionaryByPath.Select(pair => pair.Value.CurrentProcessor).ToArray();
+                    foreach (Processor processor in _dictionaryByPath.Values.Select(pair => pair.CurrentProcessor))
+                        yield return processor;
             }
         }
 

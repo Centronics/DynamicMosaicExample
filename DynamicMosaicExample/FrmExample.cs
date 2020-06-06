@@ -294,7 +294,7 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Создаёт новый поток для отображения статуса фоновой операции, в случае, если поток (<see cref="_workWaitThread"/>) не выполняется.
-        /// Созданный поток находится в состоянии <see cref="ThreadState.Unstarted"/>.
+        /// Созданный поток находится в состояниях <see cref="ThreadState.Unstarted"/> и <see cref="ThreadState.Background"/>.
         /// Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если этот поток выполняется.
         /// </summary>
         /// <returns>Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если этот поток выполняется.</returns>
@@ -310,23 +310,17 @@ namespace DynamicMosaicExample
                 {
                     if (WaitHandle.WaitAny(waitHandles, 0) == WaitHandle.WaitTimeout)
                     {
-                        btnRecognizeImage.Text = _strRecog;
+                        InvokeAction(() =>
+                        {
+                            btnRecognizeImage.Text = _strRecog;
+                        });
                         WaitHandle.WaitAny(waitHandles);
                     }
 
                     if (_stopBackgroundThreadFlag)
                         return;
 
-                    if (IsWorking)
-                    {
-                        EnableButtons = false;
-                        _stopwatch.Start();
-                    }
-                    else
-                    {
-                        EnableButtons = true;
-                        _stopwatch.Reset();
-                    }
+                    EnableButtons = !IsWorking;
 
                     switch (k)
                     {
@@ -426,13 +420,6 @@ namespace DynamicMosaicExample
                 try
                 {
                     _workThreadActivity.Set();
-                    ProcessorContainer images = new ProcessorContainer(_processorStorage.Elements);
-
-                    if (images.Count < 2 && _workReflexes.Count <= 0)
-                    {
-                        ErrorMessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
-                        return;
-                    }
 
                     if (txtWord.Text.Length <= 0)
                     {
@@ -447,17 +434,33 @@ namespace DynamicMosaicExample
                         return;
                     }
 
-                    Reflex workReflex = _workReflex ?? new Reflex(images);
+                    ProcessorContainer processors = null;
+
+                    foreach (Processor processor in _processorStorage.Elements)
+                        if (processors == null)
+                            processors = new ProcessorContainer(processor);
+                        else
+                            processors.Add(processor);
+
+                    if (processors == null || processors.Count < 2)
+                    {
+                        ErrorMessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
+                        return;
+                    }
+
+                    Reflex workReflex = _workReflex ?? new Reflex(processors);
                     _currentState.CriticalChange(sender, e);
                     _currentState.WordChange(sender, e);
 
                     Reflex result = null;
                     try
                     {
+                        _stopwatch.Restart();
                         result = workReflex.FindRelation(new Processor(_btmFront, "Main"), txtWord.Text);
                     }
                     finally
                     {
+                        _stopwatch.Stop();
                         if (result != null) InvokeAction(() =>
                         {
                             _workReflexes.Insert(0, result);
@@ -492,6 +495,8 @@ namespace DynamicMosaicExample
                 IsBackground = true,
                 Name = "Recognizer"
             }).Start();
+            while (!IsWorking)
+                Thread.Sleep(10);
         });
 
         /// <summary>
@@ -872,10 +877,14 @@ namespace DynamicMosaicExample
                 _needRefreshEvent.Set();
                 _imageActivity.Set();
                 _workThreadActivity.Set();
-                if (_fileThread?.ThreadState != ThreadState.Unstarted)
-                    _fileThread.Join();
-                if (_workWaitThread?.ThreadState != ThreadState.Unstarted)
-                    _workWaitThread.Join();
+                if ((_fileThread?.ThreadState & ThreadState.Unstarted) != ThreadState.Unstarted)
+                    if (!_fileThread.Join(10000))
+                        MessageBox.Show(this, @"Во время остановки распознавания произошла ошибка: поток, отвечающий за актуализацию содержимого карт, завис. Рекомендуется перезапустить программу.", @"Ошибка",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if ((_workWaitThread?.ThreadState & ThreadState.Unstarted) != ThreadState.Unstarted)
+                    if (!_workWaitThread.Join(10000))
+                        MessageBox.Show(this, @"Во время остановки распознавания произошла ошибка: поток, отвечающий за отображение процесса ожидания завершения операции, завис. Рекомендуется перезапустить программу.", @"Ошибка",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex)
             {
@@ -897,10 +906,14 @@ namespace DynamicMosaicExample
             {
                 BtnClearImage_Click(null, null);
                 RefreshImagesCount(0);
-                if (_fileThread?.ThreadState == ThreadState.Unstarted)
+                if ((_fileThread?.ThreadState & ThreadState.Unstarted) == ThreadState.Unstarted)
                     _fileThread.Start();
-                if (_workWaitThread?.ThreadState == ThreadState.Unstarted)
+                while (!IsFileActivity)
+                    Thread.Sleep(10);
+                if ((_workWaitThread?.ThreadState & ThreadState.Unstarted) == ThreadState.Unstarted)
                     _workWaitThread.Start();
+                while ((_workWaitThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) != 0)
+                    Thread.Sleep(10);
             }
             catch (Exception ex)
             {
@@ -917,9 +930,10 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         private void TxtSymbolPath_TextChanged(object sender, EventArgs e)
         {
-            int pos = txtSymbolPath.Text.Length - 1;
-            if (pos <= 0)
+            if (txtSymbolPath.Text.Length <= 3)
                 return;
+            int pos = txtSymbolPath.Text.Length - 3;
+            txtSymbolPath.Select(pos, 0);
             for (int k = pos; k >= 0; k--)
                 if (txtSymbolPath.Text[k] == '\\' || txtSymbolPath.Text[k] == '/')
                 {

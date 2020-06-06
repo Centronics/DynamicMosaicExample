@@ -431,7 +431,10 @@ namespace DynamicMosaicExample
                 if (!IsWorking)
                     return false;
                 _workThread.Abort();
-                _workThread.Join();
+                if (!_workThread.Join(15000))
+                    MessageBox.Show(this, @"Во время остановки распознавания произошла ошибка: поток, отвечающий за распознавание, завис. Рекомендуется перезапустить программу.", @"Ошибка",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _workThread = null;
                 return true;
             }
             catch (Exception ex)
@@ -480,7 +483,7 @@ namespace DynamicMosaicExample
         /// <summary>
         /// Отражает статус процесса актуализации содержимого карт с жёсткого диска.
         /// </summary>
-        bool IsFileActivity => _fileThread?.ThreadState == ThreadState.Running;
+        bool IsFileActivity => (_fileThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0;
 
         /// <summary>
         /// Сигнал остановки потокам, работающим на фоне.
@@ -566,14 +569,14 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Создаёт новый поток для обновления списка файлов изображений, в случае, если поток (<see cref="_fileThread"/>) не выполняется.
-        /// Созданный поток находится в состоянии <see cref="ThreadState.Unstarted"/>.
+        /// Созданный поток находится в состояниях <see cref="ThreadState.Unstarted"/> и <see cref="ThreadState.Background"/>.
         /// Поток служит для получения всех имеющихся на данный момент образов букв для распознавания, в том числе, для актуализации их содержимого.
         /// Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, этот поток выполняется.
         /// </summary>
         /// <returns>Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, этот поток выполняется.</returns>
         Thread CreateFileRefreshThread()
         {
-            if ((_fileThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0)
+            if (IsFileActivity)
                 return null;
 
             return new Thread(() => SafetyExecute(() =>
