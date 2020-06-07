@@ -370,6 +370,19 @@ namespace DynamicMosaicExample
             try
             {
                 InitializeComponent();
+
+                _processorStorage.ElementArrival += (processor, path) => InvokeAction(() =>
+                {
+                    if (processor != null && !string.IsNullOrWhiteSpace(path))
+                    {
+                        pbBrowse.Image = ImageRect.GetBitmap(processor);
+                        txtSymbolPath.Text = path;
+                        RefreshImagesCount(1);
+                        return;
+                    }
+                    RefreshImagesCount(0);
+                });
+
                 _whitePen = new Pen(_defaultColor, 2.0f);
                 Initialize();
                 _strRecog = btnRecognizeImage.Text;
@@ -668,7 +681,7 @@ namespace DynamicMosaicExample
             }))
             {
                 IsBackground = true,
-                Name = nameof(CreateFileRefreshThread)
+                Name = "FileRefreshThread"
             };
         }
 

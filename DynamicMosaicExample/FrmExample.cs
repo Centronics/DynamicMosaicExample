@@ -190,6 +190,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
+            _currentImage++;
             (Processor processor, string path, int count) = _processorStorage.GetFirstProcessor(ref _currentImage);
             if (processor == null || count <= 0)
             {
@@ -199,7 +200,6 @@ namespace DynamicMosaicExample
                 RefreshImagesCount(count);
                 return;
             }
-            _currentImage++;
             pbBrowse.Image = ImageRect.GetBitmap(processor);
             txtSymbolPath.Text = path;
             RefreshImagesCount(count);
@@ -212,6 +212,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImagePrev_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
+            _currentImage--;
             (Processor processor, string path, int count) = _processorStorage.GetLastProcessor(ref _currentImage);
             if (processor == null || count <= 0)
             {
@@ -221,7 +222,6 @@ namespace DynamicMosaicExample
                 RefreshImagesCount(count);
                 return;
             }
-            _currentImage--;
             pbBrowse.Image = ImageRect.GetBitmap(processor);
             txtSymbolPath.Text = path;
             RefreshImagesCount(count);
@@ -238,7 +238,6 @@ namespace DynamicMosaicExample
             int count = _processorStorage.Count;
             if (count <= 0)
             {
-                SymbolBrowseClear();
                 RefreshImagesCount(count);
                 return;
             }
@@ -271,7 +270,7 @@ namespace DynamicMosaicExample
         void RefreshImagesCount(int count) => InvokeAction(() =>
         {
             fswImageChanged.EnableRaisingEvents = true;
-            txtImagesCount.Text = $@"{_currentImage} / {count}";
+            txtImagesCount.Text = $@"{unchecked(_currentImage + 1)} / {count}";
             if (count <= 0)
             {
                 SymbolBrowseClear();
@@ -285,7 +284,7 @@ namespace DynamicMosaicExample
             }
 
             btnImageDelete.Enabled = btnImageCreate.Enabled;
-            txtImagesCount.Enabled = btnImageCreate.Enabled;
+            txtImagesCount.Enabled = true;
             btnImageNext.Enabled = true;
             btnImagePrev.Enabled = true;
             txtSymbolPath.Enabled = true;
@@ -369,7 +368,7 @@ namespace DynamicMosaicExample
             }))
             {
                 IsBackground = true,
-                Name = nameof(CreateWaitThread)
+                Name = "WaitThread"
             };
         }
 

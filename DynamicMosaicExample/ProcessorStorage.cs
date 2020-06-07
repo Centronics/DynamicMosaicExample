@@ -38,7 +38,7 @@ namespace DynamicMosaicExample
         /// Показывает, пригоден ли текущий экземпляр к выполнению каких-либо операций.
         /// Если нет, то при попытке выполнить операцию, выбрасывается исключение <see cref="InvalidOperationException"/>.
         /// </summary>
-        public bool IsOperationAllowed { get; private set; } = true;
+        internal bool IsOperationAllowed { get; private set; } = true;
 
         /// <summary>
         /// Хранит карту <see cref="Processor"/> и путь <see cref="string"/> к ней.
@@ -143,21 +143,24 @@ namespace DynamicMosaicExample
             if (!ir.IsSymbol)
                 return;
             int hashCode = CRCIntCalc.GetHash(ir.CurrentProcessor);
-            try
+            lock (_syncObject)
             {
-                lock (_syncObject)
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(AddProcessor)}: Операция недопустима.");
+                try
                 {
+
                     AddElement(hashCode, fullPath, ir.CurrentProcessor);
                     if (!_dictionaryFileNames.TryGetValue(ir.SymbolicName, out uint value))
                         _dictionaryFileNames.Add(ir.SymbolicName, ir.Number);
                     else if (value < ir.Number)
                         _dictionaryFileNames[ir.SymbolicName] = ir.Number;
                 }
-            }
-            catch
-            {
-                IsOperationAllowed = false;
-                throw;
+                catch
+                {
+                    IsOperationAllowed = false;
+                    throw;
+                }
             }
         }
 
@@ -177,6 +180,16 @@ namespace DynamicMosaicExample
             else if (ph.Elements.All(px => !ProcessorCompare(processor, px.CurrentProcessor)))
                 ph.AddProcessor(new ProcPath(processor, fullPath));
             _dictionaryByPath.Add(fullPath, new ProcPath(processor, fullPath));
+            if (Count != 1)
+                return;
+            try
+            {
+                ElementArrival?.Invoke(processor, fullPath);
+            }
+            catch
+            {
+                //ignored
+            }
         }
 
         /// <summary>
@@ -218,7 +231,12 @@ namespace DynamicMosaicExample
                 throw new ArgumentNullException(nameof(p), $@"Функция {nameof(Contains)}.");
             int hash = CRCIntCalc.GetHash(p);
             lock (_syncObject)
-                return _dictionary.TryGetValue(hash, out ProcHash ph) && ph.Elements.Any(px => ProcessorCompare(p, px.CurrentProcessor));
+            {
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(Contains)}: Операция недопустима.");
+                return _dictionary.TryGetValue(hash, out ProcHash ph) &&
+                       ph.Elements.Any(px => ProcessorCompare(p, px.CurrentProcessor));
+            }
         }
 
         /// <summary>
@@ -231,8 +249,12 @@ namespace DynamicMosaicExample
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
                 lock (_syncObject)
+                {
+                    if (!IsOperationAllowed)
+                        throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
                     foreach (Processor processor in _dictionaryByPath.Values.Select(pair => pair.CurrentProcessor))
                         yield return processor;
+                }
             }
         }
 
@@ -246,7 +268,11 @@ namespace DynamicMosaicExample
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(Count)}: Операция недопустима.");
                 lock (_syncObject)
+                {
+                    if (!IsOperationAllowed)
+                        throw new InvalidOperationException($@"{nameof(Count)}: Операция недопустима.");
                     return _dictionaryByPath.Count;
+                }
             }
         }
 
@@ -256,18 +282,23 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="index">Индекс карты <see cref="Processor"/>, которую надо вернуть.</param>
         /// <returns>Возвращает карту <see cref="Processor"/> по указанному индексу, и путь к ней.</returns>
-        public (Processor processor, string path) this[int index]
+        internal (Processor processor, string path) this[int index]
         {
             get
             {
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(ConcurrentProcessorStorage)}.indexer(int): Операция недопустима.");
                 lock (_syncObject)
+                {
+                    if (!IsOperationAllowed)
+                        throw new InvalidOperationException($@"{nameof(ConcurrentProcessorStorage)}.indexer(int): Операция недопустима.");
                     if (index >= 0 && index < _dictionaryByPath.Count)
                     {
                         ProcPath pp = _dictionaryByPath.Values.ElementAt(index);
                         return (pp.CurrentProcessor, pp.CurrentPath);
                     }
+                }
+
                 return (null, string.Empty);
             }
         }
@@ -279,7 +310,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="fullPath">Полный путь к карте <see cref="Processor"/>.</param>
         /// <returns>Возвращает карту <see cref="Processor"/> или <see langword="null"/> в случае, если карта <see cref="Processor"/> не найдена в коллекции.</returns>
-        public Processor this[string fullPath]
+        internal Processor this[string fullPath]
         {
             get
             {
@@ -289,11 +320,19 @@ namespace DynamicMosaicExample
                     return null;
                 lock (_syncObject)
                 {
+                    if (!IsOperationAllowed)
+                        throw new InvalidOperationException($@"{nameof(ConcurrentProcessorStorage)}.indexer(string): Операция недопустима.");
                     _dictionaryByPath.TryGetValue(fullPath, out ProcPath p);
                     return p.CurrentProcessor;
                 }
             }
         }
+
+        /// <summary>
+        /// Происходит, когда коллекция опустошается (после удаления последнего элемента) или после прибытия в неё первого элемента.
+        /// В случае удаления всех элементов из коллекции, значение аргументов будет <see langword="null"/>, в противном случае, будет возвращён первый прибывший в коллекцию элемент, и путь к нему.
+        /// </summary>
+        internal event Action<Processor, string> ElementArrival;
 
         /// <summary>
         /// Получает указанную или последнюю карту в случае недопустимого значения в индексе карты <see cref="Processor"/>, которую необходимо получить.
@@ -303,12 +342,14 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="index">Индекс карты <see cref="Processor"/>, которую необходимо получить. В случае допустимого изначального значения, это значение остаётся прежним, иначе равняется индексу последней карты в коллекции.</param>
         /// <returns>Возвращает карту, путь к ней, и количество карт на момент её получения.</returns>
-        public (Processor processor, string path, int count) GetLastProcessor(ref int index)
+        internal (Processor processor, string path, int count) GetLastProcessor(ref int index)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(GetLastProcessor)}: Операция недопустима.");
             lock (_syncObject)
             {
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(GetLastProcessor)}: Операция недопустима.");
                 int count = Count;
                 if (count <= 0)
                 {
@@ -331,12 +372,14 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="index">Индекс карты <see cref="Processor"/>, которую необходимо получить. В случае допустимого изначального значения, это значение остаётся прежним, иначе равняется индексу первой карты в коллекции.</param>
         /// <returns>Возвращает карту, путь к ней, и количество карт на момент её получения.</returns>
-        public (Processor processor, string path, int count) GetFirstProcessor(ref int index)
+        internal (Processor processor, string path, int count) GetFirstProcessor(ref int index)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(GetFirstProcessor)}: Операция недопустима.");
             lock (_syncObject)
             {
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(GetFirstProcessor)}: Операция недопустима.");
                 int count = Count;
                 if (count <= 0)
                 {
@@ -353,7 +396,7 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Удаляет указанную карту <see cref="Processor"/> из коллекции <see cref="ConcurrentProcessorStorage"/>, идентифицируя её по пути к ней.
-        /// В том числе, удаляет сам файл с диска.
+        /// В том числе, может удалить сам файл с диска.
         /// </summary>
         /// <param name="fullPath">Полный путь к карте <see cref="Processor"/>, которую необходимо удалить из коллекции.</param>
         /// <param name="removeFile">Значение <see langword="true"/> означает, что требуется удалить файл с диска.</param>
@@ -364,7 +407,11 @@ namespace DynamicMosaicExample
             if (string.IsNullOrWhiteSpace(fullPath))
                 return;
             lock (_syncObject)
+            {
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
                 RemoveProcessor(this[fullPath], removeFile);
+            }
         }
 
         /// <summary>
@@ -382,6 +429,8 @@ namespace DynamicMosaicExample
             int hash = CRCIntCalc.GetHash(processor);
             lock (_syncObject)
             {
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
                 if (!_dictionary.TryGetValue(hash, out ProcHash ph))
                     return;
                 try
@@ -400,6 +449,17 @@ namespace DynamicMosaicExample
                             index++;
                     if (!ph.Elements.Any())
                         _dictionary.Remove(hash);
+                    if (Count <= 0)
+                    {
+                        try
+                        {
+                            ElementArrival?.Invoke(null, null);
+                        }
+                        catch
+                        {
+                            //ignored
+                        }
+                    }
                 }
                 catch
                 {
@@ -458,21 +518,23 @@ namespace DynamicMosaicExample
             Bitmap btm = ImageRect.GetBitmap(processor);
             using (FileStream fs = new FileStream(result, FileMode.Create, FileAccess.Write, FileShare.Read))
                 btm.Save(fs, ImageFormat.Bmp);
-            try
+            lock (_syncObject)
             {
-                lock (_syncObject)
+                if (!IsOperationAllowed)
+                    throw new InvalidOperationException($@"{nameof(SaveToFile)}: Операция недопустима.");
+                try
                 {
                     AddElement(CRCIntCalc.GetHash(processor), result, processor);
                     _dictionaryFileNames.TryGetValue(name, out uint value);
                     if (count > value)
                         _dictionaryFileNames[name] = count;
+                    return result;
                 }
-                return result;
-            }
-            catch
-            {
-                IsOperationAllowed = false;
-                throw;
+                catch
+                {
+                    IsOperationAllowed = false;
+                    throw;
+                }
             }
         }
 
