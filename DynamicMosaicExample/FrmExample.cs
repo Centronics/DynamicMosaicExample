@@ -197,12 +197,12 @@ namespace DynamicMosaicExample
                 SymbolBrowseClear();
                 MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
-                RefreshImagesCount(count);
+                RefreshImagesCount();
                 return;
             }
             pbBrowse.Image = ImageRect.GetBitmap(processor);
             txtSymbolPath.Text = path;
-            RefreshImagesCount(count);
+            RefreshImagesCount();
         });
 
         /// <summary>
@@ -219,12 +219,12 @@ namespace DynamicMosaicExample
                 SymbolBrowseClear();
                 MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
-                RefreshImagesCount(count);
+                RefreshImagesCount();
                 return;
             }
             pbBrowse.Image = ImageRect.GetBitmap(processor);
             txtSymbolPath.Text = path;
-            RefreshImagesCount(count);
+            RefreshImagesCount();
         });
 
         /// <summary>
@@ -235,10 +235,9 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageDelete_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            int count = _processorStorage.Count;
-            if (count <= 0)
+            if (_processorStorage.Count <= 0)
             {
-                RefreshImagesCount(count);
+                RefreshImagesCount();
                 return;
             }
 
@@ -247,7 +246,7 @@ namespace DynamicMosaicExample
             _processorStorage.RemoveProcessor(txtSymbolPath.Text, true);
             BtnImagePrev_Click(null, null);
             BtnReflexClear_Click(null, null);
-            RefreshImagesCount(count - 1);
+            RefreshImagesCount();
         });
 
         /// <summary>
@@ -266,14 +265,39 @@ namespace DynamicMosaicExample
         ///     Выполняет подсчёт количества изображений для поиска.
         ///     Обновляет состояния кнопок, связанных с изображениями.
         /// </summary>
-        /// <param name="count">Количество карт в коллекции <see cref="ConcurrentProcessorStorage"/>.</param>
-        void RefreshImagesCount(int count) => InvokeAction(() =>
+        void RefreshImagesCount() => InvokeAction(() =>
         {
+            (Processor processor, string path, int count) = _processorStorage[txtSymbolPath.Text];
+            if (count > 0)
+            {
+                if (processor == null)
+                {
+                    (processor, path, count) = _processorStorage.GetFirstProcessor(ref _currentImage);
+                    if (processor != null && count > 0)
+                    {
+                        pbBrowse.Image = ImageRect.GetBitmap(processor);
+                        txtSymbolPath.Text = path;
+                    }
+                    else
+                        SymbolBrowseClear();
+                }
+                else
+                {
+                    pbBrowse.Image = ImageRect.GetBitmap(processor);
+                    txtSymbolPath.Text = path;
+                }
+            }
+            else
+            {
+                _currentImage = 0;
+                SymbolBrowseClear();
+            }
+
             fswImageChanged.EnableRaisingEvents = true;
-            txtImagesCount.Text = $@"{unchecked(_currentImage + 1)} / {count}";
+            txtImagesCount.Text = count > 0 ? $@"{unchecked(_currentImage + 1)} / {count}" : string.Empty;
+
             if (count <= 0)
             {
-                SymbolBrowseClear();
                 btnImageDelete.Enabled = false;
                 txtImagesCount.Enabled = false;
                 btnImageNext.Enabled = false;
@@ -305,13 +329,18 @@ namespace DynamicMosaicExample
             return new Thread(() => SafetyExecute(() =>
             {
                 WaitHandle[] waitHandles = new WaitHandle[] { _imageActivity, _workThreadActivity };
+                Stopwatch renewStopwatch = new Stopwatch();
                 for (int k = 0; k < 4; k++)
                 {
                     if (WaitHandle.WaitAny(waitHandles, 0) == WaitHandle.WaitTimeout)
                     {
+                        renewStopwatch.Reset();
                         InvokeAction(() =>
                         {
                             btnRecognizeImage.Text = _strRecog;
+                            EnableButtons = true;
+                            RefreshImagesCount();
+                            txtWord.Select();
                         });
                         WaitHandle.WaitAny(waitHandles);
                     }
@@ -319,7 +348,12 @@ namespace DynamicMosaicExample
                     if (_stopBackgroundThreadFlag)
                         return;
 
-                    EnableButtons = !IsWorking;
+                    renewStopwatch.Start();
+                    if (renewStopwatch.ElapsedMilliseconds >= 2000 && IsFileActivity)
+                    {
+                        RefreshImagesCount();
+                        renewStopwatch.Restart();
+                    }
 
                     switch (k)
                     {
@@ -423,7 +457,7 @@ namespace DynamicMosaicExample
                     if (txtWord.Text.Length <= 0)
                     {
                         ErrorMessageInOtherThread(
-                            @"Слова отсутствуют. Добавьте какое-нибудь слово, которое можно составить из одного или нескольких образов.");
+                            @"Напишите какое-нибудь слово, которое можно составить из одного или нескольких образов.");
                         return;
                     }
 
@@ -443,7 +477,7 @@ namespace DynamicMosaicExample
 
                     if (processors == null || processors.Count < 2)
                     {
-                        ErrorMessageInOtherThread(@"Количество образов должно быть не меньше двух. Нарисуйте их.");
+                        ErrorMessageInOtherThread(@"Количество образов для распознавания должно быть не меньше двух. Нарисуйте их.");
                         return;
                     }
 
@@ -832,13 +866,6 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        /// Обрабатывает событие изменения искомого слова, обнуляя результат распознавания.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void TxtWord_TextChanged(object sender, EventArgs e) => SafetyExecute(() => pbSuccess.Image = Resources.Unk_128);
-
-        /// <summary>
         /// Сохраняет выбранную карту <see cref="Processor"/> выбранной системы <see cref="Reflex"/> на жёсткий диск.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
@@ -904,7 +931,7 @@ namespace DynamicMosaicExample
             try
             {
                 BtnClearImage_Click(null, null);
-                RefreshImagesCount(0);
+                RefreshImagesCount();
                 if ((_fileThread?.ThreadState & ThreadState.Unstarted) == ThreadState.Unstarted)
                     _fileThread.Start();
                 while (!IsFileActivity)
@@ -941,6 +968,21 @@ namespace DynamicMosaicExample
                     return;
                 }
             txtSymbolPath.Select(0, 0);
+        }
+
+        /// <summary>
+        /// Предназначен для переопределения функции отката (CTRL + Z).
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        private void TxtWord_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Control && e.KeyCode == Keys.Z)
+            {
+                e.Handled = true;
+                if (!string.IsNullOrWhiteSpace(_currentState.CurWord))
+                    txtWord.Text = _currentState.CurWord;
+            }
         }
     }
 }

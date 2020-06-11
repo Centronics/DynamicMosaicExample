@@ -81,9 +81,10 @@
             // 
             // btnRecognizeImage
             // 
+            this.btnRecognizeImage.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnRecognizeImage.Location = new System.Drawing.Point(5, 85);
             this.btnRecognizeImage.Name = "btnRecognizeImage";
-            this.btnRecognizeImage.Size = new System.Drawing.Size(83, 23);
+            this.btnRecognizeImage.Size = new System.Drawing.Size(98, 23);
             this.btnRecognizeImage.TabIndex = 0;
             this.btnRecognizeImage.Text = "Распознать";
             this.btnRecognizeImage.UseVisualStyleBackColor = true;
@@ -94,7 +95,7 @@
             this.btnClearImage.Enabled = false;
             this.btnClearImage.Location = new System.Drawing.Point(5, 114);
             this.btnClearImage.Name = "btnClearImage";
-            this.btnClearImage.Size = new System.Drawing.Size(83, 23);
+            this.btnClearImage.Size = new System.Drawing.Size(98, 23);
             this.btnClearImage.TabIndex = 1;
             this.btnClearImage.Text = "Очистить";
             this.btnClearImage.UseVisualStyleBackColor = true;
@@ -119,7 +120,7 @@
             this.txtWord.Size = new System.Drawing.Size(152, 20);
             this.txtWord.TabIndex = 6;
             this.txtWord.Tag = "";
-            this.txtWord.TextChanged += new System.EventHandler(this.TxtWord_TextChanged);
+            this.txtWord.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TxtWord_KeyDown);
             this.txtWord.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TxtWord_KeyPress);
             this.txtWord.KeyUp += new System.Windows.Forms.KeyEventHandler(this.TxtWord_KeyUp);
             // 

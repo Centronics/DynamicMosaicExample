@@ -69,7 +69,7 @@ namespace DynamicMosaicExample
             /// <summary>
             /// Искомое слово, написанное пользователем в момент запуска процедуры распознавания.
             /// </summary>
-            string _curWord = string.Empty;
+            internal string CurWord { get; private set; } = string.Empty;
 
             /// <summary>
             /// Инициализирует объект-наблюдатель с указанием формы, за которой требуется наблюдение.
@@ -101,7 +101,7 @@ namespace DynamicMosaicExample
             {
                 if (_state == RecognizeState.ERROR || _state == RecognizeState.SUCCESS)
                 {
-                    if (string.Compare(_curWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) == 0)
+                    if (string.Compare(CurWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) == 0)
                         return;
                     _curForm.pbSuccess.Image = Resources.Unk_128;
                     _state = _state == RecognizeState.ERROR
@@ -111,7 +111,7 @@ namespace DynamicMosaicExample
                 }
                 if (_state == RecognizeState.ERRORWORD || _state == RecognizeState.SUCCESSWORD)
                 {
-                    if (string.Compare(_curWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) != 0)
+                    if (string.Compare(CurWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) != 0)
                         return;
                     if (_state == RecognizeState.ERRORWORD)
                     {
@@ -123,11 +123,11 @@ namespace DynamicMosaicExample
                     _state = RecognizeState.SUCCESS;
                     return;
                 }
-                _curWord = _curForm.txtWord.Text;
+                CurWord = _curForm.txtWord.Text;
             }
 
             /// <summary>
-            /// Получает или устанавливает текущее состояние программы.
+            /// Устанавливает текущее состояние программы.
             /// Оно может быть установлено только, если текущее состояние равно <see cref="RecognizeState.UNKNOWN"/>.
             /// В других случаях новое состояние будет игнорироваться.
             /// Установить можно либо <see cref="RecognizeState.ERROR"/>, либо <see cref="RecognizeState.SUCCESS"/>.
@@ -370,19 +370,6 @@ namespace DynamicMosaicExample
             try
             {
                 InitializeComponent();
-
-                _processorStorage.ElementArrival += (processor, path) => InvokeAction(() =>
-                {
-                    if (processor != null && !string.IsNullOrWhiteSpace(path))
-                    {
-                        pbBrowse.Image = ImageRect.GetBitmap(processor);
-                        txtSymbolPath.Text = path;
-                        RefreshImagesCount(1);
-                        return;
-                    }
-                    RefreshImagesCount(0);
-                });
-
                 _whitePen = new Pen(_defaultColor, 2.0f);
                 Initialize();
                 _strRecog = btnRecognizeImage.Text;
@@ -405,7 +392,7 @@ namespace DynamicMosaicExample
                 fswImageChanged.NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size;
                 fswImageChanged.Filter = $"*.{ExtImg}";
 
-                void OnChanged(object source, FileSystemEventArgs e) => InvokeAction(() =>
+                void OnChanged(object source, FileSystemEventArgs e) => SafetyExecute(() =>
                 {
                     _concurrentFileTasks.Enqueue(new FileTask(e.ChangeType, e.FullPath));
                     _needRefreshEvent.Set();
@@ -527,7 +514,7 @@ namespace DynamicMosaicExample
                     btnSaveImage.Enabled = value;
                     btnLoadImage.Enabled = value;
                     btnClearImage.Enabled = value && IsPainting;
-                    btnReflexClear.Enabled = value;
+                    btnReflexClear.Enabled = value && lstResults.Items.Count > 1;
 
                     if (value)
                     {
@@ -631,7 +618,7 @@ namespace DynamicMosaicExample
                         _imageActivity.Reset();
                     }
                     if (!_stopBackgroundThreadFlag)
-                        InvokeAction(() => RefreshImagesCount(_processorStorage.Count));
+                        RefreshImagesCount();
                     while (!_stopBackgroundThreadFlag)
                     {
                         _needRefreshEvent.WaitOne();
@@ -671,7 +658,7 @@ namespace DynamicMosaicExample
                             _imageActivity.Reset();
                         }
                         if (!_stopBackgroundThreadFlag)
-                            InvokeAction(() => RefreshImagesCount(_processorStorage.Count));
+                            RefreshImagesCount();
                     }
                 }
                 catch (Exception ex)

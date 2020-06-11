@@ -180,16 +180,6 @@ namespace DynamicMosaicExample
             else if (ph.Elements.All(px => !ProcessorCompare(processor, px.CurrentProcessor)))
                 ph.AddProcessor(new ProcPath(processor, fullPath));
             _dictionaryByPath.Add(fullPath, new ProcPath(processor, fullPath));
-            if (Count != 1)
-                return;
-            try
-            {
-                ElementArrival?.Invoke(processor, fullPath);
-            }
-            catch
-            {
-                //ignored
-            }
         }
 
         /// <summary>
@@ -277,12 +267,12 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Возвращает карту <see cref="Processor"/> по указанному индексу, и путь к ней.
-        /// Если индекс представляет собой недопустимое значение, возвращается (<see langword="null"/>, <see cref="string.Empty"/>).
+        /// Возвращает карту <see cref="Processor"/> по указанному индексу, путь к ней, и количество карт в коллекции.
+        /// Если индекс представляет собой недопустимое значение, возвращается (<see langword="null"/>, <see cref="string.Empty"/>, <see cref="Count"/>).
         /// </summary>
         /// <param name="index">Индекс карты <see cref="Processor"/>, которую надо вернуть.</param>
-        /// <returns>Возвращает карту <see cref="Processor"/> по указанному индексу, и путь к ней.</returns>
-        internal (Processor processor, string path) this[int index]
+        /// <returns>Возвращает карту <see cref="Processor"/> по указанному индексу, путь к ней, и количество карт в коллекции.</returns>
+        internal (Processor processor, string path, int count) this[int index]
         {
             get
             {
@@ -291,48 +281,43 @@ namespace DynamicMosaicExample
                 lock (_syncObject)
                 {
                     if (!IsOperationAllowed)
-                        throw new InvalidOperationException($@"{nameof(ConcurrentProcessorStorage)}.indexer(int): Операция недопустима.");
-                    if (index >= 0 && index < _dictionaryByPath.Count)
+                        throw new InvalidOperationException(
+                            $@"{nameof(ConcurrentProcessorStorage)}.indexer(int): Операция недопустима.");
+                    if (index >= 0 && index < Count)
                     {
                         ProcPath pp = _dictionaryByPath.Values.ElementAt(index);
-                        return (pp.CurrentProcessor, pp.CurrentPath);
+                        return (pp.CurrentProcessor, pp.CurrentPath, Count);
                     }
-                }
 
-                return (null, string.Empty);
+                    return (null, string.Empty, Count);
+                }
             }
         }
 
         /// <summary>
-        /// Находит карту <see cref="Processor"/> по указанному пути.
+        /// Возвращает карту <see cref="Processor"/> по указанному пути, путь к ней, и количество карт в коллекции.
         /// От наличия файла на жёстком диске не зависит.
-        /// Возвращает карту <see cref="Processor"/> или <see langword="null"/> в случае, если карта <see cref="Processor"/> не найдена в коллекции.
+        /// Если карта не найдена, возвращается (<see langword="null"/>, <see cref="string.Empty"/>, <see cref="Count"/>).
         /// </summary>
         /// <param name="fullPath">Полный путь к карте <see cref="Processor"/>.</param>
-        /// <returns>Возвращает карту <see cref="Processor"/> или <see langword="null"/> в случае, если карта <see cref="Processor"/> не найдена в коллекции.</returns>
-        internal Processor this[string fullPath]
+        /// <returns>Возвращает карту <see cref="Processor"/> по указанному пути, путь к ней, и количество карт в коллекции.</returns>
+        internal (Processor processor, string path, int count) this[string fullPath]
         {
             get
             {
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(ConcurrentProcessorStorage)}.indexer(string): Операция недопустима.");
                 if (string.IsNullOrWhiteSpace(fullPath))
-                    return null;
+                    return (null, string.Empty, Count);
                 lock (_syncObject)
                 {
                     if (!IsOperationAllowed)
                         throw new InvalidOperationException($@"{nameof(ConcurrentProcessorStorage)}.indexer(string): Операция недопустима.");
                     _dictionaryByPath.TryGetValue(fullPath, out ProcPath p);
-                    return p.CurrentProcessor;
+                    return (p.CurrentProcessor, string.IsNullOrEmpty(p.CurrentPath) ? string.Empty : p.CurrentPath, Count);
                 }
             }
         }
-
-        /// <summary>
-        /// Происходит, когда коллекция опустошается (после удаления последнего элемента) или после прибытия в неё первого элемента.
-        /// В случае удаления всех элементов из коллекции, значение аргументов будет <see langword="null"/>, в противном случае, будет возвращён первый прибывший в коллекцию элемент, и путь к нему.
-        /// </summary>
-        internal event Action<Processor, string> ElementArrival;
 
         /// <summary>
         /// Получает указанную или последнюю карту в случае недопустимого значения в индексе карты <see cref="Processor"/>, которую необходимо получить.
@@ -359,7 +344,7 @@ namespace DynamicMosaicExample
 
                 if (index < 0 || index >= count)
                     index = count - 1;
-                (Processor processor, string path) = this[index];
+                (Processor processor, string path, _) = this[index];
                 return (processor, path, count);
             }
         }
@@ -389,7 +374,7 @@ namespace DynamicMosaicExample
 
                 if (index < 0 || index >= count)
                     index = 0;
-                (Processor processor, string path) = this[index];
+                (Processor processor, string path, _) = this[index];
                 return (processor, path, count);
             }
         }
@@ -410,7 +395,7 @@ namespace DynamicMosaicExample
             {
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
-                RemoveProcessor(this[fullPath], removeFile);
+                RemoveProcessor(this[fullPath].processor, removeFile);
             }
         }
 
@@ -420,7 +405,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor"/>, которую следует удалить.</param>
         /// <param name="removeFile">Значение <see langword="true"/> означает, что требуется удалить файл с диска.</param>
-        internal void RemoveProcessor(Processor processor, bool removeFile)
+        void RemoveProcessor(Processor processor, bool removeFile)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
@@ -437,7 +422,7 @@ namespace DynamicMosaicExample
                 {
                     int index = 0;
                     foreach (ProcPath px in ph.Elements)
-                        if (ProcessorCompare(processor, px.CurrentProcessor))
+                        if (ReferenceEquals(processor, px.CurrentProcessor))
                         {
                             if (removeFile)
                                 File.Delete(ph[index].CurrentPath);
@@ -449,17 +434,6 @@ namespace DynamicMosaicExample
                             index++;
                     if (!ph.Elements.Any())
                         _dictionary.Remove(hash);
-                    if (Count <= 0)
-                    {
-                        try
-                        {
-                            ElementArrival?.Invoke(null, null);
-                        }
-                        catch
-                        {
-                            //ignored
-                        }
-                    }
                 }
                 catch
                 {
