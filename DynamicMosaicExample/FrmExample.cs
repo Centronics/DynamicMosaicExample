@@ -40,7 +40,7 @@ namespace DynamicMosaicExample
             else
             {
                 Bitmap btm;
-                using (FileStream fs = new FileStream(btmPath, FileMode.Open, FileAccess.Read))
+                using (FileStream fs = new FileStream(btmPath, FileMode.Open, FileAccess.Read, FileShare.Read))
                     btm = new Bitmap(fs);
                 ImageFormat iformat = btm.RawFormat;
                 if (!iformat.Equals(ImageFormat.Bmp))
@@ -142,7 +142,7 @@ namespace DynamicMosaicExample
             btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
             btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
             Initialize();
-        }, () => btnClearImage.Enabled = IsPainting);
+        }, () => btnSaveImage.Enabled = btnClearImage.Enabled = IsPainting);
 
         /// <summary>
         ///     Сужает область рисования распознаваемого изображения <see cref="pbDraw" /> до минимального размера по
@@ -156,7 +156,7 @@ namespace DynamicMosaicExample
             btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
             btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
             Initialize();
-        }, () => btnClearImage.Enabled = IsPainting);
+        }, () => btnSaveImage.Enabled = btnClearImage.Enabled = IsPainting);
 
         /// <summary>
         ///     Вызывается при отпускании клавиши мыши над полем создания исходного изображения.
@@ -192,17 +192,16 @@ namespace DynamicMosaicExample
         {
             _currentImage++;
             (Processor processor, string path, int count) = _processorStorage.GetFirstProcessor(ref _currentImage);
+            UpdateImagesCount(count);
             if (processor == null || count <= 0)
             {
                 SymbolBrowseClear();
                 MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
-                RefreshImagesCount();
                 return;
             }
             pbBrowse.Image = ImageRect.GetBitmap(processor);
             txtSymbolPath.Text = path;
-            RefreshImagesCount();
         });
 
         /// <summary>
@@ -214,17 +213,16 @@ namespace DynamicMosaicExample
         {
             _currentImage--;
             (Processor processor, string path, int count) = _processorStorage.GetLastProcessor(ref _currentImage);
+            UpdateImagesCount(count);
             if (processor == null || count <= 0)
             {
                 SymbolBrowseClear();
                 MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
-                RefreshImagesCount();
                 return;
             }
             pbBrowse.Image = ImageRect.GetBitmap(processor);
             txtSymbolPath.Text = path;
-            RefreshImagesCount();
         });
 
         /// <summary>
@@ -236,17 +234,10 @@ namespace DynamicMosaicExample
         void BtnImageDelete_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             if (_processorStorage.Count <= 0)
-            {
-                RefreshImagesCount();
                 return;
-            }
 
-            fswImageChanged.EnableRaisingEvents = false;
-            _errorMessageIsShowed = false;
-            _processorStorage.RemoveProcessor(txtSymbolPath.Text, true);
+            File.Delete(txtSymbolPath.Text);
             BtnImagePrev_Click(null, null);
-            BtnReflexClear_Click(null, null);
-            RefreshImagesCount();
         });
 
         /// <summary>
@@ -256,10 +247,19 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageCreate_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            using (FrmSymbol fs = new FrmSymbol(_processorStorage))
+            using (FrmSymbol fs = new FrmSymbol())
                 if (fs.ShowDialog() == DialogResult.OK)
                     BtnReflexClear_Click(null, null);
         });
+
+        /// <summary>
+        /// Отображает номер выбранной карты и количество карт в коллекции <see cref="ConcurrentProcessorStorage"/>.
+        /// </summary>
+        /// <param name="count">Количество карт в коллекции <see cref="ConcurrentProcessorStorage"/>.</param>
+        void UpdateImagesCount(int count)
+        {
+            txtImagesCount.Text = count > 0 ? $@"{unchecked(_currentImage + 1)} / {count}" : string.Empty;
+        }
 
         /// <summary>
         ///     Выполняет подсчёт количества изображений для поиска.
@@ -293,8 +293,7 @@ namespace DynamicMosaicExample
                 SymbolBrowseClear();
             }
 
-            fswImageChanged.EnableRaisingEvents = true;
-            txtImagesCount.Text = count > 0 ? $@"{unchecked(_currentImage + 1)} / {count}" : string.Empty;
+            UpdateImagesCount(count);
 
             if (count <= 0)
             {
@@ -567,9 +566,9 @@ namespace DynamicMosaicExample
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         void TxtWord_KeyPress(object sender, KeyPressEventArgs e) =>
-            e.Handled = ((Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab ||
+            e.Handled = (Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab ||
                          (Keys)e.KeyChar == Keys.Pause ||
-                         (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15);
+                         (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15 || e.KeyChar == 27;
 
         /// <summary>
         ///     Отменяет отрисовку изображения для распознавания в случае ухода указателя мыши с поля рисования.
@@ -603,7 +602,7 @@ namespace DynamicMosaicExample
                 case MouseButtons.Left:
                     _grFront.DrawRectangle(_blackPen, new Rectangle(x, y, 1, 1));
                     pbSuccess.Image = Resources.Unk_128;
-                    btnClearImage.Enabled = true;
+                    btnSaveImage.Enabled = btnClearImage.Enabled = true;
                     break;
                 case MouseButtons.Right:
                     _grFront.DrawRectangle(_whitePen, new Rectangle(x, y, 1, 1));
@@ -620,7 +619,7 @@ namespace DynamicMosaicExample
         void BtnClearImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             _grFront.Clear(_defaultColor);
-            btnClearImage.Enabled = false;
+            btnSaveImage.Enabled = btnClearImage.Enabled = false;
             pbSuccess.Image = Resources.Unk_128;
         }, () => pbDraw.Refresh());
 
@@ -631,9 +630,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            if (dlgSaveImage.ShowDialog(this) != DialogResult.OK) return;
-            using (FileStream fs = new FileStream(dlgSaveImage.FileName, FileMode.Create, FileAccess.Write))
-                _btmFront.Save(fs, ImageFormat.Bmp);
+            if (dlgSaveImage.ShowDialog(this) == DialogResult.OK)
+                ConcurrentProcessorStorage.SaveToFile(_btmFront, dlgSaveImage.FileName);
         });
 
         /// <summary>
@@ -645,7 +643,7 @@ namespace DynamicMosaicExample
         {
             if (dlgOpenImage.ShowDialog(this) != DialogResult.OK) return;
             Initialize(dlgOpenImage.FileName);
-        }, () => btnClearImage.Enabled = IsPainting);
+        }, () => btnSaveImage.Enabled = btnClearImage.Enabled = IsPainting);
 
         /// <summary>
         ///     Выполняет метод с помощью метода <see cref="Control.Invoke(Delegate)" />.
@@ -870,11 +868,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
-        {
-            fswImageChanged.EnableRaisingEvents = false;
-            _processorStorage.SaveToFile(_workReflex[_currentReflexMapIndex]);
-        }, () => fswImageChanged.EnableRaisingEvents = true);
+        void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() => ConcurrentProcessorStorage.SaveToFile(_workReflex[_currentReflexMapIndex]));
 
         /// <summary>
         /// Сохраняет все карты <see cref="Processor"/> выбранной системы <see cref="Reflex"/> на жёсткий диск.
@@ -883,10 +877,9 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            fswImageChanged.EnableRaisingEvents = false;
             for (int k = 0; k < _workReflex.Count; k++)
-                _processorStorage.SaveToFile(_workReflex[k]);
-        }, () => fswImageChanged.EnableRaisingEvents = true);
+                ConcurrentProcessorStorage.SaveToFile(_workReflex[k]);
+        });
 
         /// <summary>
         /// Обрабатывает событие завершения работы программы.
@@ -931,7 +924,6 @@ namespace DynamicMosaicExample
             try
             {
                 BtnClearImage_Click(null, null);
-                RefreshImagesCount();
                 if ((_fileThread?.ThreadState & ThreadState.Unstarted) == ThreadState.Unstarted)
                     _fileThread.Start();
                 while (!IsFileActivity)
@@ -977,12 +969,12 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         private void TxtWord_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.Control && e.KeyCode == Keys.Z)
-            {
-                e.Handled = true;
-                if (!string.IsNullOrWhiteSpace(_currentState.CurWord))
-                    txtWord.Text = _currentState.CurWord;
-            }
+            if (!e.Control || e.KeyCode != Keys.Z)
+                return;
+            e.SuppressKeyPress = true;
+            e.Handled = true;
+            if (!string.IsNullOrEmpty(_currentState.CurWord))
+                txtWord.Text = _currentState.CurWord;
         }
     }
 }

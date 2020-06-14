@@ -126,7 +126,6 @@
             // 
             // btnImageCreate
             // 
-            this.btnImageCreate.Enabled = false;
             this.btnImageCreate.Location = new System.Drawing.Point(149, 38);
             this.btnImageCreate.Name = "btnImageCreate";
             this.btnImageCreate.Size = new System.Drawing.Size(114, 23);
@@ -192,7 +191,6 @@
             // 
             // btnImageDelete
             // 
-            this.btnImageDelete.Enabled = false;
             this.btnImageDelete.Location = new System.Drawing.Point(149, 62);
             this.btnImageDelete.Name = "btnImageDelete";
             this.btnImageDelete.Size = new System.Drawing.Size(114, 23);

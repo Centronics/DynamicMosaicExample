@@ -389,7 +389,7 @@ namespace DynamicMosaicExample
                 btnImageDelete.Click += _currentState.CriticalChange;
                 txtWord.TextChanged += _currentState.WordChange;
                 fswImageChanged.Path = SearchPath;
-                fswImageChanged.NotifyFilter = NotifyFilters.FileName | NotifyFilters.Size;
+                fswImageChanged.NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite;
                 fswImageChanged.Filter = $"*.{ExtImg}";
 
                 void OnChanged(object source, FileSystemEventArgs e) => SafetyExecute(() =>
@@ -513,7 +513,7 @@ namespace DynamicMosaicExample
                     txtWord.Enabled = value;
                     btnSaveImage.Enabled = value;
                     btnLoadImage.Enabled = value;
-                    btnClearImage.Enabled = value && IsPainting;
+                    btnSaveImage.Enabled = btnClearImage.Enabled = value && IsPainting;
                     btnReflexClear.Enabled = value && lstResults.Items.Count > 1;
 
                     if (value)
@@ -568,6 +568,24 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
+        /// Представляет собой обёртку для метода, который может выдать исключение.
+        /// Преобразует текст исключения, добавляя указанное имя метода, который его выдал.
+        /// </summary>
+        /// <param name="act">Метод, который необходимо выполнить. <see langword="null"/> игнорируется.</param>
+        /// <param name="name">Имя метода, которое будет необходимо добавить к тексту исключения.</param>
+        void ExceptionClause(Action act, string name)
+        {
+            try
+            {
+                act?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($@"{name}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Создаёт новый поток для обновления списка файлов изображений, в случае, если поток (<see cref="_fileThread"/>) не выполняется.
         /// Созданный поток находится в состояниях <see cref="ThreadState.Unstarted"/> и <see cref="ThreadState.Background"/>.
         /// Поток служит для получения всех имеющихся на данный момент образов букв для распознавания, в том числе, для актуализации их содержимого.
@@ -602,14 +620,12 @@ namespace DynamicMosaicExample
                                         return;
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(fName) && string.Compare(Path.GetExtension(fName),
-                                        $".{ExtImg}",
-                                        StringComparison.OrdinalIgnoreCase) == 0)
-                                        _processorStorage.AddProcessor(fName);
+                                    if (!string.IsNullOrWhiteSpace(fName) && string.Compare(Path.GetExtension(fName), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0)
+                                        ExceptionClause(() => _processorStorage.AddProcessor(fName), nameof(ConcurrentProcessorStorage.AddProcessor));
                                 }
                                 catch (Exception ex)
                                 {
-                                    WriteLog(ex.Message);
+                                    WriteLogMessage(ex.Message);
                                 }
                             }));
                     }
@@ -617,8 +633,6 @@ namespace DynamicMosaicExample
                     {
                         _imageActivity.Reset();
                     }
-                    if (!_stopBackgroundThreadFlag)
-                        RefreshImagesCount();
                     while (!_stopBackgroundThreadFlag)
                     {
                         _needRefreshEvent.WaitOne();
@@ -632,16 +646,16 @@ namespace DynamicMosaicExample
                                     switch (task.TaskType.Value)
                                     {
                                         case WatcherChangeTypes.Created:
-                                            _processorStorage.AddProcessor(task.FilePath);
+                                            ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath), nameof(ConcurrentProcessorStorage.AddProcessor));
                                             break;
                                         case WatcherChangeTypes.Renamed:
                                         case WatcherChangeTypes.Deleted:
-                                            _processorStorage.RemoveProcessor(task.FilePath, false);
+                                            ExceptionClause(() => _processorStorage.RemoveProcessor(task.FilePath), nameof(ConcurrentProcessorStorage.RemoveProcessor));
                                             break;
                                         case WatcherChangeTypes.Changed:
                                         case WatcherChangeTypes.All:
-                                            _processorStorage.RemoveProcessor(task.FilePath, false);
-                                            _processorStorage.AddProcessor(task.FilePath);
+                                            ExceptionClause(() => _processorStorage.RemoveProcessor(task.FilePath), nameof(ConcurrentProcessorStorage.RemoveProcessor));
+                                            ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath), nameof(ConcurrentProcessorStorage.AddProcessor));
                                             break;
                                         default:
                                             throw new ArgumentOutOfRangeException(nameof(task));
@@ -649,7 +663,7 @@ namespace DynamicMosaicExample
                                 }
                                 catch (Exception ex)
                                 {
-                                    WriteLog(ex.Message);
+                                    WriteLogMessage(ex.Message);
                                 }
                             });
                         }
@@ -657,8 +671,6 @@ namespace DynamicMosaicExample
                         {
                             _imageActivity.Reset();
                         }
-                        if (!_stopBackgroundThreadFlag)
-                            RefreshImagesCount();
                     }
                 }
                 catch (Exception ex)
@@ -678,7 +690,7 @@ namespace DynamicMosaicExample
         /// К сообщению автоматически прибавляется текущая дата в полном формате.
         /// </summary>
         /// <param name="logstr">Строка лога, которую надо записать.</param>
-        public void WriteLog(string logstr)
+        public void WriteLogMessage(string logstr)
         {
             void ShowMessage(string addMes)
             {

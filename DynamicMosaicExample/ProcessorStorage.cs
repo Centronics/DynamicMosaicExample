@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using Processor = DynamicParser.Processor;
 
 namespace DynamicMosaicExample
@@ -136,8 +137,25 @@ namespace DynamicMosaicExample
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(AddProcessor)}: Операция недопустима.");
             fullPath = Path.GetFullPath(fullPath);
+            FileStream fs = null;
+            for (int k = 0; k < 50; k++)
+            {
+                try
+                {
+                    fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                }
+                catch (Exception ex)
+                {
+                    if (k >= 49)
+                        throw new FileNotFoundException($@"{nameof(AddProcessor)}: {ex.Message}", fullPath);
+                    Thread.Sleep(100);
+                    continue;
+                }
+
+                break;
+            }
             Bitmap btm = null;
-            using (FileStream fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            using (fs)
                 btm = new Bitmap(fs);
             ImageRect ir = new ImageRect(btm, Path.GetFileNameWithoutExtension(fullPath), fullPath);
             if (!ir.IsSymbol)
@@ -149,7 +167,6 @@ namespace DynamicMosaicExample
                     throw new InvalidOperationException($@"{nameof(AddProcessor)}: Операция недопустима.");
                 try
                 {
-
                     AddElement(hashCode, fullPath, ir.CurrentProcessor);
                     if (!_dictionaryFileNames.TryGetValue(ir.SymbolicName, out uint value))
                         _dictionaryFileNames.Add(ir.SymbolicName, ir.Number);
@@ -199,7 +216,7 @@ namespace DynamicMosaicExample
                     break;
                 if (count == uint.MaxValue)
                     return (false, 0, string.Empty);
-                count = checked(count + 1);
+                count++;
             }
             return (true, count, tag.Substring(0, k + 1));
         }
@@ -381,11 +398,9 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Удаляет указанную карту <see cref="Processor"/> из коллекции <see cref="ConcurrentProcessorStorage"/>, идентифицируя её по пути к ней.
-        /// В том числе, может удалить сам файл с диска.
         /// </summary>
         /// <param name="fullPath">Полный путь к карте <see cref="Processor"/>, которую необходимо удалить из коллекции.</param>
-        /// <param name="removeFile">Значение <see langword="true"/> означает, что требуется удалить файл с диска.</param>
-        internal void RemoveProcessor(string fullPath, bool removeFile)
+        internal void RemoveProcessor(string fullPath)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
@@ -395,17 +410,15 @@ namespace DynamicMosaicExample
             {
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
-                RemoveProcessor(this[fullPath].processor, removeFile);
+                RemoveProcessor(this[fullPath].processor);
             }
         }
 
         /// <summary>
         /// Удаляет указанную карту <see cref="Processor"/> из коллекции <see cref="ConcurrentProcessorStorage"/>.
-        /// В том числе, удаляет сам файл с диска.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor"/>, которую следует удалить.</param>
-        /// <param name="removeFile">Значение <see langword="true"/> означает, что требуется удалить файл с диска.</param>
-        void RemoveProcessor(Processor processor, bool removeFile)
+        void RemoveProcessor(Processor processor)
         {
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
@@ -424,8 +437,6 @@ namespace DynamicMosaicExample
                     foreach (ProcPath px in ph.Elements)
                         if (ReferenceEquals(processor, px.CurrentProcessor))
                         {
-                            if (removeFile)
-                                File.Delete(ph[index].CurrentPath);
                             _dictionaryByPath.Remove(ph[index].CurrentPath);
                             ph.RemoveProcessor(index);
                             break;
@@ -475,40 +486,46 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Сохраняет указанную карту <see cref="Processor"/> на жёсткий диск в формате BMP.
         ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
-        ///     Так же карта будет добавлена в базу данных класса <see cref="ConcurrentProcessorStorage"/>, счётчик максимального номера карты будет актуализирован.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor"/>, которую требуется сохранить.</param>
-        /// <returns>Возвращает строку полного пути к файлу нового образа или <see cref="string.Empty"/> в случае ошибки его сохранения.</returns>
-        internal string SaveToFile(Processor processor)
+        internal static void SaveToFile(Processor processor)
         {
-            if (!IsOperationAllowed)
-                throw new InvalidOperationException($@"{nameof(SaveToFile)}: Операция недопустима.");
-            if (processor is null)
-                throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}");
+            if (processor == null)
+                throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
             (bool res, uint count, string name) = GetFilesNumberByName(processor.Tag);
             if (!res)
-                return string.Empty;
-            string result = Path.Combine(FrmExample.SearchPath, $@"{name + count}.{FrmExample.ExtImg}");
-            Bitmap btm = ImageRect.GetBitmap(processor);
-            using (FileStream fs = new FileStream(result, FileMode.Create, FileAccess.Write, FileShare.Read))
+                throw new Exception($@"{nameof(SaveToFile)}: Счётчик количества файлов дошёл до максимума.");
+            SaveToFile(ImageRect.GetBitmap(processor), $@"{name + count}");
+        }
+
+        /// <summary>
+        /// Сохраняет указанное изображение на жёсткий диск.
+        /// </summary>
+        /// <param name="btm">Изображение, которое требуется сохранить.</param>
+        /// <param name="path">Путь, по которому требуется сохранить изображение.</param>
+        internal static void SaveToFile(Bitmap btm, string path)
+        {
+            if (btm == null)
+                throw new ArgumentNullException(nameof(btm), $@"{nameof(SaveToFile)}: Необходимо указать изображение, которое требуется сохранить.");
+            if (string.IsNullOrWhiteSpace(path))
+                throw new ArgumentException($@"{nameof(SaveToFile)}: Имя не задано.", nameof(path));
+            path = Path.ChangeExtension(path, string.Empty);
+            string resultTmp = Path.Combine(FrmExample.SearchPath, $@"{path}bmpTMP");
+            string result = Path.Combine(FrmExample.SearchPath, $@"{path}{FrmExample.ExtImg}");
+            using (FileStream fs = new FileStream(resultTmp, FileMode.Create, FileAccess.Write))
                 btm.Save(fs, ImageFormat.Bmp);
-            lock (_syncObject)
+            try
             {
-                if (!IsOperationAllowed)
-                    throw new InvalidOperationException($@"{nameof(SaveToFile)}: Операция недопустима.");
-                try
-                {
-                    AddElement(CRCIntCalc.GetHash(processor), result, processor);
-                    _dictionaryFileNames.TryGetValue(name, out uint value);
-                    if (count > value)
-                        _dictionaryFileNames[name] = count;
-                    return result;
-                }
-                catch
-                {
-                    IsOperationAllowed = false;
-                    throw;
-                }
+                File.Delete(result);
+                File.Move(resultTmp, result);
+            }
+            catch (FileNotFoundException ex)
+            {
+                throw new Exception($@"{nameof(SaveToFile)}: Ошибка при сохранении карты: {resultTmp}: {ex.Message}");
+            }
+            catch (IOException ex)
+            {
+                throw new Exception($@"{nameof(SaveToFile)}: Попытка перезаписать существующий файл: {result}: {ex.Message}");
             }
         }
 

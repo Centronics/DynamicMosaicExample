@@ -43,18 +43,11 @@ namespace DynamicMosaicExample
         bool _timedOut;
 
         /// <summary>
-        /// Ссылается на основное хранилище карт программы.
-        /// </summary>
-        readonly ConcurrentProcessorStorage _processorStorage;
-
-        /// <summary>
         ///     Конструктор формы ввода нового искомого символа.
         /// </summary>
-        /// <param name="processorStorage">Ссылка на основное хранилище карт программы.</param>
-        internal FrmSymbol(ConcurrentProcessorStorage processorStorage)
+        internal FrmSymbol()
         {
             InitializeComponent();
-            _processorStorage = processorStorage ?? throw new ArgumentNullException(nameof(processorStorage));
             _btmFront = new Bitmap(pbBox.Width, pbBox.Height);
             _grFront = Graphics.FromImage(_btmFront);
             pbBox.Image = _btmFront;
@@ -122,7 +115,7 @@ namespace DynamicMosaicExample
                 _timedOut = false;
                 return;
             }
-            _processorStorage.SaveToFile(new Processor(_btmFront, new string(txtSymbol.Text[0],1)));
+            ConcurrentProcessorStorage.SaveToFile(new Processor(_btmFront, new string(txtSymbol.Text[0],1)));
             DialogResult = DialogResult.OK;
         });
 
