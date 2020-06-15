@@ -648,10 +648,14 @@ namespace DynamicMosaicExample
                                         case WatcherChangeTypes.Created:
                                             ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath), nameof(ConcurrentProcessorStorage.AddProcessor));
                                             break;
-                                        case WatcherChangeTypes.Renamed:
                                         case WatcherChangeTypes.Deleted:
-                                            ExceptionClause(() => _processorStorage.RemoveProcessor(task.FilePath), nameof(ConcurrentProcessorStorage.RemoveProcessor));
+                                            ExceptionClause(() =>
+                                            {
+                                                if (!File.Exists(task.FilePath))
+                                                    _processorStorage.RemoveProcessor(task.FilePath);
+                                            }, nameof(ConcurrentProcessorStorage.RemoveProcessor));
                                             break;
+                                        case WatcherChangeTypes.Renamed:
                                         case WatcherChangeTypes.Changed:
                                         case WatcherChangeTypes.All:
                                             ExceptionClause(() => _processorStorage.RemoveProcessor(task.FilePath), nameof(ConcurrentProcessorStorage.RemoveProcessor));
