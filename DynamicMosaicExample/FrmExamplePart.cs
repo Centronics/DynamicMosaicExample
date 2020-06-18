@@ -342,7 +342,7 @@ namespace DynamicMosaicExample
             /// <summary>
             /// Изменения, возникшие в файле или папке.
             /// </summary>
-            public WatcherChangeTypes? TaskType { get; private set; }
+            public WatcherChangeTypes TaskType { get; private set; }
 
             /// <summary>
             /// Путь к файлу или папке, в которой произошли изменения.
@@ -350,15 +350,36 @@ namespace DynamicMosaicExample
             public string FilePath { get; private set; }
 
             /// <summary>
+            /// Исходный путь к файлу или папке, в которой произошли изменения.
+            /// </summary>
+            public string OldFilePath { get; private set; }
+
+            /// <summary>
+            /// Указывает, был ли файл переименован в требуемуе для программы расширение.
+            /// </summary>
+            public bool RenamedTo { get; private set; }
+
+            /// <summary>
+            /// Указывает, был ли файл переименован из требуемуемого для программы расширения.
+            /// </summary>
+            public bool RenamedFrom { get; private set; }
+
+            /// <summary>
             /// Инициализирует новый экземпляр параметрами добавляемой задачи.
             /// Параметры предназначены только для чтения.
             /// </summary>
             /// <param name="changes">Изменения, возникшие в файле или папке.</param>
             /// <param name="filePath">Путь к файлу или папке, в которой произошли изменения.</param>
-            public FileTask(WatcherChangeTypes changes, string filePath)
+            /// <param name="oldFilePath">Исходный путь к файлу или папке, в которой произошли изменения.</param>
+            /// <param name="renamedTo">Указывает, был ли файл переименован в требуемуе для программы расширение.</param>
+            /// <param name="renamedFrom">Указывает, был ли файл переименован из требуемуемого для программы расширения.</param>
+            public FileTask(WatcherChangeTypes changes, string filePath, string oldFilePath, bool renamedTo, bool renamedFrom)
             {
                 TaskType = changes;
                 FilePath = filePath;
+                OldFilePath = oldFilePath;
+                RenamedTo = renamedTo;
+                RenamedFrom = renamedFrom;
             }
         }
 
@@ -394,14 +415,28 @@ namespace DynamicMosaicExample
 
                 void OnChanged(object source, FileSystemEventArgs e) => SafetyExecute(() =>
                 {
-                    _concurrentFileTasks.Enqueue(new FileTask(e.ChangeType, e.FullPath));
+                    if (string.IsNullOrWhiteSpace(e.FullPath) || string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
+                        return;
+
+                    _concurrentFileTasks.Enqueue(new FileTask(e.ChangeType, e.FullPath, string.Empty, false, false));
+                    _needRefreshEvent.Set();
+                });
+
+                void OnRenamed(object source, RenamedEventArgs e) => SafetyExecute(() =>
+                {
+                    bool renamedTo = !string.IsNullOrWhiteSpace(e.FullPath) && string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0;
+                    bool renamedFrom = !string.IsNullOrWhiteSpace(e.OldFullPath) && string.Compare(Path.GetExtension(e.OldFullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0;
+                    if (!renamedTo && !renamedFrom)
+                        return;
+
+                    _concurrentFileTasks.Enqueue(new FileTask(e.ChangeType, e.FullPath, e.OldFullPath, renamedTo, renamedFrom));
                     _needRefreshEvent.Set();
                 });
 
                 fswImageChanged.Changed += OnChanged;
                 fswImageChanged.Created += OnChanged;
                 fswImageChanged.Deleted += OnChanged;
-                fswImageChanged.Renamed += OnChanged;
+                fswImageChanged.Renamed += OnRenamed;
                 fswImageChanged.EnableRaisingEvents = true;
                 _fileThread = CreateFileRefreshThread();
                 _workWaitThread = CreateWaitThread();
@@ -621,7 +656,7 @@ namespace DynamicMosaicExample
                                     }
 
                                     if (!string.IsNullOrWhiteSpace(fName) && string.Compare(Path.GetExtension(fName), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0)
-                                        ExceptionClause(() => _processorStorage.AddProcessor(fName), nameof(ConcurrentProcessorStorage.AddProcessor));
+                                        ExceptionClause(() => _processorStorage.AddProcessor(fName), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> (addition) -> {fName}");
                                 }
                                 catch (Exception ex)
                                 {
@@ -643,26 +678,28 @@ namespace DynamicMosaicExample
                             {
                                 try
                                 {
-                                    switch (task.TaskType.Value)
+                                    switch (task.TaskType)
                                     {
                                         case WatcherChangeTypes.Created:
-                                            ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath), nameof(ConcurrentProcessorStorage.AddProcessor));
+                                            ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.TaskType} -> {task.FilePath}");
                                             break;
                                         case WatcherChangeTypes.Deleted:
-                                            ExceptionClause(() =>
-                                            {
-                                                if (!File.Exists(task.FilePath))
-                                                    _processorStorage.RemoveProcessor(task.FilePath);
-                                            }, nameof(ConcurrentProcessorStorage.RemoveProcessor));
+                                            if (!File.Exists(task.FilePath))
+                                                ExceptionClause(() => _processorStorage.RemoveProcessor(task.FilePath), $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.TaskType} -> {task.FilePath}");
                                             break;
                                         case WatcherChangeTypes.Renamed:
+                                            if (task.RenamedFrom)
+                                                ExceptionClause(() => _processorStorage.RemoveProcessor(task.OldFilePath), $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.TaskType} -> {task.OldFilePath}");
+                                            if (task.RenamedTo)
+                                                ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.TaskType} -> {task.FilePath}");
+                                            break;
                                         case WatcherChangeTypes.Changed:
                                         case WatcherChangeTypes.All:
-                                            ExceptionClause(() => _processorStorage.RemoveProcessor(task.FilePath), nameof(ConcurrentProcessorStorage.RemoveProcessor));
-                                            ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath), nameof(ConcurrentProcessorStorage.AddProcessor));
+                                            ExceptionClause(() => _processorStorage.RemoveProcessor(task.FilePath), $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.TaskType} -> {task.FilePath}");
+                                            ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.TaskType} -> {task.FilePath}");
                                             break;
                                         default:
-                                            throw new ArgumentOutOfRangeException(nameof(task));
+                                            throw new ArgumentOutOfRangeException($"{nameof(task)} -> {task.TaskType} -> {task.FilePath}");
                                     }
                                 }
                                 catch (Exception ex)

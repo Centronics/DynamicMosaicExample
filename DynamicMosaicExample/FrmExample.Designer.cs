@@ -479,7 +479,6 @@
             // 
             // fswImageChanged
             // 
-            this.fswImageChanged.EnableRaisingEvents = true;
             this.fswImageChanged.Filter = "*.bmp";
             this.fswImageChanged.IncludeSubdirectories = true;
             this.fswImageChanged.NotifyFilter = System.IO.NotifyFilters.FileName;

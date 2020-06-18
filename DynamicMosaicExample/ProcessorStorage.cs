@@ -157,7 +157,7 @@ namespace DynamicMosaicExample
             Bitmap btm = null;
             using (fs)
                 btm = new Bitmap(fs);
-            ImageRect ir = new ImageRect(btm, Path.GetFileNameWithoutExtension(fullPath), fullPath);
+            ImageRect ir = new ImageRect(btm, Path.GetFileNameWithoutExtension(fullPath));
             if (!ir.IsSymbol)
                 return;
             int hashCode = CRCIntCalc.GetHash(ir.CurrentProcessor);
@@ -196,7 +196,7 @@ namespace DynamicMosaicExample
                 _dictionary.Add(hashCode, new ProcHash(new ProcPath(processor, fullPath)));
             else if (ph.Elements.All(px => !ProcessorCompare(processor, px.CurrentProcessor)))
                 ph.AddProcessor(new ProcPath(processor, fullPath));
-            _dictionaryByPath.Add(fullPath, new ProcPath(processor, fullPath));
+            _dictionaryByPath.Add(fullPath.ToLower(), new ProcPath(processor, fullPath));
         }
 
         /// <summary>
@@ -330,7 +330,7 @@ namespace DynamicMosaicExample
                 {
                     if (!IsOperationAllowed)
                         throw new InvalidOperationException($@"{nameof(ConcurrentProcessorStorage)}.indexer(string): Операция недопустима.");
-                    _dictionaryByPath.TryGetValue(fullPath, out ProcPath p);
+                    _dictionaryByPath.TryGetValue(fullPath.ToLower(), out ProcPath p);
                     return (p.CurrentProcessor, string.IsNullOrEmpty(p.CurrentPath) ? string.Empty : p.CurrentPath, Count);
                 }
             }
@@ -410,7 +410,7 @@ namespace DynamicMosaicExample
             {
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(RemoveProcessor)}: Операция недопустима.");
-                RemoveProcessor(this[fullPath].processor);
+                RemoveProcessor(this[fullPath.ToLower()].processor);
             }
         }
 
@@ -437,7 +437,7 @@ namespace DynamicMosaicExample
                     foreach (ProcPath px in ph.Elements)
                         if (ReferenceEquals(processor, px.CurrentProcessor))
                         {
-                            _dictionaryByPath.Remove(ph[index].CurrentPath);
+                            _dictionaryByPath.Remove(ph[index].CurrentPath.ToLower());
                             ph.RemoveProcessor(index);
                             break;
                         }

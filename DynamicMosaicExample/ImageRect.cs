@@ -15,17 +15,10 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="btm">Изображение буквы.</param>
         /// <param name="tag">Название буквы.</param>
-        /// <param name="imagePath">Полный путь к изображению буквы.</param>
-        internal ImageRect(Bitmap btm, string tag, string imagePath)
+        internal ImageRect(Bitmap btm, string tag)
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm), $@"{nameof(ImageRect)}: {nameof(btm)} = null.");
-            if (string.IsNullOrWhiteSpace(imagePath))
-                throw new ArgumentNullException(nameof(imagePath), $@"{nameof(ImageRect)}: {nameof(imagePath)} = null.");
-            Bitm = null;
-            ImagePath = string.Empty;
-            SymbolString = string.Empty;
-            Symbol = '\0';
             SymbolicName=string.Empty;
             Number = 0U;
             IsSymbol = false;
@@ -35,13 +28,10 @@ namespace DynamicMosaicExample
             (bool result, uint number, bool isNumeric, string symbolicName) = NameParser(tag);
             if (!result)
                 return;
-            SymbolString = isNumeric ? $@"{tag}|" : tag;
-            Symbol = char.ToUpper(tag[0]);
+            string symbolString = isNumeric ? $@"{tag}|" : tag;
             SymbolicName = symbolicName;
             Number = number;
-            Bitm = btm;
-            ImagePath = imagePath;
-            CurrentProcessor = new Processor(ImageMap(btm), SymbolString);
+            CurrentProcessor = new Processor(ImageMap(btm), symbolString);
             IsSymbol = true;
         }
 
@@ -60,26 +50,6 @@ namespace DynamicMosaicExample
                     b.SetPixel(x, y, proc[x, y].ValueColor);
             return b;
         }
-
-        /// <summary>
-        ///     Содержит текущее изображение.
-        /// </summary>
-        internal Bitmap Bitm { get; }
-
-        /// <summary>
-        ///     Полный путь к текущему образу.
-        /// </summary>
-        internal string ImagePath { get; }
-
-        /// <summary>
-        ///     Определяет значение поля <see cref="DynamicParser.Processor.Tag" />.
-        /// </summary>
-        internal string SymbolString { get; }
-
-        /// <summary>
-        ///     Символьное обозначение текущей буквы.
-        /// </summary>
-        internal char Symbol { get; }
 
         /// <summary>
         /// Отражает название текущего образа без цифровой составляющей.
@@ -133,8 +103,8 @@ namespace DynamicMosaicExample
             if (k >= tag.Length - 1)
                 return (true, 0, false, symbName);
             if (uint.TryParse(tag.Substring(k + 1), out uint number))
-                return (true, number, false, symbName);
-            return (true, 0, true, symbName);
+                return (true, number, true, symbName);
+            return (true, 0, false, symbName);
         }
     }
 }
