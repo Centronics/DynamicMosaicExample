@@ -130,6 +130,7 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Добавляет карту в коллекцию, по указанному пути.
+        /// Если карта не подходит по каким-либо признакам, а в коллекции хранится карта по тому же пути, то она удаляется из коллекции.
         /// </summary>
         /// <param name="fullPath">Полный путь к изображению, которое будет интерпретировано как карта <see cref="Processor"/>.</param>
         internal void AddProcessor(string fullPath)
@@ -159,7 +160,11 @@ namespace DynamicMosaicExample
                 btm = new Bitmap(fs);
             ImageRect ir = new ImageRect(btm, Path.GetFileNameWithoutExtension(fullPath));
             if (!ir.IsSymbol)
+            {
+                RemoveProcessor(fullPath);
                 return;
+            }
+
             int hashCode = CRCIntCalc.GetHash(ir.CurrentProcessor);
             lock (_syncObject)
             {
@@ -167,7 +172,8 @@ namespace DynamicMosaicExample
                     throw new InvalidOperationException($@"{nameof(AddProcessor)}: Операция недопустима.");
                 try
                 {
-                    AddElement(hashCode, fullPath, ir.CurrentProcessor);
+                    if (!AddElement(hashCode, fullPath, ir.CurrentProcessor))
+                        return;
                     if (!_dictionaryFileNames.TryGetValue(ir.SymbolicName, out uint value))
                         _dictionaryFileNames.Add(ir.SymbolicName, ir.Number);
                     else if (value < ir.Number)
@@ -183,20 +189,31 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Добавляет указанную карту <see cref="Processor"/> в <see cref="ConcurrentProcessorStorage"/>.
-        /// Добавляет её в массив, содержащий хеши, так и в массив, содержащий пути.
-        /// Хеш добавляемой карты может совпадать с другими картами.
+        /// Добавляет её в массив, содержащий хеши, и в массив, содержащий пути.
+        /// Хеш добавляемой карты может совпадать с хешами других карт.
         /// Полный путь к добавляемой карте на достоверность не проверяется.
+        /// Возвращает значение <see langword="true"/> в случае, если карта была добавлена в коллекцию, <see langword="false"/>, если карта была перезагружена.
         /// </summary>
         /// <param name="hashCode">Хеш добавляемой карты.</param>
         /// <param name="fullPath">Полный путь к добавляемой карте.</param>
         /// <param name="processor">Добавляемая карта <see cref="Processor"/>.</param>
-        void AddElement(int hashCode, string fullPath, Processor processor)
+        /// <returns>Возвращает значение <see langword="true"/> в случае, если карта была добавлена в коллекцию, <see langword="false"/>, если карта была перезагружена.</returns>
+        bool AddElement(int hashCode, string fullPath, Processor processor)
         {
+            string fPath = fullPath.ToLower();
+            bool result = true;
+            if (_dictionaryByPath.ContainsKey(fPath))
+            {
+                RemoveProcessor(fullPath);
+                result = false;
+            }
+
+            _dictionaryByPath.Add(fPath, new ProcPath(processor, fullPath));
             if (!_dictionary.TryGetValue(hashCode, out ProcHash ph))
                 _dictionary.Add(hashCode, new ProcHash(new ProcPath(processor, fullPath)));
             else if (ph.Elements.All(px => !ProcessorCompare(processor, px.CurrentProcessor)))
                 ph.AddProcessor(new ProcPath(processor, fullPath));
-            _dictionaryByPath.Add(fullPath.ToLower(), new ProcPath(processor, fullPath));
+            return result;
         }
 
         /// <summary>

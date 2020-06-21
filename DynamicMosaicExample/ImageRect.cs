@@ -52,12 +52,12 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Отражает название текущего образа без цифровой составляющей.
+        /// Получает название текущего образа без цифровой составляющей.
         /// </summary>
         internal string SymbolicName { get; }
 
         /// <summary>
-        ///     Номер текущего образа.
+        ///     Получает номер текущего образа.
         /// </summary>
         internal uint Number { get; }
 
@@ -73,8 +73,10 @@ namespace DynamicMosaicExample
         internal Processor CurrentProcessor { get; }
 
         /// <summary>
-        ///     Получает текущее изображение в виде набора знаков объектов карты.
+        ///     Преобразует указанное изображение в массив знаков объектов карты.
         /// </summary>
+        /// <param name="bitm">Изображение для конвертации.</param>
+        /// <returns>Возвращает текущее изображение в виде массива объектов карты.</returns>
         static SignValue[,] ImageMap(Bitmap bitm)
         {
             if (bitm == null)
