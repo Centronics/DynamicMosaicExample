@@ -680,9 +680,6 @@ namespace DynamicMosaicExample
                                 {
                                     switch (task.TaskType)
                                     {
-                                        case WatcherChangeTypes.Created:
-                                            ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.TaskType} -> {task.FilePath}");
-                                            break;
                                         case WatcherChangeTypes.Deleted:
                                             if (!File.Exists(task.FilePath))
                                                 ExceptionClause(() => _processorStorage.RemoveProcessor(task.FilePath), $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.TaskType} -> {task.FilePath}");
@@ -693,9 +690,9 @@ namespace DynamicMosaicExample
                                             if (task.RenamedTo)
                                                 ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.TaskType} -> {task.FilePath}");
                                             break;
+                                        case WatcherChangeTypes.Created:
                                         case WatcherChangeTypes.Changed:
                                         case WatcherChangeTypes.All:
-                                            ExceptionClause(() => _processorStorage.RemoveProcessor(task.FilePath), $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.TaskType} -> {task.FilePath}");
                                             ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.TaskType} -> {task.FilePath}");
                                             break;
                                         default:

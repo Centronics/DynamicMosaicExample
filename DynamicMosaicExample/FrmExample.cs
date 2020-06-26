@@ -256,10 +256,7 @@ namespace DynamicMosaicExample
         /// Отображает номер выбранной карты и количество карт в коллекции <see cref="ConcurrentProcessorStorage"/>.
         /// </summary>
         /// <param name="count">Количество карт в коллекции <see cref="ConcurrentProcessorStorage"/>.</param>
-        void UpdateImagesCount(int count)
-        {
-            txtImagesCount.Text = count > 0 ? $@"{unchecked(_currentImage + 1)} / {count}" : string.Empty;
-        }
+        void UpdateImagesCount(int count) => txtImagesCount.Text = count > 0 ? $@"{unchecked(_currentImage + 1)} / {count}" : string.Empty;
 
         /// <summary>
         ///     Выполняет подсчёт количества изображений для поиска.
@@ -453,7 +450,7 @@ namespace DynamicMosaicExample
                 {
                     _workThreadActivity.Set();
 
-                    if (txtWord.Text.Length <= 0)
+                    if (_currentState.CurWord.Length <= 0)
                     {
                         ErrorMessageInOtherThread(
                             @"Напишите какое-нибудь слово, которое можно составить из одного или нескольких образов.");
@@ -488,7 +485,7 @@ namespace DynamicMosaicExample
                     try
                     {
                         _stopwatch.Restart();
-                        result = workReflex.FindRelation(new Processor(_btmFront, "Main"), txtWord.Text);
+                        result = workReflex.FindRelation(new Processor(_btmFront, "Main"), _currentState.CurWord);
                     }
                     finally
                     {
@@ -497,7 +494,7 @@ namespace DynamicMosaicExample
                         {
                             _workReflexes.Insert(0, result);
                             _currentReflexMapIndex = 0;
-                            lstResults.Items.Insert(1, DateTime.Now.ToString(@"HH:mm:ss"));
+                            lstResults.Items.Insert(1, $@"({result.Count}) {DateTime.Now.ToString(@"HH:mm:ss")}");
                             lstResults.SelectedIndex = 1;
                             btnReflexClear.Enabled = true;
                             grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
@@ -769,7 +766,7 @@ namespace DynamicMosaicExample
                 _workReflex = _workReflexes[lstResults.SelectedIndex - 1];
                 Processor p = _workReflex[0];
                 pbConSymbol.Image = ImageRect.GetBitmap(p);
-                txtConSymbol.Text = p.Tag;
+                UpdateConSymbolName(p.Tag);
                 txtConSymbol.Enabled = true;
                 pbConSymbol.Enabled = true;
                 btnConNext.Enabled = true;
@@ -805,7 +802,8 @@ namespace DynamicMosaicExample
             lstResults.SelectedIndex = 0;
             _workReflex = null;
             _currentReflexMapIndex = 0;
-            grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
+            int count = lstResults.Items.Count - 1;
+            grpResults.Text = count > 0 ? $@"{_strGrpResults} ({count})" : _strGrpResults;
             ReflexBrowseClear();
             if (lstResults.Items.Count > 1)
                 return;
@@ -817,6 +815,8 @@ namespace DynamicMosaicExample
             btnReflexClear.Enabled = false;
             btnConSaveImage.Enabled = false;
             btnConSaveAllImages.Enabled = false;
+            pbSuccess.Image = Resources.Unk_128;
+            _currentState.CriticalChange(sender, e);
         });
 
         /// <summary>
@@ -826,19 +826,13 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            if (lstResults.SelectedIndex < 0)
-            {
-                ReflexBrowseClear();
-                return;
-            }
-
             if (_currentReflexMapIndex >= _workReflex.Count - 1)
                 _currentReflexMapIndex = 0;
             else
                 _currentReflexMapIndex++;
             Processor p = _workReflex[_currentReflexMapIndex];
             pbConSymbol.Image = ImageRect.GetBitmap(p);
-            txtConSymbol.Text = p.Tag;
+            UpdateConSymbolName(p.Tag);
         });
 
         /// <summary>
@@ -848,20 +842,20 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConPrevious_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            if (lstResults.SelectedIndex <= 0)
-            {
-                ReflexBrowseClear();
-                return;
-            }
-
             if (_currentReflexMapIndex <= 0)
                 _currentReflexMapIndex = _workReflex.Count - 1;
             else
                 _currentReflexMapIndex--;
             Processor p = _workReflex[_currentReflexMapIndex];
             pbConSymbol.Image = ImageRect.GetBitmap(p);
-            txtConSymbol.Text = p.Tag;
+            UpdateConSymbolName(p.Tag);
         });
+
+        /// <summary>
+        /// Актуализирует информацию о выбранной карте рассматриваемой в данный момент системы <see cref="Reflex"/>.
+        /// </summary>
+        /// <param name="tag">Значение свойства <see cref="Processor.Tag"/>.</param>
+        void UpdateConSymbolName(string tag) => txtConSymbol.Text = $@"№ {_currentReflexMapIndex + 1} {ConcurrentProcessorStorage.GetProcessorName(tag)}";
 
         /// <summary>
         /// Сохраняет выбранную карту <see cref="Processor"/> выбранной системы <see cref="Reflex"/> на жёсткий диск.

@@ -19,7 +19,7 @@ namespace DynamicMosaicExample
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm), $@"{nameof(ImageRect)}: {nameof(btm)} = null.");
-            SymbolicName=string.Empty;
+            SymbolicName = string.Empty;
             Number = 0U;
             IsSymbol = false;
             CurrentProcessor = null;
@@ -28,10 +28,9 @@ namespace DynamicMosaicExample
             (bool result, uint number, bool isNumeric, string symbolicName) = NameParser(tag);
             if (!result)
                 return;
-            string symbolString = isNumeric ? $@"{tag}|" : tag;
             SymbolicName = symbolicName;
             Number = number;
-            CurrentProcessor = new Processor(ImageMap(btm), symbolString);
+            CurrentProcessor = new Processor(ImageMap(btm), isNumeric ? $@"{tag}~" : tag);
             IsSymbol = true;
         }
 
