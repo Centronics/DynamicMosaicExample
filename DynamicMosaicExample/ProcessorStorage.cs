@@ -221,8 +221,13 @@ namespace DynamicMosaicExample
         {
             if (string.IsNullOrWhiteSpace(tag))
                 throw new ArgumentNullException(nameof(tag), nameof(GetFilesNumberByName));
-            uint count = 0;
             int k = tag.Length - 1;
+            if (k > 0 && tag[k] == '~')
+                if (tag[k - 1] == '~')
+                    return (0, tag);
+                else
+                    return (0, tag.Substring(0, k));
+            uint count = 0;
             for (; k > 0; k--)
             {
                 if (tag[k] != '0')

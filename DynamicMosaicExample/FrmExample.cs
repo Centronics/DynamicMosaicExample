@@ -123,12 +123,12 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbDraw_MouseDown(object sender, MouseEventArgs e)
+        void PbDraw_MouseDown(object sender, MouseEventArgs e) => SafetyExecute(() =>
         {
             _draw = true;
             DrawPoint(e.X, e.Y, e.Button);
             _currentState.CriticalChange(sender, e);
-        }
+        });
 
         /// <summary>
         ///     Расширяет область рисования распознаваемого изображения <see cref="pbDraw" /> до максимального размера по
@@ -177,7 +177,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Возвращает окно просмотра <see cref="Reflex"/> в исходное состояние.
         /// </summary>
-        void ReflexBrowseClear()
+        void ConSymbolBrowseClear()
         {
             txtConSymbol.Text = _unknownSystemName;
             pbConSymbol.Image = new Bitmap(pbConSymbol.Width, pbConSymbol.Height);
@@ -412,11 +412,10 @@ namespace DynamicMosaicExample
         void BtnReflexClear_Click(object sender, EventArgs e) => InvokeAction(() =>
         {
             _workReflexes.Clear();
-            _workReflex = null;
+            _workSelections.Clear();
             lstResults.Items.Clear();
             lstResults.SelectedIndex = -1;
             lstResults.Items.Add(_createReflexString);
-            _currentReflexMapIndex = 0;
             txtConSymbol.Enabled = false;
             pbConSymbol.Enabled = false;
             btnConNext.Enabled = false;
@@ -425,10 +424,8 @@ namespace DynamicMosaicExample
             btnConSaveAllImages.Enabled = false;
             btnReflexRemove.Enabled = false;
             btnReflexClear.Enabled = false;
-            grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
-            ReflexBrowseClear();
-            pbSuccess.Image = Resources.Unk_128;
-            _currentState.CriticalChange(sender, e);
+            grpResults.Text = _strGrpResults;
+            ConSymbolBrowseClear();
         });
 
         /// <summary>
@@ -450,7 +447,7 @@ namespace DynamicMosaicExample
                 {
                     _workThreadActivity.Set();
 
-                    if (_currentState.CurWord.Length <= 0)
+                    if (txtWord.Text.Length <= 0)
                     {
                         ErrorMessageInOtherThread(
                             @"Напишите какое-нибудь слово, которое можно составить из одного или нескольких образов.");
@@ -463,21 +460,30 @@ namespace DynamicMosaicExample
                         return;
                     }
 
-                    ProcessorContainer processors = null;
+                    Reflex workReflex;
 
-                    foreach (Processor processor in _processorStorage.Elements)
-                        if (processors == null)
-                            processors = new ProcessorContainer(processor);
-                        else
-                            processors.Add(processor);
-
-                    if (processors == null || processors.Count < 2)
+                    if (_workReflex == null)
                     {
-                        ErrorMessageInOtherThread(@"Количество образов для распознавания должно быть не меньше двух. Нарисуйте их.");
-                        return;
-                    }
+                        ProcessorContainer processors = null;
 
-                    Reflex workReflex = _workReflex ?? new Reflex(processors);
+                        foreach (Processor processor in _processorStorage.Elements)
+                            if (processors == null)
+                                processors = new ProcessorContainer(processor);
+                            else
+                                processors.Add(processor);
+
+                        if (processors == null || processors.Count < 2)
+                        {
+                            ErrorMessageInOtherThread(
+                                @"Количество образов для распознавания должно быть не меньше двух. Нарисуйте их.");
+                            return;
+                        }
+
+                        workReflex = new Reflex(processors);
+                    }
+                    else
+                        workReflex = _workReflex;
+
                     _currentState.CriticalChange(sender, e);
                     _currentState.WordChange(sender, e);
 
@@ -493,7 +499,7 @@ namespace DynamicMosaicExample
                         if (result != null) InvokeAction(() =>
                         {
                             _workReflexes.Insert(0, result);
-                            _currentReflexMapIndex = 0;
+                            _workSelections.Insert(0, 0);
                             lstResults.Items.Insert(1, $@"({result.Count}) {DateTime.Now.ToString(@"HH:mm:ss")}");
                             lstResults.SelectedIndex = 1;
                             btnReflexClear.Enabled = true;
@@ -533,7 +539,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void FrmExample_KeyUp(object sender, KeyEventArgs e)
+        void FrmExample_KeyUp(object sender, KeyEventArgs e) => SafetyExecute(() =>
         {
             if (e.Alt || e.Control || e.Shift)
                 return;
@@ -544,18 +550,18 @@ namespace DynamicMosaicExample
                     Application.Exit();
                     break;
             }
-        }
+        });
 
         /// <summary>
         ///     Осуществляет ввод искомого слова по нажатии клавиши Enter.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void TxtWord_KeyUp(object sender, KeyEventArgs e)
+        void TxtWord_KeyUp(object sender, KeyEventArgs e) => SafetyExecute(() =>
         {
             if (e.KeyCode == Keys.Enter)
                 BtnRecognizeImage_Click(null, null);
-        }
+        });
 
         /// <summary>
         ///     Предотвращает сигналы недопустимого ввода в текстовое поле ввода искомого слова.
@@ -579,11 +585,11 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbDraw_MouseMove(object sender, MouseEventArgs e)
+        void PbDraw_MouseMove(object sender, MouseEventArgs e) => SafetyExecute(() =>
         {
             if (_draw)
                 DrawPoint(e.X, e.Y, e.Button);
-        }
+        });
 
         /// <summary>
         ///     Рисует точку в указанном месте на <see cref="pbDraw" /> с применением <see cref="_grFront" />.
@@ -764,7 +770,7 @@ namespace DynamicMosaicExample
             if (lstResults.SelectedIndex > 0)
             {
                 _workReflex = _workReflexes[lstResults.SelectedIndex - 1];
-                Processor p = _workReflex[0];
+                Processor p = _workReflex[_workSelections[lstResults.SelectedIndex - 1]];
                 pbConSymbol.Image = ImageRect.GetBitmap(p);
                 UpdateConSymbolName(p.Tag);
                 txtConSymbol.Enabled = true;
@@ -774,7 +780,6 @@ namespace DynamicMosaicExample
                 btnReflexRemove.Enabled = true;
                 btnConSaveImage.Enabled = true;
                 btnConSaveAllImages.Enabled = true;
-                _currentReflexMapIndex = 0;
                 return;
             }
             _workReflex = null;
@@ -785,7 +790,7 @@ namespace DynamicMosaicExample
             btnReflexRemove.Enabled = false;
             btnConSaveImage.Enabled = false;
             btnConSaveAllImages.Enabled = false;
-            ReflexBrowseClear();
+            ConSymbolBrowseClear();
         });
 
         /// <summary>
@@ -798,13 +803,12 @@ namespace DynamicMosaicExample
             if (lstResults.SelectedIndex <= 0)
                 return;
             _workReflexes.RemoveAt(lstResults.SelectedIndex - 1);
+            _workSelections.RemoveAt(lstResults.SelectedIndex - 1);
             lstResults.Items.RemoveAt(lstResults.SelectedIndex);
             lstResults.SelectedIndex = 0;
-            _workReflex = null;
-            _currentReflexMapIndex = 0;
             int count = lstResults.Items.Count - 1;
             grpResults.Text = count > 0 ? $@"{_strGrpResults} ({count})" : _strGrpResults;
-            ReflexBrowseClear();
+            ConSymbolBrowseClear();
             if (lstResults.Items.Count > 1)
                 return;
             txtConSymbol.Enabled = false;
@@ -815,8 +819,6 @@ namespace DynamicMosaicExample
             btnReflexClear.Enabled = false;
             btnConSaveImage.Enabled = false;
             btnConSaveAllImages.Enabled = false;
-            pbSuccess.Image = Resources.Unk_128;
-            _currentState.CriticalChange(sender, e);
         });
 
         /// <summary>
@@ -826,11 +828,13 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            if (_currentReflexMapIndex >= _workReflex.Count - 1)
-                _currentReflexMapIndex = 0;
+            int currentReflexMapIndex = _workSelections[lstResults.SelectedIndex - 1];
+            if (currentReflexMapIndex >= _workReflex.Count - 1)
+                currentReflexMapIndex = 0;
             else
-                _currentReflexMapIndex++;
-            Processor p = _workReflex[_currentReflexMapIndex];
+                currentReflexMapIndex++;
+            _workSelections[lstResults.SelectedIndex - 1] = currentReflexMapIndex;
+            Processor p = _workReflex[currentReflexMapIndex];
             pbConSymbol.Image = ImageRect.GetBitmap(p);
             UpdateConSymbolName(p.Tag);
         });
@@ -842,11 +846,13 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConPrevious_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            if (_currentReflexMapIndex <= 0)
-                _currentReflexMapIndex = _workReflex.Count - 1;
+            int currentReflexMapIndex = _workSelections[lstResults.SelectedIndex - 1];
+            if (currentReflexMapIndex <= 0)
+                currentReflexMapIndex = _workReflex.Count - 1;
             else
-                _currentReflexMapIndex--;
-            Processor p = _workReflex[_currentReflexMapIndex];
+                currentReflexMapIndex--;
+            _workSelections[lstResults.SelectedIndex - 1] = currentReflexMapIndex;
+            Processor p = _workReflex[currentReflexMapIndex];
             pbConSymbol.Image = ImageRect.GetBitmap(p);
             UpdateConSymbolName(p.Tag);
         });
@@ -855,14 +861,14 @@ namespace DynamicMosaicExample
         /// Актуализирует информацию о выбранной карте рассматриваемой в данный момент системы <see cref="Reflex"/>.
         /// </summary>
         /// <param name="tag">Значение свойства <see cref="Processor.Tag"/>.</param>
-        void UpdateConSymbolName(string tag) => txtConSymbol.Text = $@"№ {_currentReflexMapIndex + 1} {ConcurrentProcessorStorage.GetProcessorName(tag)}";
+        void UpdateConSymbolName(string tag) => txtConSymbol.Text = $@"№ {_workSelections[lstResults.SelectedIndex - 1] + 1} {ConcurrentProcessorStorage.GetProcessorName(tag)}";
 
         /// <summary>
         /// Сохраняет выбранную карту <see cref="Processor"/> выбранной системы <see cref="Reflex"/> на жёсткий диск.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() => ConcurrentProcessorStorage.SaveToFile(_workReflex[_currentReflexMapIndex]));
+        void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() => ConcurrentProcessorStorage.SaveToFile(_workReflex[_workSelections[lstResults.SelectedIndex - 1]]));
 
         /// <summary>
         /// Сохраняет все карты <see cref="Processor"/> выбранной системы <see cref="Reflex"/> на жёсткий диск.
@@ -891,13 +897,9 @@ namespace DynamicMosaicExample
                 _imageActivity.Set();
                 _workThreadActivity.Set();
                 if ((_fileThread?.ThreadState & ThreadState.Unstarted) != ThreadState.Unstarted)
-                    if (!_fileThread.Join(10000))
-                        MessageBox.Show(this, @"Во время остановки распознавания произошла ошибка: поток, отвечающий за актуализацию содержимого карт, завис. Рекомендуется перезапустить программу.", @"Ошибка",
-                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    _fileThread.Join(1000);
                 if ((_workWaitThread?.ThreadState & ThreadState.Unstarted) != ThreadState.Unstarted)
-                    if (!_workWaitThread.Join(10000))
-                        MessageBox.Show(this, @"Во время остановки распознавания произошла ошибка: поток, отвечающий за отображение процесса ожидания завершения операции, завис. Рекомендуется перезапустить программу.", @"Ошибка",
-                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    _workWaitThread.Join(500);
             }
             catch (Exception ex)
             {
@@ -940,7 +942,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        private void TxtSymbolPath_TextChanged(object sender, EventArgs e)
+        private void TxtSymbolPath_TextChanged(object sender, EventArgs e) => SafetyExecute(() =>
         {
             if (txtSymbolPath.Text.Length <= 3)
                 return;
@@ -953,15 +955,16 @@ namespace DynamicMosaicExample
                         txtSymbolPath.Select(k + 1, 0);
                     return;
                 }
+
             txtSymbolPath.Select(0, 0);
-        }
+        });
 
         /// <summary>
         /// Предназначен для переопределения функции отката (CTRL + Z).
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        private void TxtWord_KeyDown(object sender, KeyEventArgs e)
+        private void TxtWord_KeyDown(object sender, KeyEventArgs e) => SafetyExecute(() =>
         {
             if (!e.Control || e.KeyCode != Keys.Z)
                 return;
@@ -969,6 +972,6 @@ namespace DynamicMosaicExample
             e.Handled = true;
             if (!string.IsNullOrEmpty(_currentState.CurWord))
                 txtWord.Text = _currentState.CurWord;
-        }
+        });
     }
 }

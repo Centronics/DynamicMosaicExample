@@ -94,7 +94,7 @@ namespace DynamicMosaicExample
         /// <returns>Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном случае - <see langword="false" />.</returns>
         static (bool result, uint number, bool isNumeric, string symbolicName) NameParser(string tag)
         {
-            if (string.IsNullOrWhiteSpace(tag) || tag.Length < 1)
+            if (string.IsNullOrWhiteSpace(tag))
                 return (false, 0, false, string.Empty);
             int k = tag.Length - 1;
             for (; k > 0; k--)

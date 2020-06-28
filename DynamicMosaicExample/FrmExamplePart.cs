@@ -268,11 +268,6 @@ namespace DynamicMosaicExample
         int _currentImage;
 
         /// <summary>
-        /// Индекс <see cref="Processor"/>, выбранный в <see cref="Reflex"/>, содержимое которого отображается в текущий момент.
-        /// </summary>
-        int _currentReflexMapIndex;
-
-        /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
         ///     Значение <see langword="true" /> - вывод разрешён, в противном случае - <see langword="false" />.
         /// </summary>
@@ -287,6 +282,11 @@ namespace DynamicMosaicExample
         /// Коллекция задействованных на данный момент элементов <see cref="Reflex" />.
         /// </summary>
         readonly List<Reflex> _workReflexes = new List<Reflex>();
+
+        /// <summary>
+        /// Содержит номера выбранных карт <see cref="Processor"/> в различных системах <see cref="Reflex"/>.
+        /// </summary>
+        readonly List<int> _workSelections = new List<int>();
 
         /// <summary>
         ///     Поток, отвечающий за выполнение процедуры распознавания.
