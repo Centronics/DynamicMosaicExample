@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -88,7 +89,7 @@ namespace DynamicMosaicExample
             /// <param name="e">Данные о событии.</param>
             internal void CriticalChange(object sender, EventArgs e)
             {
-                _curForm.pbSuccess.Image = Resources.Unk_128;
+                _curForm.InvokeAction(() => _curForm.pbSuccess.Image = Resources.Unk_128);
                 _state = RecognizeState.UNKNOWN;
             }
 
@@ -322,12 +323,12 @@ namespace DynamicMosaicExample
         /// <summary>
         /// Синхронизирует потоки, пытающиеся записать сообщение в лог-файл.
         /// </summary>
-        static readonly object _logLockerObject = new object();
+        static readonly object LogLockerObject = new object();
 
         /// <summary>
         /// Служит для блокировки одновременного доступа к процедуре отображения сообщения об ошибке.
         /// </summary>
-        static readonly object _logLocker = new object();
+        static readonly object LogLocker = new object();
 
         /// <summary>
         /// Указывает, было ли просмотрено сообщение о том, что в процессе работы программы уже произошла ошибка.
@@ -342,27 +343,27 @@ namespace DynamicMosaicExample
             /// <summary>
             /// Изменения, возникшие в файле или папке.
             /// </summary>
-            public WatcherChangeTypes TaskType { get; private set; }
+            public WatcherChangeTypes TaskType { get; }
 
             /// <summary>
             /// Путь к файлу или папке, в которой произошли изменения.
             /// </summary>
-            public string FilePath { get; private set; }
+            public string FilePath { get; }
 
             /// <summary>
             /// Исходный путь к файлу или папке, в которой произошли изменения.
             /// </summary>
-            public string OldFilePath { get; private set; }
+            public string OldFilePath { get; }
 
             /// <summary>
             /// Указывает, был ли файл переименован в требуемуе для программы расширение.
             /// </summary>
-            public bool RenamedTo { get; private set; }
+            public bool RenamedTo { get; }
 
             /// <summary>
             /// Указывает, был ли файл переименован из требуемуемого для программы расширения.
             /// </summary>
-            public bool RenamedFrom { get; private set; }
+            public bool RenamedFrom { get; }
 
             /// <summary>
             /// Инициализирует новый экземпляр параметрами добавляемой задачи.
@@ -380,6 +381,26 @@ namespace DynamicMosaicExample
                 OldFilePath = oldFilePath;
                 RenamedTo = renamedTo;
                 RenamedFrom = renamedFrom;
+            }
+        }
+
+        /// <summary>
+        /// Получает список файлов изображений карт в указанной папке.
+        /// Это файлы с расширением <see cref="ExtImg"/>.
+        /// В случае какой-либо ошибки возвращает <see langword="null"/>.
+        /// </summary>
+        /// <param name="path">Путь, по которому требуется получить список файлов изображений карт.</param>
+        /// <returns>Возвращает список файлов изображений карт в указанной папке.</returns>
+        static string[] GetFiles(string path)
+        {
+            try
+            {
+                return Directory.EnumerateFiles(path, $"*.{ExtImg}", SearchOption.AllDirectories).Where(p =>
+                    string.Compare(Path.GetExtension(p), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0).ToArray();
+            }
+            catch
+            {
+                return null;
             }
         }
 
@@ -408,15 +429,55 @@ namespace DynamicMosaicExample
                 btnWide.Click += _currentState.CriticalChange;
                 btnClearImage.Click += _currentState.CriticalChange;
                 btnImageDelete.Click += _currentState.CriticalChange;
+                btnLoadImage.Click += _currentState.CriticalChange;
                 txtWord.TextChanged += _currentState.WordChange;
                 fswImageChanged.Path = SearchPath;
-                fswImageChanged.NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite;
-                fswImageChanged.Filter = $"*.{ExtImg}";
+                fswImageChanged.IncludeSubdirectories = true;
+                fswImageChanged.NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName;
+                fswImageChanged.Filter = "*.*";
+
+                void NeedDelete(string fullPath)
+                {
+                    foreach ((Processor _, string path) in _processorStorage.Elements)
+                        if (path.StartsWith(fullPath, StringComparison.OrdinalIgnoreCase))
+                            _concurrentFileTasks.Enqueue(new FileTask(WatcherChangeTypes.Deleted, path, string.Empty,
+                                false, false));
+                }
+
+                void NeedCreate(string fullPath)
+                {
+                    string[] paths = GetFiles(fullPath);
+                    if (paths == null || paths.Length <= 0)
+                        return;
+                    foreach (string path in paths)
+                        _concurrentFileTasks.Enqueue(new FileTask(WatcherChangeTypes.Created, path, string.Empty, false,
+                            false));
+                }
 
                 void OnChanged(object source, FileSystemEventArgs e) => SafetyExecute(() =>
                 {
-                    if (string.IsNullOrWhiteSpace(e.FullPath) || string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
+                    if (string.IsNullOrWhiteSpace(e.FullPath))
                         return;
+                    if (string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
+                    {
+                        ThreadPool.QueueUserWorkItem(state => SafetyExecute(() =>
+                        {
+                            (WatcherChangeTypes type, string fullPath) = ((WatcherChangeTypes, string))state;
+
+                            switch (type)
+                            {
+                                case WatcherChangeTypes.Deleted:
+                                    NeedDelete(fullPath);
+                                    _needRefreshEvent.Set();
+                                    return;
+                                case WatcherChangeTypes.Created:
+                                    NeedCreate(fullPath);
+                                    _needRefreshEvent.Set();
+                                    return;
+                            }
+                        }), (e.ChangeType, e.FullPath));
+                        return;
+                    }
 
                     _concurrentFileTasks.Enqueue(new FileTask(e.ChangeType, e.FullPath, string.Empty, false, false));
                     _needRefreshEvent.Set();
@@ -424,10 +485,21 @@ namespace DynamicMosaicExample
 
                 void OnRenamed(object source, RenamedEventArgs e) => SafetyExecute(() =>
                 {
-                    bool renamedTo = !string.IsNullOrWhiteSpace(e.FullPath) && string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0;
-                    bool renamedFrom = !string.IsNullOrWhiteSpace(e.OldFullPath) && string.Compare(Path.GetExtension(e.OldFullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0;
-                    if (!renamedTo && !renamedFrom)
+                    if (string.IsNullOrWhiteSpace(e.FullPath) || string.IsNullOrWhiteSpace(e.OldFullPath))
                         return;
+                    bool renamedTo = string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0;
+                    bool renamedFrom = string.Compare(Path.GetExtension(e.OldFullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0;
+                    if (!renamedTo && !renamedFrom)
+                    {
+                        ThreadPool.QueueUserWorkItem(state => SafetyExecute(() =>
+                        {
+                            (string oldFullPath, string newFullPath) = ((string, string))state;
+                            NeedDelete(oldFullPath);
+                            NeedCreate(newFullPath);
+                            _needRefreshEvent.Set();
+                        }), (e.OldFullPath, e.FullPath));
+                        return;
+                    }
 
                     _concurrentFileTasks.Enqueue(new FileTask(e.ChangeType, e.FullPath, e.OldFullPath, renamedTo, renamedFrom));
                     _needRefreshEvent.Set();
@@ -645,7 +717,7 @@ namespace DynamicMosaicExample
                         ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
                         Parallel.ForEach(
                             Directory.EnumerateFiles(SearchPath, $"*.{ExtImg}", SearchOption.AllDirectories),
-                            (fName, state) => SafetyExecute(() =>
+                            (fullPath, state) => SafetyExecute(() =>
                             {
                                 try
                                 {
@@ -655,8 +727,8 @@ namespace DynamicMosaicExample
                                         return;
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(fName) && string.Compare(Path.GetExtension(fName), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0)
-                                        ExceptionClause(() => _processorStorage.AddProcessor(fName), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> (addition) -> {fName}");
+                                    if (!string.IsNullOrWhiteSpace(fullPath) && string.Compare(Path.GetExtension(fullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0)
+                                        ExceptionClause(() => _processorStorage.AddProcessor(fullPath), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> (addition) -> {fullPath}");
                                 }
                                 catch (Exception ex)
                                 {
@@ -728,7 +800,7 @@ namespace DynamicMosaicExample
         /// К сообщению автоматически прибавляется текущая дата в полном формате.
         /// </summary>
         /// <param name="logstr">Строка лога, которую надо записать.</param>
-        public void WriteLogMessage(string logstr)
+        void WriteLogMessage(string logstr)
         {
             void ShowMessage(string addMes)
             {
@@ -736,15 +808,15 @@ namespace DynamicMosaicExample
                     return;
                 try
                 {
-                    if (!Monitor.TryEnter(_logLocker) || _errorMessageIsShowed)
+                    if (!Monitor.TryEnter(LogLocker) || _errorMessageIsShowed)
                         return;
                     _errorMessageIsShowed = true;
                     ErrorMessageInOtherThread(string.IsNullOrWhiteSpace(addMes) ? @"Содержимое лог-файла обновлено. Есть новые сообщения." : addMes);
                 }
                 finally
                 {
-                    if (Monitor.IsEntered(_logLocker))
-                        Monitor.Exit(_logLocker);
+                    if (Monitor.IsEntered(LogLocker))
+                        Monitor.Exit(LogLocker);
                 }
             }
 
@@ -752,12 +824,10 @@ namespace DynamicMosaicExample
             {
                 logstr = $@"{DateTime.Now:dd.MM.yyyy HH:mm:ss} {logstr}";
                 string path = Path.Combine(SearchPath, "DynamicMosaicExampleLog.log");
-                lock (_logLockerObject)
-                {
+                lock (LogLockerObject)
                     using (FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete))
                     using (StreamWriter sw = new StreamWriter(fs, System.Text.Encoding.UTF8))
                         sw.WriteLine(logstr);
-                }
                 ShowMessage(string.Empty);
             }
             catch (Exception ex)

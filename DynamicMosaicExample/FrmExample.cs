@@ -249,7 +249,7 @@ namespace DynamicMosaicExample
         {
             using (FrmSymbol fs = new FrmSymbol())
                 if (fs.ShowDialog() == DialogResult.OK)
-                    BtnReflexClear_Click(null, null);
+                    _currentState.CriticalChange(sender, e);
         });
 
         /// <summary>
@@ -324,7 +324,7 @@ namespace DynamicMosaicExample
 
             return new Thread(() => SafetyExecute(() =>
             {
-                WaitHandle[] waitHandles = new WaitHandle[] { _imageActivity, _workThreadActivity };
+                WaitHandle[] waitHandles = { _imageActivity, _workThreadActivity };
                 Stopwatch renewStopwatch = new Stopwatch();
                 for (int k = 0; k < 4; k++)
                 {
@@ -343,6 +343,9 @@ namespace DynamicMosaicExample
 
                     if (_stopBackgroundThreadFlag)
                         return;
+
+                    if (!IsWorking)
+                        EnableButtons = true;
 
                     renewStopwatch.Start();
                     if (renewStopwatch.ElapsedMilliseconds >= 2000 && IsFileActivity)
@@ -411,7 +414,9 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnReflexClear_Click(object sender, EventArgs e) => InvokeAction(() =>
         {
+            _currentState.CriticalChange(sender, e);
             _workReflexes.Clear();
+            _workReflex = null;
             _workSelections.Clear();
             lstResults.Items.Clear();
             lstResults.SelectedIndex = -1;
@@ -466,7 +471,7 @@ namespace DynamicMosaicExample
                     {
                         ProcessorContainer processors = null;
 
-                        foreach (Processor processor in _processorStorage.Elements)
+                        foreach ((Processor processor, string _) in _processorStorage.Elements)
                             if (processors == null)
                                 processors = new ProcessorContainer(processor);
                             else
@@ -500,7 +505,7 @@ namespace DynamicMosaicExample
                         {
                             _workReflexes.Insert(0, result);
                             _workSelections.Insert(0, 0);
-                            lstResults.Items.Insert(1, $@"({result.Count}) {DateTime.Now.ToString(@"HH:mm:ss")}");
+                            lstResults.Items.Insert(1, $@"({result.Count}) {DateTime.Now:HH:mm:ss}");
                             lstResults.SelectedIndex = 1;
                             btnReflexClear.Enabled = true;
                             grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
@@ -604,12 +609,12 @@ namespace DynamicMosaicExample
             {
                 case MouseButtons.Left:
                     _grFront.DrawRectangle(_blackPen, new Rectangle(x, y, 1, 1));
-                    pbSuccess.Image = Resources.Unk_128;
+                    _currentState.CriticalChange(null, null);
                     btnSaveImage.Enabled = btnClearImage.Enabled = true;
                     break;
                 case MouseButtons.Right:
                     _grFront.DrawRectangle(_whitePen, new Rectangle(x, y, 1, 1));
-                    pbSuccess.Image = Resources.Unk_128;
+                    _currentState.CriticalChange(null, null);
                     break;
             }
         }, () => pbDraw.Refresh());
@@ -623,7 +628,6 @@ namespace DynamicMosaicExample
         {
             _grFront.Clear(_defaultColor);
             btnSaveImage.Enabled = btnClearImage.Enabled = false;
-            pbSuccess.Image = Resources.Unk_128;
         }, () => pbDraw.Refresh());
 
         /// <summary>
@@ -644,7 +648,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnLoadImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            if (dlgOpenImage.ShowDialog(this) != DialogResult.OK) return;
+            if (dlgOpenImage.ShowDialog(this) != DialogResult.OK)
+                return;
             Initialize(dlgOpenImage.FileName);
         }, () => btnSaveImage.Enabled = btnClearImage.Enabled = IsPainting);
 
@@ -802,6 +807,8 @@ namespace DynamicMosaicExample
         {
             if (lstResults.SelectedIndex <= 0)
                 return;
+            if (lstResults.SelectedIndex == 1)
+                _currentState.CriticalChange(sender, e);
             _workReflexes.RemoveAt(lstResults.SelectedIndex - 1);
             _workSelections.RemoveAt(lstResults.SelectedIndex - 1);
             lstResults.Items.RemoveAt(lstResults.SelectedIndex);
@@ -897,9 +904,9 @@ namespace DynamicMosaicExample
                 _imageActivity.Set();
                 _workThreadActivity.Set();
                 if ((_fileThread?.ThreadState & ThreadState.Unstarted) != ThreadState.Unstarted)
-                    _fileThread.Join(1000);
+                    _fileThread?.Join(1000);
                 if ((_workWaitThread?.ThreadState & ThreadState.Unstarted) != ThreadState.Unstarted)
-                    _workWaitThread.Join(500);
+                    _workWaitThread?.Join(500);
             }
             catch (Exception ex)
             {
@@ -915,7 +922,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        private void FrmExample_Load(object sender, EventArgs e)
+        void FrmExample_Load(object sender, EventArgs e)
         {
             try
             {
@@ -942,7 +949,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        private void TxtSymbolPath_TextChanged(object sender, EventArgs e) => SafetyExecute(() =>
+        void TxtSymbolPath_TextChanged(object sender, EventArgs e) => SafetyExecute(() =>
         {
             if (txtSymbolPath.Text.Length <= 3)
                 return;
@@ -964,7 +971,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        private void TxtWord_KeyDown(object sender, KeyEventArgs e) => SafetyExecute(() =>
+        void TxtWord_KeyDown(object sender, KeyEventArgs e) => SafetyExecute(() =>
         {
             if (!e.Control || e.KeyCode != Keys.Z)
                 return;

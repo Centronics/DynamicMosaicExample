@@ -19,17 +19,13 @@ namespace DynamicMosaicExample
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm), $@"{nameof(ImageRect)}: {nameof(btm)} = null.");
-            SymbolicName = string.Empty;
-            Number = 0U;
             IsSymbol = false;
             CurrentProcessor = null;
             if (btm.Width != FrmExample.ImageWidth || btm.Height != FrmExample.ImageHeight)
                 return;
-            (bool result, uint number, bool isNumeric, string symbolicName) = NameParser(tag);
+            (bool result, uint _, bool isNumeric, string _) = NameParser(tag);
             if (!result)
                 return;
-            SymbolicName = symbolicName;
-            Number = number;
             CurrentProcessor = new Processor(ImageMap(btm), isNumeric ? $@"{tag}~" : tag);
             IsSymbol = true;
         }
@@ -49,16 +45,6 @@ namespace DynamicMosaicExample
                     b.SetPixel(x, y, proc[x, y].ValueColor);
             return b;
         }
-
-        /// <summary>
-        /// Получает название текущего образа без цифровой составляющей.
-        /// </summary>
-        internal string SymbolicName { get; }
-
-        /// <summary>
-        ///     Получает номер текущего образа.
-        /// </summary>
-        internal uint Number { get; }
 
         /// <summary>
         ///     Получает значение, является ли данный файл образом, предназначенным для распознавания.

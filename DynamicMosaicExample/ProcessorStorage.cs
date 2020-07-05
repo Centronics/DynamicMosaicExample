@@ -34,7 +34,7 @@ namespace DynamicMosaicExample
         /// Показывает, пригоден ли текущий экземпляр к выполнению каких-либо операций.
         /// Если нет, то при попытке выполнить операцию, выбрасывается исключение <see cref="InvalidOperationException"/>.
         /// </summary>
-        internal bool IsOperationAllowed { get; private set; } = true;
+        bool IsOperationAllowed { get; set; } = true;
 
         /// <summary>
         /// Хранит карту <see cref="Processor"/> и путь <see cref="string"/> к ней.
@@ -134,27 +134,38 @@ namespace DynamicMosaicExample
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(AddProcessor)}: Операция недопустима.");
             fullPath = Path.GetFullPath(fullPath);
-            FileStream fs = null;
-            for (int k = 0; k < 50; k++)
+            ImageRect ir;
+            try
             {
-                try
+                FileStream fs = null;
+                for (int k = 0; k < 50; k++)
                 {
-                    fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                }
-                catch (Exception ex)
-                {
-                    if (k >= 49)
-                        throw new FileNotFoundException($@"{nameof(AddProcessor)}: {ex.Message}", fullPath);
-                    Thread.Sleep(100);
-                    continue;
+                    try
+                    {
+                        fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    }
+                    catch (Exception ex)
+                    {
+                        if (k >= 49)
+                            throw new FileNotFoundException($@"{nameof(AddProcessor)}: {ex.Message}", fullPath);
+                        Thread.Sleep(100);
+                        continue;
+                    }
+
+                    break;
                 }
 
-                break;
+                Bitmap btm;
+                using (fs)
+                    btm = new Bitmap(
+                        fs ?? throw new InvalidOperationException($@"{nameof(AddProcessor)}: {nameof(fs)} == null."));
+                ir = new ImageRect(btm, Path.GetFileNameWithoutExtension(fullPath));
             }
-            Bitmap btm = null;
-            using (fs)
-                btm = new Bitmap(fs);
-            ImageRect ir = new ImageRect(btm, Path.GetFileNameWithoutExtension(fullPath));
+            catch
+            {
+                RemoveProcessor(fullPath);
+                throw;
+            }
             if (!ir.IsSymbol)
             {
                 RemoveProcessor(fullPath);
@@ -240,34 +251,9 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Проверяет, содержится ли указанная карта в коллекции <see cref="ConcurrentProcessorStorage"/>.
-        /// В случае совпадения по значению ссылки или различиям по размерам карт, выдаётся исключение.
-        /// Ни одна из сравниваемых карт не может быть <see langword="null" />.
-        /// Значение свойства <see cref="Processor.Tag"/> сопоставляется только по первой букве, без учёта регистра.
-        /// Возвращает значение <see langword="true" /> в случае, когда содержимое и первая буква свойства <see cref="Processor.Tag"/> совпадают, в противном случае - <see langword="false" />.
-        /// </summary>
-        /// <param name="p">Проверяемая карта.</param>
-        /// <returns>Возвращает значение <see langword="true" /> в случае, когда содержимое и первая буква свойства <see cref="Processor.Tag"/> совпадают, в противном случае - <see langword="false" />.</returns>
-        internal bool Contains(Processor p)
-        {
-            if (!IsOperationAllowed)
-                throw new InvalidOperationException($@"{nameof(Contains)}: Операция недопустима.");
-            if (p is null)
-                throw new ArgumentNullException(nameof(p), $@"Функция {nameof(Contains)}.");
-            int hash = CRCIntCalc.GetHash(p);
-            lock (_syncObject)
-            {
-                if (!IsOperationAllowed)
-                    throw new InvalidOperationException($@"{nameof(Contains)}: Операция недопустима.");
-                return _dictionary.TryGetValue(hash, out ProcHash ph) &&
-                       ph.Elements.Any(px => ProcessorCompare(p, px.CurrentProcessor));
-            }
-        }
-
-        /// <summary>
         /// Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage"/>.
         /// </summary>
-        internal IEnumerable<Processor> Elements
+        internal IEnumerable<(Processor processor, string path)> Elements
         {
             get
             {
@@ -277,8 +263,8 @@ namespace DynamicMosaicExample
                 {
                     if (!IsOperationAllowed)
                         throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
-                    foreach (Processor processor in _dictionaryByPath.Values.Select(pair => pair.CurrentProcessor))
-                        yield return processor;
+                    foreach (ProcPath p in _dictionaryByPath.Values)
+                        yield return (p.CurrentProcessor, p.CurrentPath);
                 }
             }
         }
@@ -307,7 +293,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="index">Индекс карты <see cref="Processor"/>, которую надо вернуть.</param>
         /// <returns>Возвращает карту <see cref="Processor"/> по указанному индексу, путь к ней, и количество карт в коллекции.</returns>
-        internal (Processor processor, string path, int count) this[int index]
+        (Processor processor, string path, int count) this[int index]
         {
             get
             {
@@ -470,35 +456,6 @@ namespace DynamicMosaicExample
                     throw;
                 }
             }
-        }
-
-        /// <summary>
-        /// Сранивает содержимое двух карт.
-        /// Возвращает значение <see langword="true" /> в случае, когда содержимое и первая буква свойства <see cref="Processor.Tag"/> совпадают, в противном случае - <see langword="false" />.
-        /// В случае совпадения по значению ссылки или различиям по размерам карт, выдаётся исключение.
-        /// Ни одна из сравниваемых карт не может быть <see langword="null" />.
-        /// Значение свойства <see cref="Processor.Tag"/> сопоставляется только по первой букве, без учёта регистра.
-        /// </summary>
-        /// <param name="pOne">Сравниваемая карта.</param>
-        /// <param name="pTwo">Сравниваемая карта.</param>
-        /// <returns>Возвращает значение <see langword="true" /> в случае, когда содержимое и первая буква свойства <see cref="Processor.Tag"/> совпадают, в противном случае - <see langword="false" />.</returns>
-        static bool ProcessorCompare(Processor pOne, Processor pTwo)
-        {
-            if (ReferenceEquals(pOne, pTwo))
-                throw new ArgumentException($@"Ссылки на сравниваемые карты не могут быть равны. Функция {nameof(ProcessorCompare)}.");
-            if (pOne is null)
-                throw new ArgumentNullException(nameof(pOne), $@"Функция {nameof(ProcessorCompare)}.");
-            if (pTwo is null)
-                throw new ArgumentNullException(nameof(pTwo), $@"Функция {nameof(ProcessorCompare)}.");
-            if (pOne.Width != pTwo.Width || pOne.Height != pTwo.Height)
-                throw new ArgumentException($@"Сравниваемые карты не равны по размерам. Функция {nameof(ProcessorCompare)}.");
-            if (char.ToUpper(pOne.Tag[0]) != char.ToUpper(pTwo.Tag[0]))
-                return false;
-            for (int y = 0; y < pOne.Height; y++)
-                for (int x = 0; x < pOne.Width; x++)
-                    if (pOne[x, y] != pTwo[x, y])
-                        return false;
-            return true;
         }
 
         /// <summary>
