@@ -248,8 +248,7 @@ namespace DynamicMosaicExample
         void BtnImageCreate_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             using (FrmSymbol fs = new FrmSymbol())
-                if (fs.ShowDialog() == DialogResult.OK)
-                    _currentState.CriticalChange(sender, e);
+                fs.ShowDialog();
         });
 
         /// <summary>
@@ -325,12 +324,12 @@ namespace DynamicMosaicExample
             return new Thread(() => SafetyExecute(() =>
             {
                 WaitHandle[] waitHandles = { _imageActivity, _workThreadActivity };
-                Stopwatch renewStopwatch = new Stopwatch();
+                Stopwatch stwRenew = new Stopwatch();
                 for (int k = 0; k < 4; k++)
                 {
                     if (WaitHandle.WaitAny(waitHandles, 0) == WaitHandle.WaitTimeout)
                     {
-                        renewStopwatch.Reset();
+                        stwRenew.Reset();
                         InvokeAction(() =>
                         {
                             btnRecognizeImage.Text = _strRecog;
@@ -347,11 +346,11 @@ namespace DynamicMosaicExample
                     if (!IsWorking)
                         EnableButtons = true;
 
-                    renewStopwatch.Start();
-                    if (renewStopwatch.ElapsedMilliseconds >= 2000 && IsFileActivity)
+                    stwRenew.Start();
+                    if (stwRenew.ElapsedMilliseconds >= 2000 && IsFileActivity)
                     {
                         RefreshImagesCount();
-                        renewStopwatch.Restart();
+                        stwRenew.Restart();
                     }
 
                     switch (k)
@@ -360,7 +359,7 @@ namespace DynamicMosaicExample
                             InvokeAction(() =>
                             {
                                 btnRecognizeImage.Text = IsWorking ? StrRecognize : IsFileActivity ? StrLoading : _strRecog;
-                                TimeSpan ts = _stopwatch.Elapsed;
+                                TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
                             Thread.Sleep(100);
@@ -369,7 +368,7 @@ namespace DynamicMosaicExample
                             InvokeAction(() =>
                             {
                                 btnRecognizeImage.Text = IsWorking ? StrRecognize1 : IsFileActivity ? StrLoading1 : _strRecog;
-                                TimeSpan ts = _stopwatch.Elapsed;
+                                TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
                             Thread.Sleep(100);
@@ -378,7 +377,7 @@ namespace DynamicMosaicExample
                             InvokeAction(() =>
                             {
                                 btnRecognizeImage.Text = IsWorking ? StrRecognize2 : IsFileActivity ? StrLoading2 : _strRecog;
-                                TimeSpan ts = _stopwatch.Elapsed;
+                                TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
                             Thread.Sleep(100);
@@ -387,7 +386,7 @@ namespace DynamicMosaicExample
                             InvokeAction(() =>
                             {
                                 btnRecognizeImage.Text = IsWorking ? StrRecognize3 : IsFileActivity ? StrLoading3 : _strRecog;
-                                TimeSpan ts = _stopwatch.Elapsed;
+                                TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
                             Thread.Sleep(100);
@@ -495,12 +494,12 @@ namespace DynamicMosaicExample
                     Reflex result = null;
                     try
                     {
-                        _stopwatch.Restart();
+                        _stwRecognize.Restart();
                         result = workReflex.FindRelation(new Processor(_btmFront, "Main"), _currentState.CurWord);
                     }
                     finally
                     {
-                        _stopwatch.Stop();
+                        _stwRecognize.Stop();
                         if (result != null) InvokeAction(() =>
                         {
                             _workReflexes.Insert(0, result);

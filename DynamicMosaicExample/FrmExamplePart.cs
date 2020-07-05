@@ -225,7 +225,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Таймер для измерения времени, затраченного на распознавание.
         /// </summary>
-        readonly Stopwatch _stopwatch = new Stopwatch();
+        readonly Stopwatch _stwRecognize = new Stopwatch();
 
         /// <summary>
         ///     Хранит значение свойства <see cref="GroupBox.Text" /> объекта <see cref="grpResults" />.
@@ -428,7 +428,6 @@ namespace DynamicMosaicExample
                 btnNarrow.Click += _currentState.CriticalChange;
                 btnWide.Click += _currentState.CriticalChange;
                 btnClearImage.Click += _currentState.CriticalChange;
-                btnImageDelete.Click += _currentState.CriticalChange;
                 btnLoadImage.Click += _currentState.CriticalChange;
                 txtWord.TextChanged += _currentState.WordChange;
                 fswImageChanged.Path = SearchPath;
@@ -617,7 +616,7 @@ namespace DynamicMosaicExample
                     btnImageCreate.Enabled = value;
                     btnImageDelete.Enabled = value;
                     txtImagesCount.Enabled = value;
-                    txtWord.Enabled = value;
+                    txtWord.ReadOnly = !value;
                     btnSaveImage.Enabled = value;
                     btnLoadImage.Enabled = value;
                     btnSaveImage.Enabled = btnClearImage.Enabled = value && IsPainting;
@@ -632,7 +631,6 @@ namespace DynamicMosaicExample
 
                     btnWide.Enabled = false;
                     btnNarrow.Enabled = false;
-                    grpResults.Text = _strGrpResults;
                 });
                 _buttonsEnabled = value;
             }
