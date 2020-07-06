@@ -1,6 +1,6 @@
-﻿using DynamicProcessor;
-using System;
+﻿using System;
 using System.Drawing;
+using DynamicProcessor;
 using Processor = DynamicParser.Processor;
 
 namespace DynamicMosaicExample
@@ -31,29 +31,30 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Преобразует <see cref="Processor"/> в <see cref="Bitmap"/>.
+        ///     Преобразует <see cref="DynamicParser.Processor" /> в <see cref="Bitmap" />.
         /// </summary>
-        /// <param name="proc"><see cref="Processor"/>, который требуется преобразовать.</param>
-        /// <returns>Возвращает <see cref="Processor"/>, преобразованный в <see cref="Bitmap"/>.</returns>
+        /// <param name="proc"><see cref="DynamicParser.Processor" />, который требуется преобразовать.</param>
+        /// <returns>Возвращает <see cref="DynamicParser.Processor" />, преобразованный в <see cref="Bitmap" />.</returns>
         internal static Bitmap GetBitmap(Processor proc)
         {
             if (proc == null)
                 throw new ArgumentNullException(nameof(proc), $@"Параметр {nameof(proc)} не может быть null.");
             Bitmap b = new Bitmap(proc.Width, proc.Height);
             for (int y = 0; y < proc.Height; y++)
-                for (int x = 0; x < proc.Width; x++)
-                    b.SetPixel(x, y, proc[x, y].ValueColor);
+            for (int x = 0; x < proc.Width; x++)
+                b.SetPixel(x, y, proc[x, y].ValueColor);
             return b;
         }
 
         /// <summary>
         ///     Получает значение, является ли данный файл образом, предназначенным для распознавания.
-        ///     Значение <see langword="true" /> означает, что данный файл является образом для распознавания, <see langword="false" /> - нет.
+        ///     Значение <see langword="true" /> означает, что данный файл является образом для распознавания,
+        ///     <see langword="false" /> - нет.
         /// </summary>
         internal bool IsSymbol { get; }
 
         /// <summary>
-        /// Получает текущее изображение в виде карты <see cref="Processor"/>.
+        ///     Получает текущее изображение в виде карты <see cref="Processor" />.
         /// </summary>
         internal Processor CurrentProcessor { get; }
 
@@ -68,8 +69,8 @@ namespace DynamicMosaicExample
                 throw new ArgumentNullException(nameof(bitm));
             SignValue[,] mas = new SignValue[bitm.Width, bitm.Height];
             for (int y = 0; y < bitm.Height; y++)
-                for (int x = 0; x < bitm.Width; x++)
-                    mas[x, y] = new SignValue(bitm.GetPixel(x, y));
+            for (int x = 0; x < bitm.Width; x++)
+                mas[x, y] = new SignValue(bitm.GetPixel(x, y));
             return mas;
         }
 
@@ -77,7 +78,10 @@ namespace DynamicMosaicExample
         ///     Выполняет разбор имени файла с образом буквы, выделяя номер буквы.
         /// </summary>
         /// <param name="tag">Имя файла без расширения.</param>
-        /// <returns>Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном случае - <see langword="false" />.</returns>
+        /// <returns>
+        ///     Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном
+        ///     случае - <see langword="false" />.
+        /// </returns>
         static (bool result, uint number, bool isNumeric, string symbolicName) NameParser(string tag)
         {
             if (string.IsNullOrWhiteSpace(tag))

@@ -1,6 +1,4 @@
-﻿using DynamicMosaic;
-using DynamicParser;
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -8,7 +6,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
-using Processor = DynamicParser.Processor;
+using DynamicMosaic;
+using DynamicParser;
 using ThreadState = System.Threading.ThreadState;
 
 namespace DynamicMosaicExample
@@ -114,8 +113,8 @@ namespace DynamicMosaicExample
                 using (Graphics gr = Graphics.FromImage(to))
                     gr.Clear(color.Value);
             for (int x = 0; x < from.Width && x < to.Width; x++)
-                for (int y = 0; y < from.Height; y++)
-                    to.SetPixel(x, y, from.GetPixel(x, y));
+            for (int y = 0; y < from.Height; y++)
+                to.SetPixel(x, y, from.GetPixel(x, y));
         }
 
         /// <summary>
@@ -175,7 +174,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Возвращает окно просмотра <see cref="Reflex"/> в исходное состояние.
+        ///     Возвращает окно просмотра <see cref="Reflex" /> в исходное состояние.
         /// </summary>
         void ConSymbolBrowseClear()
         {
@@ -200,6 +199,7 @@ namespace DynamicMosaicExample
                     MessageBoxIcon.Information);
                 return;
             }
+
             pbBrowse.Image = ImageRect.GetBitmap(processor);
             txtSymbolPath.Text = path;
         });
@@ -221,6 +221,7 @@ namespace DynamicMosaicExample
                     MessageBoxIcon.Information);
                 return;
             }
+
             pbBrowse.Image = ImageRect.GetBitmap(processor);
             txtSymbolPath.Text = path;
         });
@@ -252,10 +253,11 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        /// Отображает номер выбранной карты и количество карт в коллекции <see cref="ConcurrentProcessorStorage"/>.
+        ///     Отображает номер выбранной карты и количество карт в коллекции <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
-        /// <param name="count">Количество карт в коллекции <see cref="ConcurrentProcessorStorage"/>.</param>
-        void UpdateImagesCount(int count) => txtImagesCount.Text = count > 0 ? $@"{unchecked(_currentImage + 1)} / {count}" : string.Empty;
+        /// <param name="count">Количество карт в коллекции <see cref="ConcurrentProcessorStorage" />.</param>
+        void UpdateImagesCount(int count) => txtImagesCount.Text =
+            count > 0 ? $@"{unchecked(_currentImage + 1)} / {count}" : string.Empty;
 
         /// <summary>
         ///     Выполняет подсчёт количества изображений для поиска.
@@ -311,11 +313,13 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        /// Создаёт новый поток для отображения статуса фоновой операции, в случае, если поток (<see cref="_workWaitThread"/>) не выполняется.
-        /// Созданный поток находится в состояниях <see cref="ThreadState.Unstarted"/> и <see cref="ThreadState.Background"/>.
-        /// Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если этот поток выполняется.
+        ///     Создаёт новый поток для отображения статуса фоновой операции, в случае, если поток (<see cref="_workWaitThread" />)
+        ///     не выполняется.
+        ///     Созданный поток находится в состояниях <see cref="System.Threading.ThreadState.Unstarted" /> и
+        ///     <see cref="System.Threading.ThreadState.Background" />.
+        ///     Возвращает экземпляр созданного потока или <see langword="null" />, в случае, если этот поток выполняется.
         /// </summary>
-        /// <returns>Возвращает экземпляр созданного потока или <see langword="null"/>, в случае, если этот поток выполняется.</returns>
+        /// <returns>Возвращает экземпляр созданного потока или <see langword="null" />, в случае, если этот поток выполняется.</returns>
         Thread CreateWaitThread()
         {
             if ((_workWaitThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0)
@@ -323,7 +327,7 @@ namespace DynamicMosaicExample
 
             return new Thread(() => SafetyExecute(() =>
             {
-                WaitHandle[] waitHandles = { _imageActivity, _workThreadActivity };
+                WaitHandle[] waitHandles = {_imageActivity, _workThreadActivity};
                 Stopwatch stwRenew = new Stopwatch();
                 for (int k = 0; k < 4; k++)
                 {
@@ -358,7 +362,8 @@ namespace DynamicMosaicExample
                         case 0:
                             InvokeAction(() =>
                             {
-                                btnRecognizeImage.Text = IsWorking ? StrRecognize : IsFileActivity ? StrLoading : _strRecog;
+                                btnRecognizeImage.Text =
+                                    IsWorking ? StrRecognize : IsFileActivity ? StrLoading : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -367,7 +372,8 @@ namespace DynamicMosaicExample
                         case 1:
                             InvokeAction(() =>
                             {
-                                btnRecognizeImage.Text = IsWorking ? StrRecognize1 : IsFileActivity ? StrLoading1 : _strRecog;
+                                btnRecognizeImage.Text =
+                                    IsWorking ? StrRecognize1 : IsFileActivity ? StrLoading1 : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -376,7 +382,8 @@ namespace DynamicMosaicExample
                         case 2:
                             InvokeAction(() =>
                             {
-                                btnRecognizeImage.Text = IsWorking ? StrRecognize2 : IsFileActivity ? StrLoading2 : _strRecog;
+                                btnRecognizeImage.Text =
+                                    IsWorking ? StrRecognize2 : IsFileActivity ? StrLoading2 : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -385,7 +392,8 @@ namespace DynamicMosaicExample
                         case 3:
                             InvokeAction(() =>
                             {
-                                btnRecognizeImage.Text = IsWorking ? StrRecognize3 : IsFileActivity ? StrLoading3 : _strRecog;
+                                btnRecognizeImage.Text =
+                                    IsWorking ? StrRecognize3 : IsFileActivity ? StrLoading3 : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -460,7 +468,8 @@ namespace DynamicMosaicExample
 
                     if (!IsPainting)
                     {
-                        ErrorMessageInOtherThread(@"Необходимо нарисовать какой-нибудь рисунок на рабочей поверхности.");
+                        ErrorMessageInOtherThread(
+                            @"Необходимо нарисовать какой-нибудь рисунок на рабочей поверхности.");
                         return;
                     }
 
@@ -500,17 +509,18 @@ namespace DynamicMosaicExample
                     finally
                     {
                         _stwRecognize.Stop();
-                        if (result != null) InvokeAction(() =>
-                        {
-                            _workReflexes.Insert(0, result);
-                            _workSelections.Insert(0, 0);
-                            lstResults.Items.Insert(1, $@"({result.Count}) {DateTime.Now:HH:mm:ss}");
-                            lstResults.SelectedIndex = 1;
-                            btnReflexClear.Enabled = true;
-                            grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
-                            pbSuccess.Image = Resources.OK_128;
-                            _currentState.State = RecognizeState.SUCCESS;
-                        });
+                        if (result != null)
+                            InvokeAction(() =>
+                            {
+                                _workReflexes.Insert(0, result);
+                                _workSelections.Insert(0, 0);
+                                lstResults.Items.Insert(1, $@"({result.Count}) {DateTime.Now:HH:mm:ss}");
+                                lstResults.SelectedIndex = 1;
+                                btnReflexClear.Enabled = true;
+                                grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
+                                pbSuccess.Image = Resources.OK_128;
+                                _currentState.State = RecognizeState.SUCCESS;
+                            });
                         else
                         {
                             pbSuccess.Image = Resources.Error_128;
@@ -573,9 +583,9 @@ namespace DynamicMosaicExample
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         void TxtWord_KeyPress(object sender, KeyPressEventArgs e) =>
-            e.Handled = (Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab ||
-                         (Keys)e.KeyChar == Keys.Pause ||
-                         (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15 || e.KeyChar == 27;
+            e.Handled = (Keys) e.KeyChar == Keys.Enter || (Keys) e.KeyChar == Keys.Tab ||
+                        (Keys) e.KeyChar == Keys.Pause ||
+                        (Keys) e.KeyChar == Keys.XButton1 || e.KeyChar == 15 || e.KeyChar == 27;
 
         /// <summary>
         ///     Отменяет отрисовку изображения для распознавания в случае ухода указателя мыши с поля рисования.
@@ -686,7 +696,7 @@ namespace DynamicMosaicExample
                 }
 
                 if (InvokeRequired)
-                    Invoke((Action)Act);
+                    Invoke((Action) Act);
                 else
                     Act();
             }
@@ -764,8 +774,8 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Обрабатывает событие выбора исследуемой системы.
-        /// Отображает содержимое системы в окне "Содержимое <see cref="Reflex"/>".
+        ///     Обрабатывает событие выбора исследуемой системы.
+        ///     Отображает содержимое системы в окне "Содержимое <see cref="Reflex" />".
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -786,6 +796,7 @@ namespace DynamicMosaicExample
                 btnConSaveAllImages.Enabled = true;
                 return;
             }
+
             _workReflex = null;
             txtConSymbol.Enabled = false;
             pbConSymbol.Enabled = false;
@@ -798,7 +809,7 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        /// Обрабатывает событие удаления системы из рассматриваемых.
+        ///     Обрабатывает событие удаления системы из рассматриваемых.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -828,7 +839,7 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        /// Обрабатывает событие выбора следующей карты, рассматриваемой в выбранной системе.
+        ///     Обрабатывает событие выбора следующей карты, рассматриваемой в выбранной системе.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -846,7 +857,7 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        /// Обрабатывает событие выбора предыдущей карты, рассматриваемой в выбранной системе.
+        ///     Обрабатывает событие выбора предыдущей карты, рассматриваемой в выбранной системе.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -864,20 +875,22 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        /// Актуализирует информацию о выбранной карте рассматриваемой в данный момент системы <see cref="Reflex"/>.
+        ///     Актуализирует информацию о выбранной карте рассматриваемой в данный момент системы <see cref="Reflex" />.
         /// </summary>
-        /// <param name="tag">Значение свойства <see cref="Processor.Tag"/>.</param>
-        void UpdateConSymbolName(string tag) => txtConSymbol.Text = $@"№ {_workSelections[lstResults.SelectedIndex - 1] + 1} {ConcurrentProcessorStorage.GetProcessorName(tag)}";
+        /// <param name="tag">Значение свойства <see cref="Processor.Tag" />.</param>
+        void UpdateConSymbolName(string tag) => txtConSymbol.Text =
+            $@"№ {_workSelections[lstResults.SelectedIndex - 1] + 1} {ConcurrentProcessorStorage.GetProcessorName(tag)}";
 
         /// <summary>
-        /// Сохраняет выбранную карту <see cref="Processor"/> выбранной системы <see cref="Reflex"/> на жёсткий диск.
+        ///     Сохраняет выбранную карту <see cref="Processor" /> выбранной системы <see cref="Reflex" /> на жёсткий диск.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() => ConcurrentProcessorStorage.SaveToFile(_workReflex[_workSelections[lstResults.SelectedIndex - 1]]));
+        void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
+            ConcurrentProcessorStorage.SaveToFile(_workReflex[_workSelections[lstResults.SelectedIndex - 1]]));
 
         /// <summary>
-        /// Сохраняет все карты <see cref="Processor"/> выбранной системы <see cref="Reflex"/> на жёсткий диск.
+        ///     Сохраняет все карты <see cref="Processor" /> выбранной системы <see cref="Reflex" /> на жёсткий диск.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -888,8 +901,8 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        /// Обрабатывает событие завершения работы программы.
-        /// Закрывает файлы, потоки.
+        ///     Обрабатывает событие завершения работы программы.
+        ///     Закрывает файлы, потоки.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -944,7 +957,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Служит для отображения имени файла карты при изменении выбранной карты.
+        ///     Служит для отображения имени файла карты при изменении выбранной карты.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -966,7 +979,7 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        /// Предназначен для переопределения функции отката (CTRL + Z).
+        ///     Предназначен для переопределения функции отката (CTRL + Z).
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>

@@ -115,7 +115,8 @@ namespace DynamicMosaicExample
                 _timedOut = false;
                 return;
             }
-            ConcurrentProcessorStorage.SaveToFile(new Processor(_btmFront, new string(txtSymbol.Text[0],1)));
+
+            ConcurrentProcessorStorage.SaveToFile(new Processor(_btmFront, new string(txtSymbol.Text[0], 1)));
             DialogResult = DialogResult.OK;
         });
 
@@ -178,9 +179,9 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void TxtSymbol_KeyPress(object sender, KeyPressEventArgs e) => RunAction(() =>
         {
-            if ((Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab ||
-                (Keys)e.KeyChar == Keys.Escape ||
-                (Keys)e.KeyChar == Keys.Pause || (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
+            if ((Keys) e.KeyChar == Keys.Enter || (Keys) e.KeyChar == Keys.Tab ||
+                (Keys) e.KeyChar == Keys.Escape ||
+                (Keys) e.KeyChar == Keys.Pause || (Keys) e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
                 e.Handled = true;
         });
 
@@ -191,8 +192,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void FrmSymbol_KeyPress(object sender, KeyPressEventArgs e) => RunAction(() =>
         {
-            if ((Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab || (Keys)e.KeyChar == Keys.Escape ||
-                (Keys)e.KeyChar == Keys.Pause || (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
+            if ((Keys) e.KeyChar == Keys.Enter || (Keys) e.KeyChar == Keys.Tab || (Keys) e.KeyChar == Keys.Escape ||
+                (Keys) e.KeyChar == Keys.Pause || (Keys) e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
                 e.Handled = true;
         });
 
