@@ -288,9 +288,9 @@
             this.label3.AutoSize = true;
             this.label3.Location = new System.Drawing.Point(6, 16);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(97, 13);
+            this.label3.Size = new System.Drawing.Size(91, 13);
             this.label3.TabIndex = 16;
-            this.label3.Text = "Слово (<= 6 букв):";
+            this.label3.Text = "Слово (< 7 букв):";
             // 
             // grpSourceImage
             // 
@@ -479,6 +479,7 @@
             // 
             // fswImageChanged
             // 
+            this.fswImageChanged.EnableRaisingEvents = true;
             this.fswImageChanged.IncludeSubdirectories = true;
             this.fswImageChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswImageChanged.SynchronizingObject = this;

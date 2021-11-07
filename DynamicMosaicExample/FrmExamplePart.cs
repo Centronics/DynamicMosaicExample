@@ -95,7 +95,7 @@ namespace DynamicMosaicExample
         readonly ConcurrentQueue<FileTask> _concurrentFileTasks = new ConcurrentQueue<FileTask>();
 
         /// <summary>
-        ///     Строка "Создать Reflex".
+        ///     Строка "Создать DynamicReflex".
         /// </summary>
         readonly string _createReflexString;
 
@@ -154,7 +154,7 @@ namespace DynamicMosaicExample
         readonly string _unknownSymbolName;
 
         /// <summary>
-        ///     Содержит изначальное значение поля "Название" искомого образа в <see cref="Reflex" />.
+        ///     Содержит изначальное значение поля "Название" искомого образа в <see cref="DynamicReflex" />.
         /// </summary>
         readonly string _unknownSystemName;
 
@@ -164,14 +164,10 @@ namespace DynamicMosaicExample
         readonly Pen _whitePen;
 
         /// <summary>
-        ///     Коллекция задействованных на данный момент элементов <see cref="Reflex" />.
+        ///     Коллекция задействованных элементов <see cref="DynamicReflex" />.
+        ///     Содержит <see cref="DynamicReflex" />, запрос, статус выполнения запроса, номер просматриваемой карты на данный момент.
         /// </summary>
-        readonly List<Reflex> _workReflexes = new List<Reflex>();
-
-        /// <summary>
-        ///     Содержит номера выбранных карт <see cref="Processor" /> в различных системах <see cref="Reflex" />.
-        /// </summary>
-        readonly List<int> _workSelections = new List<int>();
+        readonly List<(DynamicReflex reflex, string query, bool status, int reflexMapIndex)> _workReflexes = new List<(DynamicReflex reflex, string query, bool status, int reflexMapIndex)> { (null, string.Empty, false, -1) };
 
         /// <summary>
         ///     Отражает статус работы потока распознавания изображения.
@@ -214,10 +210,11 @@ namespace DynamicMosaicExample
         /// </summary>
         volatile bool _stopBackgroundThreadFlag;
 
-        /// <summary>
-        ///     Текущий обрабатываемый объект <see cref="Reflex" />.
-        /// </summary>
-        Reflex _workReflex;
+        (DynamicReflex reflex, string query, bool status, int reflexMapIndex) WorkReflex
+        {
+            get => _workReflexes[lstResults.SelectedIndex];
+            set => _workReflexes[lstResults.SelectedIndex] = value;
+        }
 
         /// <summary>
         ///     Поток, отвечающий за выполнение процедуры распознавания.
@@ -237,7 +234,7 @@ namespace DynamicMosaicExample
                 _strRecog = btnRecognizeImage.Text;
                 _unknownSymbolName = txtSymbolPath.Text;
                 _unknownSystemName = txtConSymbol.Text;
-                _createReflexString = (string) lstResults.Items[0];
+                _createReflexString = (string)lstResults.Items[0];
                 _strGrpResults = grpResults.Text;
                 ImageWidth = pbBrowse.Width;
                 ImageHeight = pbBrowse.Height;
@@ -267,7 +264,7 @@ namespace DynamicMosaicExample
                 void NeedCreate(string fullPath)
                 {
                     string[] paths = GetFiles(fullPath);
-                    if (paths == null || paths.Length <= 0)
+                    if (paths == null || paths.Length < 1)
                         return;
                     foreach (string path in paths)
                         _concurrentFileTasks.Enqueue(new FileTask(WatcherChangeTypes.Created, path, string.Empty, false,
@@ -283,7 +280,7 @@ namespace DynamicMosaicExample
                     {
                         ThreadPool.QueueUserWorkItem(state => SafetyExecute(() =>
                         {
-                            (WatcherChangeTypes type, string fullPath) = ((WatcherChangeTypes, string)) state;
+                            (WatcherChangeTypes type, string fullPath) = ((WatcherChangeTypes, string))state;
 
                             switch (type)
                             {
@@ -316,7 +313,7 @@ namespace DynamicMosaicExample
                     {
                         ThreadPool.QueueUserWorkItem(state => SafetyExecute(() =>
                         {
-                            (string oldFullPath, string newFullPath) = ((string, string)) state;
+                            (string oldFullPath, string newFullPath) = ((string, string))state;
                             NeedDelete(oldFullPath);
                             NeedCreate(newFullPath);
                             _needRefreshEvent.Set();
@@ -421,13 +418,13 @@ namespace DynamicMosaicExample
             get
             {
                 for (int y = 0; y < _btmFront.Height; y++)
-                for (int x = 0; x < _btmFront.Width; x++)
-                {
-                    Color c = _btmFront.GetPixel(x, y);
-                    if (c.A != _defaultColor.A || c.R != _defaultColor.R || c.G != _defaultColor.G ||
-                        c.B != _defaultColor.B)
-                        return true;
-                }
+                    for (int x = 0; x < _btmFront.Width; x++)
+                    {
+                        Color c = _btmFront.GetPixel(x, y);
+                        if (c.A != _defaultColor.A || c.R != _defaultColor.R || c.G != _defaultColor.G ||
+                            c.B != _defaultColor.B)
+                            return true;
+                    }
 
                 return false;
             }
@@ -472,11 +469,11 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Останавливает процесс распознавания.
         ///     Возвращает значение <see langword="true" /> в случае успешной остановки процесса распознавания, в противном случае
-        ///     возвращает значение <see langword="false" />, в том числе, если распознавание не было запущено.
+        ///     возвращает значение <see langword="false" />, в том числе, если процесс распознавания не был запущен.
         /// </summary>
         /// <returns>
-        ///     Возвращает значение <see langword="true" /> в случае успешной остановки процесса распознавания, в противном
-        ///     случае возвращает значение <see langword="false" />, в том числе, если распознавание не было запущено.
+        ///     Возвращает значение <see langword="true" /> в случае успешной остановки процесса распознавания, в противном случае
+        ///     возвращает значение <see langword="false" />, в том числе, если процесс распознавания не был запущен.
         /// </returns>
         bool StopRecognize()
         {
@@ -508,7 +505,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="act">Метод, который необходимо выполнить. <see langword="null" /> игнорируется.</param>
         /// <param name="name">Имя метода, которое будет необходимо добавить к тексту исключения.</param>
-        void ExceptionClause(Action act, string name)
+        static void ExceptionClause(Action act, string name)
         {
             try
             {
@@ -739,7 +736,7 @@ namespace DynamicMosaicExample
             ///     Инициализирует объект-наблюдатель с указанием формы, за которой требуется наблюдение.
             ///     Форма не может быть равна <see langword="null" />.
             /// </summary>
-            /// <param name="frm">Форма, за которое требуется наблюдение.</param>
+            /// <param name="frm">Форма, за которой требуется наблюдение.</param>
             internal CurrentState(FrmExample frm)
             {
                 _curForm = frm ?? throw new ArgumentNullException(nameof(frm));
@@ -794,41 +791,35 @@ namespace DynamicMosaicExample
             /// <param name="e">Данные о событии.</param>
             internal void WordChange(object sender, EventArgs e)
             {
-                if (_state == RecognizeState.ERROR || _state == RecognizeState.SUCCESS)
+                switch (_state)
                 {
-                    if (string.Compare(CurWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) == 0)
+                    case RecognizeState.ERROR:
+                    case RecognizeState.SUCCESS:
+                        if (string.Compare(CurWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) == 0)
+                            return;
+                        _curForm.pbSuccess.Image = Resources.Unk_128;
+                        _state = _state == RecognizeState.ERROR ? RecognizeState.ERRORWORD : RecognizeState.SUCCESSWORD;
                         return;
-                    _curForm.pbSuccess.Image = Resources.Unk_128;
-                    _state = _state == RecognizeState.ERROR
-                        ? RecognizeState.ERRORWORD
-                        : RecognizeState.SUCCESSWORD;
-                    return;
+                    case RecognizeState.ERRORWORD:
+                    case RecognizeState.SUCCESSWORD:
+                        if (string.Compare(CurWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) != 0)
+                            return;
+                        _curForm.pbSuccess.Image = _state == RecognizeState.ERRORWORD ? Resources.Error_128 : Resources.OK_128;
+                        _state = _state == RecognizeState.ERRORWORD ? RecognizeState.ERROR : RecognizeState.SUCCESS;
+                        return;
+                    case RecognizeState.UNKNOWN:
+                        CurWord = _curForm.txtWord.Text;
+                        return;
+                    default:
+                        throw new Exception($@"Неизвестное состояние программы ({_state}).");
                 }
-
-                if (_state == RecognizeState.ERRORWORD || _state == RecognizeState.SUCCESSWORD)
-                {
-                    if (string.Compare(CurWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) != 0)
-                        return;
-                    if (_state == RecognizeState.ERRORWORD)
-                    {
-                        _curForm.pbSuccess.Image = Resources.Error_128;
-                        _state = RecognizeState.ERROR;
-                        return;
-                    }
-
-                    _curForm.pbSuccess.Image = Resources.OK_128;
-                    _state = RecognizeState.SUCCESS;
-                    return;
-                }
-
-                CurWord = _curForm.txtWord.Text;
             }
         }
 
         /// <summary>
         ///     Содержит данные о задаче, связанной с изменениями в файловой системе.
         /// </summary>
-        struct FileTask
+        readonly struct FileTask
         {
             /// <summary>
             ///     Изменения, возникшие в файле или папке.

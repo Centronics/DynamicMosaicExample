@@ -7,4 +7,6 @@
   &lt;Assembly Path="D:\Программы\Системы программирования\ДИС\DynamicProcessorLib\Библиотека\DynamicProcessor.dll" /&gt;&#xD;
   &lt;Assembly Path="D:\Программы\Системы программирования\ДИС\DynamicParserRelease\Скомпилировано\Библиотека\DynamicParser.dll" /&gt;&#xD;
   &lt;Assembly Path="D:\Coding\DYNMOSAICRELEASE\DynamicMosaic.dll" /&gt;&#xD;
+  &lt;Assembly Path="Z:\Documents\ДИС\DynamicMosaic.dll" /&gt;&#xD;
+  &lt;Assembly Path="\\Mac\Home\Desktop\Библиотека DymanicMosaic\DynamicMosaic\DynamicMosaic\bin\Debug\DynamicMosaic.dll" /&gt;&#xD;
 &lt;/AssemblyExplorer&gt;</s:String></wpf:ResourceDictionary>

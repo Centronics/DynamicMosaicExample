@@ -289,7 +289,7 @@ namespace DynamicMosaicExample
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(GetLastProcessor)}: Операция недопустима.");
                 int count = Count;
-                if (count <= 0)
+                if (count < 1)
                 {
                     index = 0;
                     return (null, string.Empty, 0);
@@ -323,7 +323,7 @@ namespace DynamicMosaicExample
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(GetFirstProcessor)}: Операция недопустима.");
                 int count = Count;
-                if (count <= 0)
+                if (count < 1)
                 {
                     index = 0;
                     return (null, string.Empty, 0);
@@ -448,7 +448,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Хранит карту <see cref="Processor" /> и путь <see cref="string" /> к ней.
         /// </summary>
-        struct ProcPath
+        readonly struct ProcPath
         {
             /// <summary>
             ///     Хранимая карта.
@@ -478,7 +478,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Хранит карты, которые соответствуют одному значению хеша.
         /// </summary>
-        struct ProcHash
+        readonly struct ProcHash
         {
             /// <summary>
             ///     Список хранимых карт, дающих одно значение хеша.
@@ -494,7 +494,7 @@ namespace DynamicMosaicExample
             {
                 if (p.CurrentProcessor is null || string.IsNullOrWhiteSpace(p.CurrentPath))
                     throw new ArgumentNullException(nameof(p), $@"Функция (конструктор) {nameof(ProcHash)}.");
-                _lst = new List<ProcPath> {p};
+                _lst = new List<ProcPath> { p };
             }
 
             /// <summary>
@@ -555,7 +555,7 @@ namespace DynamicMosaicExample
                 {
                     int num = index1;
                     for (int index2 = 0; index2 < 8; ++index2)
-                        if ((uint) (num & 128) > 0U)
+                        if ((uint)(num & 128) > 0U)
                             num = (num << 1) ^ 49;
                         else
                             num <<= 1;
@@ -588,8 +588,8 @@ namespace DynamicMosaicExample
                 if (p is null)
                     throw new ArgumentNullException(nameof(p), $@"Функция {nameof(GetInts)}.");
                 for (int j = 0; j < p.Height; j++)
-                for (int i = 0; i < p.Width; i++)
-                    yield return p[i, j].Value;
+                    for (int i = 0; i < p.Width; i++)
+                        yield return p[i, j].Value;
             }
 
             /// <summary>
@@ -602,7 +602,7 @@ namespace DynamicMosaicExample
                 if (ints is null)
                     throw new ArgumentNullException(nameof(ints),
                         $@"Для подсчёта контрольной суммы необходимо указать массив байт. Функция {nameof(GetHash)}.");
-                return ints.Aggregate(255, (current, t) => Table[(byte) (current ^ t)]);
+                return ints.Aggregate(255, (current, t) => Table[(byte)(current ^ t)]);
             }
         }
     }
