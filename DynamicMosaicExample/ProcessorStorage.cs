@@ -425,8 +425,8 @@ namespace DynamicMosaicExample
                     $@"{nameof(SaveToFile)}: Путь, по которому требуется сохранить изображение, не задан.",
                     nameof(path));
             path = Path.ChangeExtension(path, string.Empty);
-            string resultTmp = Path.Combine(FrmExample.SearchPath, $@"{path}bmpTMP");
-            string result = Path.Combine(FrmExample.SearchPath, $@"{path}{FrmExample.ExtImg}");
+            string resultTmp = Path.Combine(FrmExample.SearchImagesPath, $@"{path}bmpTMP");
+            string result = Path.Combine(FrmExample.SearchImagesPath, $@"{path}{FrmExample.ExtImg}");
             using (FileStream fs = new FileStream(resultTmp, FileMode.Create, FileAccess.Write))
                 btm.Save(fs, ImageFormat.Bmp);
             try

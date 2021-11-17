@@ -18,7 +18,7 @@ namespace DynamicMosaicExample
     sealed partial class FrmExample
     {
         /// <summary>
-        ///     Предназначена для инициализации структур, отвечающих за вывод создаваемого изображения на экран.
+        ///     Предназначен для инициализации структур, отвечающих за вывод создаваемого изображения на экран.
         ///     Если предыдущее изображение присутствовало, то оно переносится на вновь созданное.
         ///     Если путь к файлу исходного изображения отсутствует, создаётся новое изображение.
         /// </summary>
@@ -38,43 +38,13 @@ namespace DynamicMosaicExample
             }
             else
             {
-                Bitmap btm;
-                using (FileStream fs = new FileStream(btmPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                    btm = new Bitmap(fs);
-                ImageFormat iformat = btm.RawFormat;
-                if (!iformat.Equals(ImageFormat.Bmp))
-                {
-                    MessageBox.Show(this,
-                        $@"Загружаемое изображение не подходит по формату: {iformat}; необходимо: {ImageFormat.Bmp}",
-                        @"Ошибка");
-                    btm.Dispose();
-                    return;
-                }
+                Bitmap btm = LoadRecognizeBitmap(btmPath);
 
-                if (WidthSizes.All(s => s != btm.Width))
-                {
-                    MessageBox.Show(this,
-                        $@"Загружаемое изображение не подходит по ширине: {
-                                btm.Width
-                            }. Она выходит за рамки допустимого. Попробуйте создать изображение и сохранить его заново.",
-                        @"Ошибка");
-                    btm.Dispose();
+                if (btm == null)
                     return;
-                }
-
-                if (btm.Height != pbDraw.Height)
-                {
-                    MessageBox.Show(this,
-                        $@"Загружаемое изображение не подходит по высоте: {btm.Height}; необходимо: {pbDraw.Height}",
-                        @"Ошибка");
-                    btm.Dispose();
-                    return;
-                }
 
                 pbDraw.Width = btm.Width;
-                btm.SetPixel(0, 0,
-                    btm.GetPixel(0,
-                        0)); //Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
+
                 _btmFront?.Dispose();
                 _btmFront = btm;
                 btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
@@ -85,6 +55,47 @@ namespace DynamicMosaicExample
             _grFront = Graphics.FromImage(_btmFront);
             pbDraw.Image = _btmFront;
             pbSuccess.Image = Resources.Unk_128;
+        }
+
+        internal Bitmap LoadRecognizeBitmap(string btmPath)
+        {
+            Bitmap btm;
+            using (FileStream fs = new FileStream(btmPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                btm = new Bitmap(fs);
+
+            ImageFormat iformat = btm.RawFormat;
+            if (!iformat.Equals(ImageFormat.Bmp))
+            {
+                MessageBox.Show(this,
+                    $@"Загружаемое изображение не подходит по формату: {iformat}; необходимо: {ImageFormat.Bmp}",
+                    @"Ошибка");
+                btm.Dispose();
+                return null;
+            }
+
+            if (WidthSizes.All(s => s != btm.Width))
+            {
+                MessageBox.Show(this,
+                    $@"Загружаемое изображение не подходит по ширине: {
+                        btm.Width
+                    }. Она выходит за рамки допустимого. Попробуйте создать изображение и сохранить его заново.",
+                    @"Ошибка");
+                btm.Dispose();
+                return null;
+            }
+
+            if (btm.Height != pbDraw.Height)
+            {
+                MessageBox.Show(this,
+                    $@"Загружаемое изображение не подходит по высоте: {btm.Height}; необходимо: {pbDraw.Height}",
+                    @"Ошибка");
+                btm.Dispose();
+                return null;
+            }
+
+            btm.SetPixel(0, 0, btm.GetPixel(0, 0)); //Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
+
+            return btm;
         }
 
         /// <summary>
@@ -327,7 +338,7 @@ namespace DynamicMosaicExample
 
             return new Thread(() => SafetyExecute(() =>
             {
-                WaitHandle[] waitHandles = { _imageActivity, _workThreadActivity };
+                WaitHandle[] waitHandles = { _imageActivity, _recognizerThreadActivity, _preparingActivity };
                 Stopwatch stwRenew = new Stopwatch();
                 for (int k = 0; k < 4; k++)
                 {
@@ -347,7 +358,7 @@ namespace DynamicMosaicExample
                     if (_stopBackgroundThreadFlag)
                         return;
 
-                    if (!IsWorking)
+                    if (!IsRecognizing)
                         EnableButtons = true;
 
                     stwRenew.Start();
@@ -363,7 +374,7 @@ namespace DynamicMosaicExample
                             InvokeAction(() =>
                             {
                                 btnRecognizeImage.Text =
-                                    IsWorking ? StrRecognize : IsFileActivity ? StrLoading : _strRecog;
+                                    IsRecognizing ? StrRecognize : IsPreparingActivity ? StrPreparing : IsFileActivity ? StrLoading : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -373,7 +384,7 @@ namespace DynamicMosaicExample
                             InvokeAction(() =>
                             {
                                 btnRecognizeImage.Text =
-                                    IsWorking ? StrRecognize1 : IsFileActivity ? StrLoading1 : _strRecog;
+                                    IsRecognizing ? StrRecognize1 : IsPreparingActivity ? StrPreparing1 : IsFileActivity ? StrLoading1 : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -383,7 +394,7 @@ namespace DynamicMosaicExample
                             InvokeAction(() =>
                             {
                                 btnRecognizeImage.Text =
-                                    IsWorking ? StrRecognize2 : IsFileActivity ? StrLoading2 : _strRecog;
+                                    IsRecognizing ? StrRecognize2 : IsPreparingActivity ? StrPreparing2 : IsFileActivity ? StrLoading2 : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -393,7 +404,7 @@ namespace DynamicMosaicExample
                             InvokeAction(() =>
                             {
                                 btnRecognizeImage.Text =
-                                    IsWorking ? StrRecognize3 : IsFileActivity ? StrLoading3 : _strRecog;
+                                    IsRecognizing ? StrRecognize3 : IsPreparingActivity ? StrPreparing3 : IsFileActivity ? StrLoading3 : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
                             });
@@ -422,7 +433,7 @@ namespace DynamicMosaicExample
         void BtnReflexClear_Click(object sender, EventArgs e) => InvokeAction(() =>
         {
             _currentState.CriticalChange(sender, e);
-            _workReflexes.Clear();
+            _recognizerReflexes.Clear();
             lstResults.Items.Clear();
             lstResults.SelectedIndex = -1;
             lstResults.Items.Add(_createReflexString);
@@ -449,16 +460,18 @@ namespace DynamicMosaicExample
             if (StopRecognize())
                 return;
 
-            DynamicReflex workReflex = WorkReflex.reflex;
+            DynamicReflex recognizerReflex = RecognizerReflex.reflex;
 
             _errorMessageIsShowed = false;
             EnableButtons = false;
 
-            (_workThread = new Thread(() => SafetyExecute(() =>
+            (_recognizerThread = new Thread(() => SafetyExecute(() =>
             {
                 try
                 {
-                    _workThreadActivity.Set();
+                    (Processor, string)[] query = LoadRecognizingImages() ? /*функция загрузки образов*/ : new[] { (new Processor(_btmFront, "Main"), _currentState.CurWord) };
+
+                    _recognizerThreadActivity.Set();
 
                     if (!IsPainting)
                     {
@@ -467,7 +480,14 @@ namespace DynamicMosaicExample
                         return;
                     }
 
-                    if (workReflex == null)
+                    if (string.IsNullOrEmpty(txtWord.Text))
+                    {
+                        ErrorMessageInOtherThread(
+                            @"Напишите какое-нибудь слово, которое можно составить из одного или нескольких образов.");
+                        return;
+                    }
+
+                    if (recognizerReflex == null)
                     {
                         ProcessorContainer processors = null;
 
@@ -490,7 +510,7 @@ namespace DynamicMosaicExample
 
                         try
                         {
-                            workReflex = new DynamicReflex(processors);
+                            recognizerReflex = new DynamicReflex(processors);
                         }
                         finally
                         {
@@ -499,8 +519,8 @@ namespace DynamicMosaicExample
 
                         InvokeAction(() =>
                         {
-                            _workReflexes.Insert(1, (workReflex, string.Empty, false, 0));
-                            lstResults.Items.Insert(1, $@"({workReflex.Processors.Count()}) {DateTime.Now:HH:mm:ss}");
+                            _recognizerReflexes.Insert(1, (recognizerReflex, string.Empty, false, 0));
+                            lstResults.Items.Insert(1, $@"({recognizerReflex.Processors.Count()}) {DateTime.Now:HH:mm:ss}");
                             lstResults.SelectedIndex = 1;
                             btnReflexClear.Enabled = true;
                             grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
@@ -508,15 +528,6 @@ namespace DynamicMosaicExample
 
                         return;
                     }
-
-                    if (string.IsNullOrEmpty(txtWord.Text))
-                    {
-                        ErrorMessageInOtherThread(
-                            @"Напишите какое-нибудь слово, которое можно составить из одного или нескольких образов.");
-                        return;
-                    }
-
-                    (Processor, string) query = (new Processor(_btmFront, "Main"), _currentState.CurWord);
 
                     _currentState.CriticalChange(sender, e);
                     _currentState.WordChange(sender, e);
@@ -526,7 +537,7 @@ namespace DynamicMosaicExample
 
                     try
                     {
-                        result = workReflex.FindRelation(query);
+                        result = recognizerReflex.FindRelation(query);
                     }
                     finally
                     {
@@ -543,7 +554,7 @@ namespace DynamicMosaicExample
                 {
                     if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)
                         Thread.ResetAbort();
-                    _workThreadActivity.Reset();
+                    _recognizerThreadActivity.Reset();
                 }
             }))
             {
@@ -551,9 +562,23 @@ namespace DynamicMosaicExample
                 IsBackground = true,
                 Name = "Recognizer"
             }).Start();
-            while (!IsWorking)
+            while (!IsRecognizing)
                 Thread.Sleep(10);
         });
+
+        bool LoadRecognizingImages()
+        {
+            try
+            {
+                _preparingActivity.Set();
+                //задать вопрос по поводу загрузки картинок
+
+            }
+            finally
+            {
+                _preparingActivity.Reset();
+            }
+        }
 
         /// <summary>
         ///     Осуществляет выход из программы по нажатию клавиши Escape.
@@ -790,8 +815,8 @@ namespace DynamicMosaicExample
         {
             if (lstResults.SelectedIndex > 0)
             {
-                (DynamicReflex workReflex, string _, bool _, int workSelection) = WorkReflex;
-                Processor p = workReflex.Processors.ElementAt(workSelection);
+                (DynamicReflex reflex, string _, bool _, int reflexMapIndex) = RecognizerReflex;
+                Processor p = reflex.Processors.ElementAt(reflexMapIndex);
                 pbConSymbol.Image = ImageRect.GetBitmap(p);
                 UpdateConSymbolName(p.Tag);
                 txtConSymbol.Enabled = true;
@@ -825,7 +850,7 @@ namespace DynamicMosaicExample
                 return;
             if (lstResults.SelectedIndex == 1)
                 _currentState.CriticalChange(sender, e);
-            _workReflexes.RemoveAt(lstResults.SelectedIndex);
+            _recognizerReflexes.RemoveAt(lstResults.SelectedIndex);
             lstResults.Items.RemoveAt(lstResults.SelectedIndex);
             lstResults.SelectedIndex = 0;
             int count = lstResults.Items.Count - 1;
@@ -850,13 +875,13 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            (DynamicReflex workReflex, string, bool, int reflexMapIndex) q = WorkReflex;
-            if (q.reflexMapIndex >= q.workReflex.Processors.Count() - 1)
+            (DynamicReflex reflex, string, bool, int reflexMapIndex) q = RecognizerReflex;
+            if (q.reflexMapIndex >= q.reflex.Processors.Count() - 1)
                 q.reflexMapIndex = 0;
             else
                 q.reflexMapIndex++;
-            WorkReflex = q;
-            Processor p = q.workReflex.Processors.ElementAt(q.reflexMapIndex);
+            RecognizerReflex = q;
+            Processor p = q.reflex.Processors.ElementAt(q.reflexMapIndex);
             pbConSymbol.Image = ImageRect.GetBitmap(p);
             UpdateConSymbolName(p.Tag);
         });
@@ -868,13 +893,13 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConPrevious_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            (DynamicReflex workReflex, string, bool, int reflexMapIndex) q = WorkReflex;
+            (DynamicReflex reflex, string, bool, int reflexMapIndex) q = RecognizerReflex;
             if (q.reflexMapIndex < 1)
-                q.reflexMapIndex = q.workReflex.Processors.Count() - 1;
+                q.reflexMapIndex = q.reflex.Processors.Count() - 1;
             else
                 q.reflexMapIndex--;
-            WorkReflex = q;
-            Processor p = q.workReflex.Processors.ElementAt(q.reflexMapIndex);
+            RecognizerReflex = q;
+            Processor p = q.reflex.Processors.ElementAt(q.reflexMapIndex);
             pbConSymbol.Image = ImageRect.GetBitmap(p);
             UpdateConSymbolName(p.Tag);
         });
@@ -884,7 +909,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="tag">Значение свойства <see cref="Processor.Tag" />.</param>
         void UpdateConSymbolName(string tag) => txtConSymbol.Text =
-            $@"№ {WorkReflex.reflexMapIndex + 1} {ConcurrentProcessorStorage.GetProcessorName(tag)}";
+            $@"№ {RecognizerReflex.reflexMapIndex + 1} {ConcurrentProcessorStorage.GetProcessorName(tag)}";
 
         /// <summary>
         ///     Сохраняет выбранную карту <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.
@@ -892,7 +917,7 @@ namespace DynamicMosaicExample
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
-            ConcurrentProcessorStorage.SaveToFile(WorkReflex.reflex.Processors.ElementAt(WorkReflex.reflexMapIndex)));
+            ConcurrentProcessorStorage.SaveToFile(RecognizerReflex.reflex.Processors.ElementAt(RecognizerReflex.reflexMapIndex)));
 
         /// <summary>
         ///     Сохраняет все карты <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.
@@ -901,7 +926,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            foreach (Processor p in WorkReflex.reflex.Processors)
+            foreach (Processor p in RecognizerReflex.reflex.Processors)
                 ConcurrentProcessorStorage.SaveToFile(p);
         });
 
@@ -919,7 +944,7 @@ namespace DynamicMosaicExample
                 _stopBackgroundThreadFlag = true;
                 _needRefreshEvent.Set();
                 _imageActivity.Set();
-                _workThreadActivity.Set();
+                _recognizerThreadActivity.Set();
                 if ((_fileThread?.ThreadState & ThreadState.Unstarted) != ThreadState.Unstarted)
                     _fileThread?.Join(1000);
                 if ((_workWaitThread?.ThreadState & ThreadState.Unstarted) != ThreadState.Unstarted)

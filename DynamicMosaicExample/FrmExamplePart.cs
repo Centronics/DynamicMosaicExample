@@ -57,6 +57,34 @@ namespace DynamicMosaicExample
         /// </summary>
         const string StrLoading3 = "Загрузка...";
 
+
+
+
+
+        /// <summary>
+        ///     Надпись на кнопке "Распознать".
+        /// </summary>
+        const string StrPreparing = "Подготовка   ";
+
+        /// <summary>
+        ///     Надпись на кнопке "Распознать".
+        /// </summary>
+        const string StrPreparing1 = "Подготовка.  ";
+
+        /// <summary>
+        ///     Надпись на кнопке "Распознать".
+        /// </summary>
+        const string StrPreparing2 = "Подготовка.. ";
+
+        /// <summary>
+        ///     Надпись на кнопке "Распознать".
+        /// </summary>
+        const string StrPreparing3 = "Подготовка...";
+
+
+
+
+
         /// <summary>
         ///     Текст ошибки в случае, если отсутствуют образы для поиска (распознавания).
         /// </summary>
@@ -121,6 +149,8 @@ namespace DynamicMosaicExample
         /// </summary>
         readonly ManualResetEvent _imageActivity = new ManualResetEvent(false);
 
+        readonly ManualResetEvent _preparingActivity = new ManualResetEvent(false);
+
         /// <summary>
         ///     Уведомляет о необходимости запустить поток для обновления списка файлов изображений.
         /// </summary>
@@ -167,12 +197,12 @@ namespace DynamicMosaicExample
         ///     Коллекция задействованных элементов <see cref="DynamicReflex" />.
         ///     Содержит <see cref="DynamicReflex" />, запрос, статус выполнения запроса, номер просматриваемой карты на данный момент.
         /// </summary>
-        readonly List<(DynamicReflex reflex, string query, bool status, int reflexMapIndex)> _workReflexes = new List<(DynamicReflex reflex, string query, bool status, int reflexMapIndex)> { (null, string.Empty, false, -1) };
+        readonly List<(DynamicReflex reflex, string query, bool status, int reflexMapIndex)> _recognizerReflexes = new List<(DynamicReflex reflex, string query, bool status, int reflexMapIndex)> { (null, string.Empty, false, -1) };
 
         /// <summary>
         ///     Отражает статус работы потока распознавания изображения.
         /// </summary>
-        readonly ManualResetEvent _workThreadActivity = new ManualResetEvent(false);
+        readonly ManualResetEvent _recognizerThreadActivity = new ManualResetEvent(false);
 
         /// <summary>
         ///     Поток, отвечающий за отображение процесса ожидания завершения операции.
@@ -208,18 +238,18 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Сигнал остановки потокам, работающим на фоне.
         /// </summary>
-        volatile bool _stopBackgroundThreadFlag;
+        volatile bool _stopBackgroundThreadFlag;//превратить в событие
 
-        (DynamicReflex reflex, string query, bool status, int reflexMapIndex) WorkReflex
+        (DynamicReflex reflex, string query, bool status, int reflexMapIndex) RecognizerReflex
         {
-            get => _workReflexes[lstResults.SelectedIndex];
-            set => _workReflexes[lstResults.SelectedIndex] = value;
+            get => _recognizerReflexes[lstResults.SelectedIndex];
+            set => _recognizerReflexes[lstResults.SelectedIndex] = value;
         }
 
         /// <summary>
         ///     Поток, отвечающий за выполнение процедуры распознавания.
         /// </summary>
-        Thread _workThread;
+        Thread _recognizerThread;
 
         /// <summary>
         ///     Конструктор основной формы приложения.
@@ -229,6 +259,8 @@ namespace DynamicMosaicExample
             try
             {
                 InitializeComponent();
+                Directory.CreateDirectory(SearchImagesPath);
+                Directory.CreateDirectory(RecognizeImagesPath);
                 _whitePen = new Pen(_defaultColor, 2.0f);
                 Initialize();
                 _strRecog = btnRecognizeImage.Text;
@@ -247,7 +279,7 @@ namespace DynamicMosaicExample
                 btnClearImage.Click += _currentState.CriticalChange;
                 btnLoadImage.Click += _currentState.CriticalChange;
                 txtWord.TextChanged += _currentState.WordChange;
-                fswImageChanged.Path = SearchPath;
+                fswImageChanged.Path = SearchImagesPath;
                 fswImageChanged.IncludeSubdirectories = true;
                 fswImageChanged.NotifyFilter =
                     NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName;
@@ -345,7 +377,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает значение, отражающее статус рабочего процесса по распознаванию изображения.
         /// </summary>
-        bool IsWorking => (_workThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0;
+        bool IsRecognizing => (_recognizerThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0;//отслеживать по _recognizerThreadActivity
 
         /// <summary>
         ///     Ширина образа для распознавания.
@@ -357,21 +389,29 @@ namespace DynamicMosaicExample
         /// </summary>
         internal static int ImageHeight { get; private set; }
 
+        internal static string ImagesFolder => "Images";
+
+        internal static string RecognizeFolder => "Recognize";
+
         /// <summary>
         ///     Путь, по которому ищутся изображения, которые интерпретируются как карты <see cref="Processor" />, поиск которых
         ///     будет осуществляться на основной карте.
         /// </summary>
-        internal static string SearchPath { get; } = Application.StartupPath;
+        internal static string SearchImagesPath { get; } = Path.Combine(Application.StartupPath, ImagesFolder);
+
+        internal static string RecognizeImagesPath { get; } = Path.Combine(Application.StartupPath, RecognizeFolder);
 
         /// <summary>
         ///     Расширение изображений, которые интерпретируются как карты <see cref="Processor" />.
         /// </summary>
-        internal static string ExtImg { get; } = "bmp";
+        internal static string ExtImg => "bmp";
 
         /// <summary>
         ///     Отражает статус процесса актуализации содержимого карт с жёсткого диска.
         /// </summary>
-        bool IsFileActivity => (_fileThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0;
+        bool IsFileActivity => (_fileThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0; // зачем это, когда можно использовать _imageActivity?
+
+        bool IsPreparingActivity => true;
 
         /// <summary>
         ///     Отключает или включает доступность кнопок на время выполнения операции.
@@ -462,7 +502,7 @@ namespace DynamicMosaicExample
             }
             catch
             {
-                return null;
+                return new string[0];
             }
         }
 
@@ -479,15 +519,15 @@ namespace DynamicMosaicExample
         {
             try
             {
-                if (!IsWorking)
+                if (!IsRecognizing)
                     return false;
-                _workThread.Abort();
-                if (!_workThread.Join(15000))
+                _recognizerThread.Abort();
+                if (!_recognizerThread.Join(15000))
                     MessageBox.Show(this,
                         @"Во время остановки распознавания произошла ошибка: поток, отвечающий за распознавание, завис. Рекомендуется перезапустить программу.",
                         @"Ошибка",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
-                _workThread = null;
+                _recognizerThread = null;
                 return true;
             }
             catch (Exception ex)
@@ -544,7 +584,7 @@ namespace DynamicMosaicExample
                         ThreadPool.GetMaxThreads(out _, out int comPortMax);
                         ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
                         Parallel.ForEach(
-                            Directory.EnumerateFiles(SearchPath, $"*.{ExtImg}", SearchOption.AllDirectories),
+                            Directory.EnumerateFiles(SearchImagesPath, $"*.{ExtImg}", SearchOption.AllDirectories),
                             (fullPath, state) => SafetyExecute(() =>
                             {
                                 try
@@ -665,7 +705,7 @@ namespace DynamicMosaicExample
             try
             {
                 logstr = $@"{DateTime.Now:dd.MM.yyyy HH:mm:ss} {logstr}";
-                string path = Path.Combine(SearchPath, "DynamicMosaicExampleLog.log");
+                string path = Path.Combine(SearchImagesPath, "DynamicMosaicExampleLog.log");
                 lock (LogLockerObject)
                     using (FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write,
                         FileShare.ReadWrite | FileShare.Delete))
