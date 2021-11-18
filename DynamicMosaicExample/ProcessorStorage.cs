@@ -93,13 +93,12 @@ namespace DynamicMosaicExample
                     if (!IsOperationAllowed)
                         throw new InvalidOperationException(
                             $@"{nameof(ConcurrentProcessorStorage)}.indexer(int): Операция недопустима.");
-                    if (index >= 0 && index < Count)
-                    {
-                        ProcPath pp = _dictionaryByPath.Values.ElementAt(index);
-                        return (pp.CurrentProcessor, pp.CurrentPath, Count);
-                    }
 
-                    return (null, string.Empty, Count);
+                    if (index < 0 || index >= Count)
+                        return (null, string.Empty, Count);
+
+                    ProcPath pp = _dictionaryByPath.Values.ElementAt(index);
+                    return (pp.CurrentProcessor, pp.CurrentPath, Count);
                 }
             }
         }
@@ -156,7 +155,7 @@ namespace DynamicMosaicExample
                     }
                     catch (Exception ex)
                     {
-                        if (k >= 49)
+                        if (k > 48)
                             throw new FileNotFoundException($@"{nameof(AddProcessor)}: {ex.Message}", fullPath);
                         Thread.Sleep(100);
                         continue;
@@ -528,7 +527,7 @@ namespace DynamicMosaicExample
             /// <param name="index">Индекс удаляемой карты.</param>
             internal void RemoveProcessor(int index)
             {
-                if (index >= 0 && index < _lst.Count)
+                if (index > -1 && index < _lst.Count)
                     _lst.RemoveAt(index);
             }
         }

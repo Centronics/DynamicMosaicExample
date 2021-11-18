@@ -147,7 +147,7 @@ namespace DynamicMosaicExample
         ///     Отражает статус работы потока, который служит для получения всех имеющихся на данный момент образов букв для
         ///     распознавания, в том числе, для актуализации их содержимого.
         /// </summary>
-        readonly ManualResetEvent _imageActivity = new ManualResetEvent(false);
+        readonly ManualResetEvent _fileActivity = new ManualResetEvent(false);
 
         readonly ManualResetEvent _preparingActivity = new ManualResetEvent(false);
 
@@ -238,7 +238,9 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Сигнал остановки потокам, работающим на фоне.
         /// </summary>
-        volatile bool _stopBackgroundThreadFlag;//превратить в событие
+        readonly ManualResetEvent _stopBackgroundThreadEventFlag = new ManualResetEvent(false);
+
+        bool NeedStopBackground => _stopBackgroundThreadEventFlag.WaitOne(0);
 
         (DynamicReflex reflex, string query, bool status, int reflexMapIndex) RecognizerReflex
         {
@@ -377,7 +379,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает значение, отражающее статус рабочего процесса по распознаванию изображения.
         /// </summary>
-        bool IsRecognizing => (_recognizerThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0;//отслеживать по _recognizerThreadActivity
+        bool IsRecognizing => _recognizerThreadActivity.WaitOne(0);
 
         /// <summary>
         ///     Ширина образа для распознавания.
@@ -409,9 +411,9 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Отражает статус процесса актуализации содержимого карт с жёсткого диска.
         /// </summary>
-        bool IsFileActivity => (_fileThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) == 0; // зачем это, когда можно использовать _imageActivity?
+        bool IsFileActivity => _fileActivity.WaitOne(0);
 
-        bool IsPreparingActivity => true;
+        bool IsPreparingActivity => _preparingActivity.WaitOne(0);
 
         /// <summary>
         ///     Отключает или включает доступность кнопок на время выполнения операции.
@@ -578,7 +580,7 @@ namespace DynamicMosaicExample
             {
                 try
                 {
-                    _imageActivity.Set();
+                    _fileActivity.Set();
                     try
                     {
                         ThreadPool.GetMinThreads(out _, out int comPortMin);
@@ -591,7 +593,7 @@ namespace DynamicMosaicExample
                             {
                                 try
                                 {
-                                    if (_stopBackgroundThreadFlag || state.IsStopped)
+                                    if (NeedStopBackground || state.IsStopped)
                                     {
                                         state.Stop();
                                         return;
@@ -611,16 +613,16 @@ namespace DynamicMosaicExample
                     }
                     finally
                     {
-                        _imageActivity.Reset();
+                        _fileActivity.Reset();
                     }
 
-                    while (!_stopBackgroundThreadFlag)
+                    while (!NeedStopBackground)
                     {
                         _needRefreshEvent.WaitOne();
-                        _imageActivity.Set();
+                        _fileActivity.Set();
                         try
                         {
-                            while (!_stopBackgroundThreadFlag && _concurrentFileTasks.TryDequeue(out FileTask task))
+                            while (!NeedStopBackground && _concurrentFileTasks.TryDequeue(out FileTask task))
                                 SafetyExecute(() =>
                                 {
                                     try
@@ -661,7 +663,7 @@ namespace DynamicMosaicExample
                         }
                         finally
                         {
-                            _imageActivity.Reset();
+                            _fileActivity.Reset();
                         }
                     }
                 }

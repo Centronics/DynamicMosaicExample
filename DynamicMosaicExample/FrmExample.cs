@@ -342,7 +342,7 @@ namespace DynamicMosaicExample
 
             return new Thread(() => SafetyExecute(() =>
             {
-                WaitHandle[] waitHandles = { _imageActivity, _recognizerThreadActivity, _preparingActivity };
+                WaitHandle[] waitHandles = { _fileActivity, _recognizerThreadActivity, _preparingActivity };
                 Stopwatch stwRenew = new Stopwatch();
                 for (int k = 0; k < 4; k++)
                 {
@@ -359,7 +359,7 @@ namespace DynamicMosaicExample
                         WaitHandle.WaitAny(waitHandles);
                     }
 
-                    if (_stopBackgroundThreadFlag)
+                    if (NeedStopBackground)
                         return;
 
                     if (!IsRecognizing)
@@ -955,9 +955,9 @@ namespace DynamicMosaicExample
             try
             {
                 StopRecognize();
-                _stopBackgroundThreadFlag = true;
+                _stopBackgroundThreadEventFlag.Set();
                 _needRefreshEvent.Set();
-                _imageActivity.Set();
+                _fileActivity.Set();
                 _recognizerThreadActivity.Set();
                 if ((_fileThread?.ThreadState & ThreadState.Unstarted) != ThreadState.Unstarted)
                     _fileThread?.Join(1000);
@@ -1011,7 +1011,7 @@ namespace DynamicMosaicExample
                 return;
             int pos = txtSymbolPath.Text.Length - 3;
             txtSymbolPath.Select(pos, 0);
-            for (int k = pos; k >= 0; k--)
+            for (int k = pos; k > -1; k--)
                 if (txtSymbolPath.Text[k] == '\\' || txtSymbolPath.Text[k] == '/')
                 {
                     if (k < pos)
