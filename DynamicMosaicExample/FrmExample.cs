@@ -38,10 +38,17 @@ namespace DynamicMosaicExample
             }
             else
             {
-                Bitmap btm = LoadRecognizeBitmap(btmPath);
+                Bitmap btm;
 
-                if (btm == null)
+                try
+                {
+                    btm = LoadRecognizeBitmap(btmPath);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     return;
+                }
 
                 pbDraw.Width = btm.Width;
 
@@ -60,37 +67,34 @@ namespace DynamicMosaicExample
         internal Bitmap LoadRecognizeBitmap(string btmPath)
         {
             Bitmap btm;
-            using (FileStream fs = new FileStream(btmPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                btm = new Bitmap(fs);
+
+            try
+            {
+                using (FileStream fs = new FileStream(btmPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    btm = new Bitmap(fs);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($@"Ошибка при загрузке изображения по пути: {btmPath}.", ex);
+            }
 
             ImageFormat iformat = btm.RawFormat;
             if (!iformat.Equals(ImageFormat.Bmp))
             {
-                MessageBox.Show(this,
-                    $@"Загружаемое изображение не подходит по формату: {iformat}; необходимо: {ImageFormat.Bmp}",
-                    @"Ошибка");
                 btm.Dispose();
-                return null;
+                throw new Exception($@"Загружаемое изображение не подходит по формату: {iformat}; необходимо: {ImageFormat.Bmp}. Путь: {btmPath}.");
             }
 
             if (WidthSizes.All(s => s != btm.Width))
             {
-                MessageBox.Show(this,
-                    $@"Загружаемое изображение не подходит по ширине: {
-                        btm.Width
-                    }. Она выходит за рамки допустимого. Попробуйте создать изображение и сохранить его заново.",
-                    @"Ошибка");
                 btm.Dispose();
-                return null;
+                throw new Exception($@"Загружаемое изображение не подходит по ширине: {btm.Width}. Она выходит за рамки допустимого. Попробуйте создать изображение и сохранить его заново. Путь: {btmPath}.");
             }
 
             if (btm.Height != pbDraw.Height)
             {
-                MessageBox.Show(this,
-                    $@"Загружаемое изображение не подходит по высоте: {btm.Height}; необходимо: {pbDraw.Height}",
-                    @"Ошибка");
                 btm.Dispose();
-                return null;
+                throw new Exception($@"Загружаемое изображение не подходит по высоте: {btm.Height}; необходимо: {pbDraw.Height}. Путь: {btmPath}.");
             }
 
             btm.SetPixel(0, 0, btm.GetPixel(0, 0)); //Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
@@ -469,7 +473,17 @@ namespace DynamicMosaicExample
             {
                 try
                 {
-                    (Processor, string)[] query = LoadRecognizingImages() ? /*функция загрузки образов*/ : new[] { (new Processor(_btmFront, "Main"), _currentState.CurWord) };
+                    (Processor, string)[] query;
+
+                    try
+                    {
+                        query = LoadRecognizingImages();
+                    }
+                    catch (Exception ex)
+                    {
+                        ErrorMessageInOtherThread(ex.Message);
+                        return;
+                    }
 
                     _recognizerThreadActivity.Set();
 
@@ -566,13 +580,13 @@ namespace DynamicMosaicExample
                 Thread.Sleep(10);
         });
 
-        bool LoadRecognizingImages()
+        (Processor, string)[] LoadRecognizingImages()
         {
             try
             {
                 _preparingActivity.Set();
-                //задать вопрос по поводу загрузки картинок
-
+                bool q = MessageBox.Show(@"Обработать изображения из папки?", @"Обработка изображений", MessageBoxButtons.YesNo, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1) == DialogResult.Yes;
+                return q ? RecognizeImages.Select(p => (p, p.Tag)).ToArray() : new[] { (new Processor(_btmFront, "Main"), _currentState.CurWord) };
             }
             finally
             {

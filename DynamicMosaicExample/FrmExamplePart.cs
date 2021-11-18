@@ -506,6 +506,8 @@ namespace DynamicMosaicExample
             }
         }
 
+        IEnumerable<Processor> RecognizeImages => from path in GetFiles(RecognizeImagesPath) let btm = LoadRecognizeBitmap(path) select new Processor(btm, Path.GetFileNameWithoutExtension(path));
+
         /// <summary>
         ///     Останавливает процесс распознавания.
         ///     Возвращает значение <see langword="true" /> в случае успешной остановки процесса распознавания, в противном случае
