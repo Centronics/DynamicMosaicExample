@@ -8,7 +8,7 @@ namespace DynamicMosaicExample
     /// <summary>
     ///     Форма ввода нового искомого символа.
     /// </summary>
-    sealed partial class FrmSymbol : Form
+    internal sealed partial class FrmSymbol : Form
     {
         /// <summary>
         ///     Задаёт толщину и цвет выводимой линии.

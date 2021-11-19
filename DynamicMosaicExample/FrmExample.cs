@@ -15,7 +15,7 @@ namespace DynamicMosaicExample
     /// <summary>
     ///     Класс основной формы приложения.
     /// </summary>
-    sealed partial class FrmExample
+    internal sealed partial class FrmExample
     {
         /// <summary>
         ///     Предназначен для инициализации структур, отвечающих за вывод создаваемого изображения на экран.

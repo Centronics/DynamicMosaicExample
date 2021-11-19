@@ -8,7 +8,7 @@ namespace DynamicMosaicExample
     /// <summary>
     ///     Предназначен для работы с образами искомых букв.
     /// </summary>
-    struct ImageRect
+    internal struct ImageRect
     {
         /// <summary>
         ///     Инициализирует экземпляр образа буквы для распознавания.

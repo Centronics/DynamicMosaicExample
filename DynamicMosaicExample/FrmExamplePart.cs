@@ -15,7 +15,7 @@ using ThreadState = System.Threading.ThreadState;
 
 namespace DynamicMosaicExample
 {
-    sealed partial class FrmExample : Form
+    internal sealed partial class FrmExample : Form
     {
         /// <summary>
         ///     Надпись на кнопке "Распознать".

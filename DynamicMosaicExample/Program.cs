@@ -3,7 +3,7 @@ using System.Windows.Forms;
 
 namespace DynamicMosaicExample
 {
-    static class Program
+    internal static class Program
     {
         /// <summary>
         ///     Главная точка входа для приложения.

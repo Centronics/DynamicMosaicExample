@@ -13,7 +13,7 @@ namespace DynamicMosaicExample
     ///     Потокобезопасное хранилище карт <see cref="Processor" /> с поддержкой поиска с использованием хеш-таблицы.
     ///     Поддерживаются повторяющиеся ключи.
     /// </summary>
-    sealed class ConcurrentProcessorStorage
+    internal sealed class ConcurrentProcessorStorage
     {
         /// <summary>
         ///     Коллекция карт, идентифицируемых по хешу.
