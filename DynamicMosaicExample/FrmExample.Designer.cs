@@ -37,7 +37,6 @@
             this.grpImages = new System.Windows.Forms.GroupBox();
             this.txtSymbolPath = new System.Windows.Forms.TextBox();
             this.txtImagesCount = new System.Windows.Forms.TextBox();
-            this.label4 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.btnImageDelete = new System.Windows.Forms.Button();
             this.btnImagePrev = new System.Windows.Forms.Button();
@@ -64,9 +63,10 @@
             this.btnConPrevious = new System.Windows.Forms.Button();
             this.btnConNext = new System.Windows.Forms.Button();
             this.pbConSymbol = new System.Windows.Forms.PictureBox();
-            this.dlgSaveImage = new System.Windows.Forms.SaveFileDialog();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
             this.fswImageChanged = new System.IO.FileSystemWatcher();
+            this.listBox1 = new System.Windows.Forms.ListBox();
+            this.button1 = new System.Windows.Forms.Button();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
             this.grpResults.SuspendLayout();
@@ -95,7 +95,7 @@
             this.btnClearImage.Enabled = false;
             this.btnClearImage.Location = new System.Drawing.Point(5, 114);
             this.btnClearImage.Name = "btnClearImage";
-            this.btnClearImage.Size = new System.Drawing.Size(98, 23);
+            this.btnClearImage.Size = new System.Drawing.Size(44, 23);
             this.btnClearImage.TabIndex = 1;
             this.btnClearImage.Text = "Очистить";
             this.btnClearImage.UseVisualStyleBackColor = true;
@@ -138,7 +138,6 @@
             // 
             this.grpImages.Controls.Add(this.txtSymbolPath);
             this.grpImages.Controls.Add(this.txtImagesCount);
-            this.grpImages.Controls.Add(this.label4);
             this.grpImages.Controls.Add(this.label1);
             this.grpImages.Controls.Add(this.btnImageDelete);
             this.grpImages.Controls.Add(this.btnImagePrev);
@@ -155,35 +154,26 @@
             // txtSymbolPath
             // 
             this.txtSymbolPath.Enabled = false;
-            this.txtSymbolPath.Location = new System.Drawing.Point(55, 15);
+            this.txtSymbolPath.Location = new System.Drawing.Point(33, 14);
             this.txtSymbolPath.Name = "txtSymbolPath";
             this.txtSymbolPath.ReadOnly = true;
-            this.txtSymbolPath.Size = new System.Drawing.Size(88, 20);
+            this.txtSymbolPath.Size = new System.Drawing.Size(182, 20);
             this.txtSymbolPath.TabIndex = 19;
             this.txtSymbolPath.TextChanged += new System.EventHandler(this.TxtSymbolPath_TextChanged);
             // 
             // txtImagesCount
             // 
             this.txtImagesCount.Enabled = false;
-            this.txtImagesCount.Location = new System.Drawing.Point(185, 15);
+            this.txtImagesCount.Location = new System.Drawing.Point(216, 14);
             this.txtImagesCount.Name = "txtImagesCount";
             this.txtImagesCount.ReadOnly = true;
-            this.txtImagesCount.Size = new System.Drawing.Size(77, 20);
+            this.txtImagesCount.Size = new System.Drawing.Size(45, 20);
             this.txtImagesCount.TabIndex = 18;
-            // 
-            // label4
-            // 
-            this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(147, 17);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(40, 13);
-            this.label4.TabIndex = 12;
-            this.label4.Text = "Всего:";
             // 
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(3, 16);
+            this.label1.Location = new System.Drawing.Point(3, 15);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(34, 13);
             this.label1.TabIndex = 3;
@@ -294,6 +284,8 @@
             // 
             // grpSourceImage
             // 
+            this.grpSourceImage.Controls.Add(this.button1);
+            this.grpSourceImage.Controls.Add(this.listBox1);
             this.grpSourceImage.Controls.Add(this.btnWide);
             this.grpSourceImage.Controls.Add(this.btnNarrow);
             this.grpSourceImage.Controls.Add(this.btnLoadImage);
@@ -314,11 +306,11 @@
             // 
             this.btnWide.Enabled = false;
             this.btnWide.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold);
-            this.btnWide.Location = new System.Drawing.Point(189, 85);
+            this.btnWide.Location = new System.Drawing.Point(147, 85);
             this.btnWide.Name = "btnWide";
-            this.btnWide.Size = new System.Drawing.Size(74, 23);
+            this.btnWide.Size = new System.Drawing.Size(36, 23);
             this.btnWide.TabIndex = 4;
-            this.btnWide.Text = "===>";
+            this.btnWide.Text = "=>";
             this.btnWide.UseVisualStyleBackColor = true;
             this.btnWide.Click += new System.EventHandler(this.BtnWide_Click);
             // 
@@ -327,17 +319,17 @@
             this.btnNarrow.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnNarrow.Location = new System.Drawing.Point(109, 85);
             this.btnNarrow.Name = "btnNarrow";
-            this.btnNarrow.Size = new System.Drawing.Size(74, 23);
+            this.btnNarrow.Size = new System.Drawing.Size(36, 23);
             this.btnNarrow.TabIndex = 2;
-            this.btnNarrow.Text = "<===";
+            this.btnNarrow.Text = "<=";
             this.btnNarrow.UseVisualStyleBackColor = true;
             this.btnNarrow.Click += new System.EventHandler(this.BtnNarrow_Click);
             // 
             // btnLoadImage
             // 
-            this.btnLoadImage.Location = new System.Drawing.Point(189, 114);
+            this.btnLoadImage.Location = new System.Drawing.Point(147, 114);
             this.btnLoadImage.Name = "btnLoadImage";
-            this.btnLoadImage.Size = new System.Drawing.Size(74, 23);
+            this.btnLoadImage.Size = new System.Drawing.Size(36, 23);
             this.btnLoadImage.TabIndex = 5;
             this.btnLoadImage.Text = "Загрузить";
             this.btnLoadImage.UseVisualStyleBackColor = true;
@@ -347,7 +339,7 @@
             // 
             this.btnSaveImage.Location = new System.Drawing.Point(109, 114);
             this.btnSaveImage.Name = "btnSaveImage";
-            this.btnSaveImage.Size = new System.Drawing.Size(74, 23);
+            this.btnSaveImage.Size = new System.Drawing.Size(36, 23);
             this.btnSaveImage.TabIndex = 3;
             this.btnSaveImage.Text = "Сохранить";
             this.btnSaveImage.UseVisualStyleBackColor = true;
@@ -469,10 +461,6 @@
             this.pbConSymbol.TabIndex = 19;
             this.pbConSymbol.TabStop = false;
             // 
-            // dlgSaveImage
-            // 
-            this.dlgSaveImage.Filter = "BMP|*.bmp";
-            // 
             // dlgOpenImage
             // 
             this.dlgOpenImage.Filter = "BMP|*.bmp";
@@ -483,6 +471,23 @@
             this.fswImageChanged.IncludeSubdirectories = true;
             this.fswImageChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswImageChanged.SynchronizingObject = this;
+            // 
+            // listBox1
+            // 
+            this.listBox1.FormattingEnabled = true;
+            this.listBox1.Location = new System.Drawing.Point(189, 83);
+            this.listBox1.Name = "listBox1";
+            this.listBox1.Size = new System.Drawing.Size(74, 56);
+            this.listBox1.TabIndex = 16;
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(55, 114);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(48, 23);
+            this.button1.TabIndex = 17;
+            this.button1.Text = "Удалить";
+            this.button1.UseVisualStyleBackColor = true;
             // 
             // FrmExample
             // 
@@ -542,10 +547,8 @@
         private System.Windows.Forms.GroupBox grpSourceImage;
         private System.Windows.Forms.GroupBox grpWords;
         private System.Windows.Forms.TextBox txtImagesCount;
-        private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Button btnLoadImage;
         private System.Windows.Forms.Button btnSaveImage;
-        private System.Windows.Forms.SaveFileDialog dlgSaveImage;
         private System.Windows.Forms.OpenFileDialog dlgOpenImage;
         private System.Windows.Forms.Button btnReflexClear;
         private System.Windows.Forms.Button btnWide;
@@ -561,6 +564,8 @@
         private System.Windows.Forms.Button btnConSaveImage;
         private System.Windows.Forms.Button btnConSaveAllImages;
         private System.IO.FileSystemWatcher fswImageChanged;
+        private System.Windows.Forms.ListBox listBox1;
+        private System.Windows.Forms.Button button1;
     }
 }
 

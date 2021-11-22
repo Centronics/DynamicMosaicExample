@@ -91,6 +91,8 @@ namespace DynamicMosaicExample
         const string ImagesNoExists =
             @"Образы отсутствуют. Для их добавления и распознавания необходимо создать искомые образы, нажав кнопку 'Создать образ', затем добавить искомое слово, которое так или иначе можно составить из названий искомых образов. Затем необходимо нарисовать его в поле исходного изображения. Далее нажать кнопку 'Распознать'.";
 
+        const string SaveImageQueryError = @"Необходимо написать какой-либо запрос, который будет использоваться в качестве имени файла изображения.";
+
         /// <summary>
         ///     Определяет шаг (в пикселях), на который изменяется ширина сканируемого (создаваемого) изображения при нажатии
         ///     кнопок сужения или расширения.
@@ -202,7 +204,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Отражает статус работы потока распознавания изображения.
         /// </summary>
-        readonly ManualResetEvent _recognizerThreadActivity = new ManualResetEvent(false);
+        readonly ManualResetEvent _recognizerActivity = new ManualResetEvent(false);
 
         /// <summary>
         ///     Поток, отвечающий за отображение процесса ожидания завершения операции.
@@ -242,7 +244,7 @@ namespace DynamicMosaicExample
 
         bool NeedStopBackground => _stopBackgroundThreadEventFlag.WaitOne(0);
 
-        (DynamicReflex reflex, string query, bool status, int reflexMapIndex) RecognizerReflex
+        (DynamicReflex reflex, string query, bool status, int reflexMapIndex) SelectedReflex
         {
             get => _recognizerReflexes[lstResults.SelectedIndex];
             set => _recognizerReflexes[lstResults.SelectedIndex] = value;
@@ -379,7 +381,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает значение, отражающее статус рабочего процесса по распознаванию изображения.
         /// </summary>
-        bool IsRecognizing => _recognizerThreadActivity.WaitOne(0);
+        bool IsRecognizing => _recognizerActivity.WaitOne(0);
 
         /// <summary>
         ///     Ширина образа для распознавания.
