@@ -65,8 +65,9 @@
             this.pbConSymbol = new System.Windows.Forms.PictureBox();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
             this.fswImageChanged = new System.IO.FileSystemWatcher();
-            this.listBox1 = new System.Windows.Forms.ListBox();
+            this.lstSaved = new System.Windows.Forms.ListBox();
             this.button1 = new System.Windows.Forms.Button();
+            this.lblSaved = new System.Windows.Forms.Label();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
             this.grpResults.SuspendLayout();
@@ -284,8 +285,9 @@
             // 
             // grpSourceImage
             // 
+            this.grpSourceImage.Controls.Add(this.lblSaved);
             this.grpSourceImage.Controls.Add(this.button1);
-            this.grpSourceImage.Controls.Add(this.listBox1);
+            this.grpSourceImage.Controls.Add(this.lstSaved);
             this.grpSourceImage.Controls.Add(this.btnWide);
             this.grpSourceImage.Controls.Add(this.btnNarrow);
             this.grpSourceImage.Controls.Add(this.btnLoadImage);
@@ -472,13 +474,15 @@
             this.fswImageChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswImageChanged.SynchronizingObject = this;
             // 
-            // listBox1
+            // lstSaved
             // 
-            this.listBox1.FormattingEnabled = true;
-            this.listBox1.Location = new System.Drawing.Point(189, 83);
-            this.listBox1.Name = "listBox1";
-            this.listBox1.Size = new System.Drawing.Size(74, 56);
-            this.listBox1.TabIndex = 16;
+            this.lstSaved.Font = new System.Drawing.Font("Microsoft Sans Serif", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.lstSaved.FormattingEnabled = true;
+            this.lstSaved.ItemHeight = 12;
+            this.lstSaved.Location = new System.Drawing.Point(189, 96);
+            this.lstSaved.Name = "lstSaved";
+            this.lstSaved.Size = new System.Drawing.Size(74, 40);
+            this.lstSaved.TabIndex = 16;
             // 
             // button1
             // 
@@ -488,6 +492,15 @@
             this.button1.TabIndex = 17;
             this.button1.Text = "Удалить";
             this.button1.UseVisualStyleBackColor = true;
+            // 
+            // lblSaved
+            // 
+            this.lblSaved.AutoSize = true;
+            this.lblSaved.Location = new System.Drawing.Point(189, 82);
+            this.lblSaved.Name = "lblSaved";
+            this.lblSaved.Size = new System.Drawing.Size(75, 13);
+            this.lblSaved.TabIndex = 18;
+            this.lblSaved.Text = "Сохранённые";
             // 
             // FrmExample
             // 
@@ -564,8 +577,9 @@
         private System.Windows.Forms.Button btnConSaveImage;
         private System.Windows.Forms.Button btnConSaveAllImages;
         private System.IO.FileSystemWatcher fswImageChanged;
-        private System.Windows.Forms.ListBox listBox1;
+        private System.Windows.Forms.ListBox lstSaved;
         private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Label lblSaved;
     }
 }
 

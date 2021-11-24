@@ -454,6 +454,18 @@ namespace DynamicMosaicExample
             ConSymbolBrowseClear();
         });
 
+        Bitmap RecognizeBitmapCopy
+        {
+            get
+            {
+                Bitmap btm = new Bitmap(_btmFront.Width, _btmFront.Height);
+                for (int y = 0; y < _btmFront.Height; y++)
+                    for (int x = 0; x < _btmFront.Width; x++)
+                        btm.SetPixel(x, y, _btmFront.GetPixel(x, y));
+                return btm;
+            }
+        }
+
         /// <summary>
         ///     Вызывается по нажатию кнопки "Распознать".
         ///     Распознаёт изображение и выводит результат на форму.
@@ -462,7 +474,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnRecognizeImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            IEnumerable<(Processor, string)> LoadRecognizingImages(DialogResult answer)
+            IEnumerable<(Processor, string)> LoadRecognizingImages(DialogResult answer, Bitmap recognizeBitmap)
             {
                 try
                 {
@@ -475,7 +487,7 @@ namespace DynamicMosaicExample
                                 yield return t;
                             break;
                         case DialogResult.No:
-                            yield return (new Processor(_btmFront, "Main"), _currentState.CurWord);
+                            yield return (new Processor(recognizeBitmap, "Main"), _currentState.CurWord);//поддержать статус для распознавания множественного запроса
                             break;
                         case DialogResult.Cancel:
                             yield break;
@@ -543,11 +555,17 @@ namespace DynamicMosaicExample
                 try
                 {
                     result = recognizer.FindRelation(query);
+
+                    InvokeAction(() =>
+                    {
+                        SelectedReflex = (recognizer, string.Empty, result, 0);
+                        lstResults.Items[lstResults.SelectedIndex] = $@"({recognizer.Processors.Count()}) {DateTime.Now:HH:mm:ss}";
+                    });
                 }
                 finally
                 {
                     _stwRecognize.Stop();
-                    pbSuccess.Image = result ? Resources.OK_128 : Resources.Error_128;
+                    pbSuccess.Image = result ? Resources.OK_128 : Resources.Error_128;//поддержать статусы для распознавания нескольких карт
                     _currentState.State = result ? RecognizeState.SUCCESS : RecognizeState.ERROR;
                 }
             }
@@ -556,6 +574,7 @@ namespace DynamicMosaicExample
                 return;
 
             DynamicReflex recognizerReflex = SelectedReflex.reflex;
+            Bitmap recognizeBitmapCopy = RecognizeBitmapCopy;
 
             _errorMessageIsShowed = false;
             EnableButtons = false;
@@ -585,7 +604,7 @@ namespace DynamicMosaicExample
 
                     try
                     {
-                        query = LoadRecognizingImages(ans).ToArray();
+                        query = LoadRecognizingImages(ans, recognizeBitmapCopy).ToArray();
                     }
                     catch (Exception ex)
                     {
@@ -859,9 +878,11 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void LstResults_SelectedIndexChanged(object sender, EventArgs e) => SafetyExecute(() =>
         {
+            btnRecognizeImage.Text = lstResults.SelectedIndex == 0 ? @"Создать" : _strRecog;
+
             if (lstResults.SelectedIndex > 0)
             {
-                (DynamicReflex reflex, string _, bool _, int reflexMapIndex) = SelectedReflex;
+                (DynamicReflex reflex, string _, bool? _, int reflexMapIndex) = SelectedReflex;
                 Processor p = reflex.Processors.ElementAt(reflexMapIndex);
                 pbConSymbol.Image = ImageRect.GetBitmap(p);
                 UpdateConSymbolName(p.Tag);
@@ -875,7 +896,6 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            //добавить надпись "создать"
             txtConSymbol.Enabled = false;
             pbConSymbol.Enabled = false;
             btnConNext.Enabled = false;
@@ -922,7 +942,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            (DynamicReflex reflex, string, bool, int reflexMapIndex) q = SelectedReflex;
+            (DynamicReflex reflex, string, bool?, int reflexMapIndex) q = SelectedReflex;
             if (q.reflexMapIndex >= q.reflex.Processors.Count() - 1)
                 q.reflexMapIndex = 0;
             else
@@ -940,7 +960,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConPrevious_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            (DynamicReflex reflex, string, bool, int reflexMapIndex) q = SelectedReflex;
+            (DynamicReflex reflex, string, bool?, int reflexMapIndex) q = SelectedReflex;
             if (q.reflexMapIndex < 1)
                 q.reflexMapIndex = q.reflex.Processors.Count() - 1;
             else
@@ -992,10 +1012,8 @@ namespace DynamicMosaicExample
                 _needRefreshEvent.Set();
                 _fileActivity.Set();
                 _recognizerActivity.Set();
-                if ((_fileThread?.ThreadState & ThreadState.Unstarted) != ThreadState.Unstarted)
-                    _fileThread?.Join(1000);
-                if ((_workWaitThread?.ThreadState & ThreadState.Unstarted) != ThreadState.Unstarted)
-                    _workWaitThread?.Join(500);
+                _fileThread?.Join();
+                _workWaitThread?.Join();
             }
             catch (Exception ex)
             {
@@ -1015,15 +1033,9 @@ namespace DynamicMosaicExample
         {
             try
             {
-                BtnClearImage_Click(null, null);
-                if ((_fileThread?.ThreadState & ThreadState.Unstarted) == ThreadState.Unstarted)
-                    _fileThread.Start();
-                while (!IsFileActivity)
-                    Thread.Sleep(10);
-                if ((_workWaitThread?.ThreadState & ThreadState.Unstarted) == ThreadState.Unstarted)
-                    _workWaitThread.Start();
-                while ((_workWaitThread?.ThreadState & (ThreadState.Stopped | ThreadState.Unstarted)) != 0)
-                    Thread.Sleep(10);
+                BtnClearImage_Click(btnClearImage, EventArgs.Empty);
+                _fileThread.Start();
+                _workWaitThread.Start();
             }
             catch (Exception ex)
             {
