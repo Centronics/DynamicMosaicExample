@@ -275,8 +275,6 @@ namespace DynamicMosaicExample
                 ImageWidth = pbBrowse.Width;
                 ImageHeight = pbBrowse.Height;
                 lstResults.SelectedIndex = 0;
-                btnConSaveImage.Image = Resources.SaveImage;
-                btnConSaveAllImages.Image = Resources.SaveAllImages;
                 _currentState = new CurrentState(this);
                 btnNarrow.Click += _currentState.CriticalChange;
                 btnWide.Click += _currentState.CriticalChange;
