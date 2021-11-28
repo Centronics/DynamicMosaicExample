@@ -559,7 +559,7 @@ namespace DynamicMosaicExample
                     InvokeAction(() =>
                     {
                         SelectedReflex = (recognizer, string.Empty, result, 0);
-                        lstResults.Items[lstResults.SelectedIndex] = $@"({recognizer.Processors.Count()}) {DateTime.Now:HH:mm:ss}";
+                        lstResults.Items[lstResults.SelectedIndex] = $@"({recognizer.Processors.Count()}) {DateTime.Now:HH:mm:ss}";//сделать возможность просмотра истории выполненных запросов (в случае, если содержимое папки не успело измениться), общий результат по обработке запросов из папки (ВОЗМОЖНО, сделать автосохранение пользовательских запросов при старте распознавания)
                     });
                 }
                 finally
@@ -1036,6 +1036,21 @@ namespace DynamicMosaicExample
                 BtnClearImage_Click(btnClearImage, EventArgs.Empty);
                 _fileThread.Start();
                 _workWaitThread.Start();
+
+                lstResults.Items.AddRange(new object[] {
+
+                    $@"(1) {DateTime.Now:HH:mm:ss}",
+                    $@"(2) {DateTime.Now:HH:mm:ss}",
+                    "Item 3, column 1",
+                    $@"(3) {DateTime.Now:HH:mm:ss}",
+                    "Item 5, column 1",
+                    $@"(4) {DateTime.Now:HH:mm:ss}",
+                    $@"(5) {DateTime.Now:HH:mm:ss}",
+                    "Item 3, column 2",
+                    $@"(6) {DateTime.Now:HH:mm:ss}",
+                    $@"(7) {DateTime.Now:HH:mm:ss}",
+                    "Item 4, column 3"});
+            
             }
             catch (Exception ex)
             {
@@ -1081,5 +1096,11 @@ namespace DynamicMosaicExample
             if (!string.IsNullOrEmpty(_currentState.CurWord))
                 txtWord.Text = _currentState.CurWord;
         });
+
+        void LstResults_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            TextRenderer.DrawText(e.Graphics, lstResults.Items[e.Index].ToString(), e.Font,
+                e.Bounds, e.ForeColor, e.BackColor, TextFormatFlags.HorizontalCenter);
+        }
     }
 }

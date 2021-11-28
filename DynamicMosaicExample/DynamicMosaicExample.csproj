@@ -82,12 +82,6 @@
     <Compile Include="FrmExamplePart.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FrmMultiQuery.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="FrmMultiQuery.Designer.cs">
-      <DependentUpon>FrmMultiQuery.cs</DependentUpon>
-    </Compile>
     <Compile Include="ImageRect.cs" />
     <Compile Include="FrmExample.cs">
       <SubType>Form</SubType>
@@ -111,9 +105,6 @@
     </Compile>
     <EmbeddedResource Include="FrmExample.resx">
       <DependentUpon>FrmExample.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="FrmMultiQuery.resx">
-      <DependentUpon>FrmMultiQuery.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="FrmSymbol.resx">
       <DependentUpon>FrmSymbol.cs</DependentUpon>
@@ -160,39 +151,6 @@
       <ProductName>Windows Installer 4.5</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\OpenFile.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\SaveFile.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\DeleteFile.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\ClearImage.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\ExpandLeft.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\ExpandRight.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\RemoveSelected.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\ClearList.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\CreateImage.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Next.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Previous.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

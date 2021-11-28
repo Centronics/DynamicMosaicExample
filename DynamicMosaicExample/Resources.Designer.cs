@@ -63,6 +63,16 @@ namespace DynamicMosaicExample {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
+        public static System.Drawing.Bitmap ButtonOk {
+            get {
+                object obj = ResourceManager.GetObject("ButtonOk", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
         public static System.Drawing.Bitmap ClearImage {
             get {
                 object obj = ResourceManager.GetObject("ClearImage", resourceCulture);

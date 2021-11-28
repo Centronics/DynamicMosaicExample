@@ -32,9 +32,9 @@
             this.txtSymbol = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.btnOK = new System.Windows.Forms.Button();
-            this.pbBox = new System.Windows.Forms.PictureBox();
-            this.btnClear = new System.Windows.Forms.Button();
             this.tmrPressWait = new System.Windows.Forms.Timer(this.components);
+            this.btnClear = new System.Windows.Forms.Button();
+            this.pbBox = new System.Windows.Forms.PictureBox();
             ((System.ComponentModel.ISupportInitialize)(this.pbBox)).BeginInit();
             this.SuspendLayout();
             // 
@@ -60,13 +60,29 @@
             // 
             // btnOK
             // 
-            this.btnOK.Location = new System.Drawing.Point(67, 62);
+            this.btnOK.Image = global::DynamicMosaicExample.Resources.ButtonOk;
+            this.btnOK.Location = new System.Drawing.Point(69, 38);
             this.btnOK.Name = "btnOK";
-            this.btnOK.Size = new System.Drawing.Size(83, 21);
+            this.btnOK.Size = new System.Drawing.Size(40, 40);
             this.btnOK.TabIndex = 2;
-            this.btnOK.Text = "OK";
             this.btnOK.UseVisualStyleBackColor = true;
             this.btnOK.Click += new System.EventHandler(this.BtnOK_Click);
+            // 
+            // tmrPressWait
+            // 
+            this.tmrPressWait.Interval = 1000;
+            this.tmrPressWait.Tick += new System.EventHandler(this.TmrPressWait_Tick);
+            // 
+            // btnClear
+            // 
+            this.btnClear.Enabled = false;
+            this.btnClear.Image = global::DynamicMosaicExample.Resources.ClearImage;
+            this.btnClear.Location = new System.Drawing.Point(115, 38);
+            this.btnClear.Name = "btnClear";
+            this.btnClear.Size = new System.Drawing.Size(40, 40);
+            this.btnClear.TabIndex = 4;
+            this.btnClear.UseVisualStyleBackColor = true;
+            this.btnClear.Click += new System.EventHandler(this.BtnClear_Click);
             // 
             // pbBox
             // 
@@ -81,22 +97,6 @@
             this.pbBox.MouseLeave += new System.EventHandler(this.PbBox_MouseLeave);
             this.pbBox.MouseMove += new System.Windows.Forms.MouseEventHandler(this.PbBox_MouseMove);
             this.pbBox.MouseUp += new System.Windows.Forms.MouseEventHandler(this.PbBox_MouseUp);
-            // 
-            // btnClear
-            // 
-            this.btnClear.Enabled = false;
-            this.btnClear.Location = new System.Drawing.Point(67, 33);
-            this.btnClear.Name = "btnClear";
-            this.btnClear.Size = new System.Drawing.Size(83, 21);
-            this.btnClear.TabIndex = 4;
-            this.btnClear.Text = "Очистить";
-            this.btnClear.UseVisualStyleBackColor = true;
-            this.btnClear.Click += new System.EventHandler(this.BtnClear_Click);
-            // 
-            // tmrPressWait
-            // 
-            this.tmrPressWait.Interval = 1000;
-            this.tmrPressWait.Tick += new System.EventHandler(this.TmrPressWait_Tick);
             // 
             // FrmSymbol
             // 

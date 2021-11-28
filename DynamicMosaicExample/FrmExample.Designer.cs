@@ -32,13 +32,13 @@
             this.btnRecognizeImage = new System.Windows.Forms.Button();
             this.lstResults = new System.Windows.Forms.ListBox();
             this.txtWord = new System.Windows.Forms.TextBox();
-            this.btnImageCreate = new System.Windows.Forms.Button();
             this.grpImages = new System.Windows.Forms.GroupBox();
             this.txtSymbolPath = new System.Windows.Forms.TextBox();
             this.txtImagesCount = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.btnImageDelete = new System.Windows.Forms.Button();
             this.btnImagePrev = new System.Windows.Forms.Button();
+            this.btnImageCreate = new System.Windows.Forms.Button();
             this.btnImageNext = new System.Windows.Forms.Button();
             this.pbBrowse = new System.Windows.Forms.PictureBox();
             this.grpResults = new System.Windows.Forms.GroupBox();
@@ -92,13 +92,18 @@
             // 
             // lstResults
             // 
+            this.lstResults.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.lstResults.ColumnWidth = 100;
+            this.lstResults.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.lstResults.FormattingEnabled = true;
             this.lstResults.Items.AddRange(new object[] {
             "<Создать Reflex>"});
-            this.lstResults.Location = new System.Drawing.Point(8, 16);
+            this.lstResults.Location = new System.Drawing.Point(6, 16);
+            this.lstResults.MultiColumn = true;
             this.lstResults.Name = "lstResults";
-            this.lstResults.Size = new System.Drawing.Size(213, 69);
+            this.lstResults.Size = new System.Drawing.Size(217, 67);
             this.lstResults.TabIndex = 12;
+            this.lstResults.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.LstResults_DrawItem);
             this.lstResults.SelectedIndexChanged += new System.EventHandler(this.LstResults_SelectedIndexChanged);
             // 
             // txtWord
@@ -112,16 +117,6 @@
             this.txtWord.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TxtWord_KeyDown);
             this.txtWord.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TxtWord_KeyPress);
             this.txtWord.KeyUp += new System.Windows.Forms.KeyEventHandler(this.TxtWord_KeyUp);
-            // 
-            // btnImageCreate
-            // 
-            this.btnImageCreate.Image = global::DynamicMosaicExample.Resources.CreateImage;
-            this.btnImageCreate.Location = new System.Drawing.Point(159, 40);
-            this.btnImageCreate.Name = "btnImageCreate";
-            this.btnImageCreate.Size = new System.Drawing.Size(40, 40);
-            this.btnImageCreate.TabIndex = 14;
-            this.btnImageCreate.UseVisualStyleBackColor = true;
-            this.btnImageCreate.Click += new System.EventHandler(this.BtnImageCreate_Click);
             // 
             // grpImages
             // 
@@ -189,6 +184,16 @@
             this.btnImagePrev.UseVisualStyleBackColor = true;
             this.btnImagePrev.Click += new System.EventHandler(this.BtnImagePrev_Click);
             // 
+            // btnImageCreate
+            // 
+            this.btnImageCreate.Image = global::DynamicMosaicExample.Resources.CreateImage;
+            this.btnImageCreate.Location = new System.Drawing.Point(159, 40);
+            this.btnImageCreate.Name = "btnImageCreate";
+            this.btnImageCreate.Size = new System.Drawing.Size(40, 40);
+            this.btnImageCreate.TabIndex = 14;
+            this.btnImageCreate.UseVisualStyleBackColor = true;
+            this.btnImageCreate.Click += new System.EventHandler(this.BtnImageCreate_Click);
+            // 
             // btnImageNext
             // 
             this.btnImageNext.Enabled = false;
@@ -226,9 +231,9 @@
             // 
             this.btnReflexRemove.Enabled = false;
             this.btnReflexRemove.Image = global::DynamicMosaicExample.Resources.RemoveSelected;
-            this.btnReflexRemove.Location = new System.Drawing.Point(223, 14);
+            this.btnReflexRemove.Location = new System.Drawing.Point(223, 15);
             this.btnReflexRemove.Name = "btnReflexRemove";
-            this.btnReflexRemove.Size = new System.Drawing.Size(36, 36);
+            this.btnReflexRemove.Size = new System.Drawing.Size(36, 35);
             this.btnReflexRemove.TabIndex = 14;
             this.btnReflexRemove.UseVisualStyleBackColor = true;
             this.btnReflexRemove.Click += new System.EventHandler(this.BtnReflexRemove_Click);
@@ -237,9 +242,9 @@
             // 
             this.btnReflexClear.Enabled = false;
             this.btnReflexClear.Image = global::DynamicMosaicExample.Resources.ClearList;
-            this.btnReflexClear.Location = new System.Drawing.Point(223, 51);
+            this.btnReflexClear.Location = new System.Drawing.Point(223, 49);
             this.btnReflexClear.Name = "btnReflexClear";
-            this.btnReflexClear.Size = new System.Drawing.Size(36, 36);
+            this.btnReflexClear.Size = new System.Drawing.Size(36, 35);
             this.btnReflexClear.TabIndex = 13;
             this.btnReflexClear.UseVisualStyleBackColor = true;
             this.btnReflexClear.Click += new System.EventHandler(this.BtnReflexClear_Click);
@@ -397,7 +402,7 @@
             // 
             this.pbSuccess.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pbSuccess.Image = ((System.Drawing.Image)(resources.GetObject("pbSuccess.Image")));
-            this.pbSuccess.Location = new System.Drawing.Point(9, 37);
+            this.pbSuccess.Location = new System.Drawing.Point(7, 37);
             this.pbSuccess.Name = "pbSuccess";
             this.pbSuccess.Size = new System.Drawing.Size(92, 100);
             this.pbSuccess.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -444,7 +449,7 @@
             // txtConSymbol
             // 
             this.txtConSymbol.Enabled = false;
-            this.txtConSymbol.Location = new System.Drawing.Point(101, 14);
+            this.txtConSymbol.Location = new System.Drawing.Point(103, 15);
             this.txtConSymbol.Name = "txtConSymbol";
             this.txtConSymbol.ReadOnly = true;
             this.txtConSymbol.Size = new System.Drawing.Size(43, 20);
@@ -476,7 +481,7 @@
             // 
             this.pbConSymbol.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pbConSymbol.Enabled = false;
-            this.pbConSymbol.Location = new System.Drawing.Point(101, 46);
+            this.pbConSymbol.Location = new System.Drawing.Point(103, 45);
             this.pbConSymbol.Name = "pbConSymbol";
             this.pbConSymbol.Size = new System.Drawing.Size(43, 50);
             this.pbConSymbol.TabIndex = 19;
@@ -503,6 +508,7 @@
             this.Controls.Add(this.grpResults);
             this.Controls.Add(this.grpImages);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
