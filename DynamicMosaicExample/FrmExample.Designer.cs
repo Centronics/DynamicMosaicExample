@@ -35,7 +35,6 @@
             this.grpImages = new System.Windows.Forms.GroupBox();
             this.txtSymbolPath = new System.Windows.Forms.TextBox();
             this.txtImagesCount = new System.Windows.Forms.TextBox();
-            this.label1 = new System.Windows.Forms.Label();
             this.btnImageDelete = new System.Windows.Forms.Button();
             this.btnImagePrev = new System.Windows.Forms.Button();
             this.btnImageCreate = new System.Windows.Forms.Button();
@@ -43,13 +42,11 @@
             this.pbBrowse = new System.Windows.Forms.PictureBox();
             this.grpResults = new System.Windows.Forms.GroupBox();
             this.btnReflexRemove = new System.Windows.Forms.Button();
-            this.btnReflexClear = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.lblElapsedTime = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.grpSourceImage = new System.Windows.Forms.GroupBox();
             this.button1 = new System.Windows.Forms.Button();
-            this.lstSaved = new System.Windows.Forms.ListBox();
             this.btnWide = new System.Windows.Forms.Button();
             this.btnNarrow = new System.Windows.Forms.Button();
             this.btnLoadImage = new System.Windows.Forms.Button();
@@ -67,6 +64,8 @@
             this.pbConSymbol = new System.Windows.Forms.PictureBox();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
             this.fswImageChanged = new System.IO.FileSystemWatcher();
+            this.btnNextRecogImage = new System.Windows.Forms.Button();
+            this.btnPrevRecogImage = new System.Windows.Forms.Button();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
             this.grpResults.SuspendLayout();
@@ -82,7 +81,7 @@
             // btnRecognizeImage
             // 
             this.btnRecognizeImage.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.btnRecognizeImage.Location = new System.Drawing.Point(5, 85);
+            this.btnRecognizeImage.Location = new System.Drawing.Point(4, 87);
             this.btnRecognizeImage.Name = "btnRecognizeImage";
             this.btnRecognizeImage.Size = new System.Drawing.Size(98, 23);
             this.btnRecognizeImage.TabIndex = 0;
@@ -122,7 +121,6 @@
             // 
             this.grpImages.Controls.Add(this.txtSymbolPath);
             this.grpImages.Controls.Add(this.txtImagesCount);
-            this.grpImages.Controls.Add(this.label1);
             this.grpImages.Controls.Add(this.btnImageDelete);
             this.grpImages.Controls.Add(this.btnImagePrev);
             this.grpImages.Controls.Add(this.btnImageCreate);
@@ -138,30 +136,21 @@
             // txtSymbolPath
             // 
             this.txtSymbolPath.Enabled = false;
-            this.txtSymbolPath.Location = new System.Drawing.Point(33, 14);
+            this.txtSymbolPath.Location = new System.Drawing.Point(6, 14);
             this.txtSymbolPath.Name = "txtSymbolPath";
             this.txtSymbolPath.ReadOnly = true;
-            this.txtSymbolPath.Size = new System.Drawing.Size(182, 20);
+            this.txtSymbolPath.Size = new System.Drawing.Size(193, 20);
             this.txtSymbolPath.TabIndex = 19;
             this.txtSymbolPath.TextChanged += new System.EventHandler(this.TxtSymbolPath_TextChanged);
             // 
             // txtImagesCount
             // 
             this.txtImagesCount.Enabled = false;
-            this.txtImagesCount.Location = new System.Drawing.Point(216, 14);
+            this.txtImagesCount.Location = new System.Drawing.Point(199, 14);
             this.txtImagesCount.Name = "txtImagesCount";
             this.txtImagesCount.ReadOnly = true;
-            this.txtImagesCount.Size = new System.Drawing.Size(45, 20);
+            this.txtImagesCount.Size = new System.Drawing.Size(64, 20);
             this.txtImagesCount.TabIndex = 18;
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(3, 15);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(34, 13);
-            this.label1.TabIndex = 3;
-            this.label1.Text = "Путь:";
             // 
             // btnImageDelete
             // 
@@ -218,7 +207,6 @@
             // grpResults
             // 
             this.grpResults.Controls.Add(this.btnReflexRemove);
-            this.grpResults.Controls.Add(this.btnReflexClear);
             this.grpResults.Controls.Add(this.lstResults);
             this.grpResults.Location = new System.Drawing.Point(281, 156);
             this.grpResults.Name = "grpResults";
@@ -231,23 +219,12 @@
             // 
             this.btnReflexRemove.Enabled = false;
             this.btnReflexRemove.Image = global::DynamicMosaicExample.Resources.RemoveSelected;
-            this.btnReflexRemove.Location = new System.Drawing.Point(223, 15);
+            this.btnReflexRemove.Location = new System.Drawing.Point(225, 31);
             this.btnReflexRemove.Name = "btnReflexRemove";
-            this.btnReflexRemove.Size = new System.Drawing.Size(36, 35);
+            this.btnReflexRemove.Size = new System.Drawing.Size(37, 37);
             this.btnReflexRemove.TabIndex = 14;
             this.btnReflexRemove.UseVisualStyleBackColor = true;
             this.btnReflexRemove.Click += new System.EventHandler(this.BtnReflexRemove_Click);
-            // 
-            // btnReflexClear
-            // 
-            this.btnReflexClear.Enabled = false;
-            this.btnReflexClear.Image = global::DynamicMosaicExample.Resources.ClearList;
-            this.btnReflexClear.Location = new System.Drawing.Point(223, 49);
-            this.btnReflexClear.Name = "btnReflexClear";
-            this.btnReflexClear.Size = new System.Drawing.Size(36, 35);
-            this.btnReflexClear.TabIndex = 13;
-            this.btnReflexClear.UseVisualStyleBackColor = true;
-            this.btnReflexClear.Click += new System.EventHandler(this.BtnReflexClear_Click);
             // 
             // label2
             // 
@@ -278,8 +255,9 @@
             // 
             // grpSourceImage
             // 
+            this.grpSourceImage.Controls.Add(this.btnPrevRecogImage);
+            this.grpSourceImage.Controls.Add(this.btnNextRecogImage);
             this.grpSourceImage.Controls.Add(this.button1);
-            this.grpSourceImage.Controls.Add(this.lstSaved);
             this.grpSourceImage.Controls.Add(this.btnWide);
             this.grpSourceImage.Controls.Add(this.btnNarrow);
             this.grpSourceImage.Controls.Add(this.btnLoadImage);
@@ -299,28 +277,18 @@
             // button1
             // 
             this.button1.Image = global::DynamicMosaicExample.Resources.DeleteFile;
-            this.button1.Location = new System.Drawing.Point(55, 114);
+            this.button1.Location = new System.Drawing.Point(52, 113);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(48, 23);
+            this.button1.Size = new System.Drawing.Size(50, 23);
             this.button1.TabIndex = 17;
             this.button1.UseVisualStyleBackColor = true;
-            // 
-            // lstSaved
-            // 
-            this.lstSaved.Font = new System.Drawing.Font("Microsoft Sans Serif", 6.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.lstSaved.FormattingEnabled = true;
-            this.lstSaved.ItemHeight = 12;
-            this.lstSaved.Location = new System.Drawing.Point(189, 84);
-            this.lstSaved.Name = "lstSaved";
-            this.lstSaved.Size = new System.Drawing.Size(74, 52);
-            this.lstSaved.TabIndex = 16;
             // 
             // btnWide
             // 
             this.btnWide.Enabled = false;
             this.btnWide.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold);
             this.btnWide.Image = global::DynamicMosaicExample.Resources.ExpandRight;
-            this.btnWide.Location = new System.Drawing.Point(147, 85);
+            this.btnWide.Location = new System.Drawing.Point(144, 87);
             this.btnWide.Name = "btnWide";
             this.btnWide.Size = new System.Drawing.Size(36, 23);
             this.btnWide.TabIndex = 4;
@@ -331,7 +299,7 @@
             // 
             this.btnNarrow.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnNarrow.Image = global::DynamicMosaicExample.Resources.ExpandLeft;
-            this.btnNarrow.Location = new System.Drawing.Point(109, 85);
+            this.btnNarrow.Location = new System.Drawing.Point(106, 87);
             this.btnNarrow.Name = "btnNarrow";
             this.btnNarrow.Size = new System.Drawing.Size(36, 23);
             this.btnNarrow.TabIndex = 2;
@@ -341,7 +309,7 @@
             // btnLoadImage
             // 
             this.btnLoadImage.Image = global::DynamicMosaicExample.Resources.OpenFile;
-            this.btnLoadImage.Location = new System.Drawing.Point(147, 114);
+            this.btnLoadImage.Location = new System.Drawing.Point(144, 113);
             this.btnLoadImage.Name = "btnLoadImage";
             this.btnLoadImage.Size = new System.Drawing.Size(36, 23);
             this.btnLoadImage.TabIndex = 5;
@@ -351,7 +319,7 @@
             // btnSaveImage
             // 
             this.btnSaveImage.Image = global::DynamicMosaicExample.Resources.SaveFile;
-            this.btnSaveImage.Location = new System.Drawing.Point(109, 114);
+            this.btnSaveImage.Location = new System.Drawing.Point(106, 113);
             this.btnSaveImage.Name = "btnSaveImage";
             this.btnSaveImage.Size = new System.Drawing.Size(36, 23);
             this.btnSaveImage.TabIndex = 3;
@@ -378,9 +346,9 @@
             // 
             this.btnClearImage.Enabled = false;
             this.btnClearImage.Image = global::DynamicMosaicExample.Resources.ClearImage;
-            this.btnClearImage.Location = new System.Drawing.Point(5, 114);
+            this.btnClearImage.Location = new System.Drawing.Point(4, 113);
             this.btnClearImage.Name = "btnClearImage";
-            this.btnClearImage.Size = new System.Drawing.Size(44, 23);
+            this.btnClearImage.Size = new System.Drawing.Size(46, 23);
             this.btnClearImage.TabIndex = 1;
             this.btnClearImage.UseVisualStyleBackColor = true;
             this.btnClearImage.Click += new System.EventHandler(this.BtnClearImage_Click);
@@ -498,6 +466,24 @@
             this.fswImageChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswImageChanged.SynchronizingObject = this;
             // 
+            // btnNextRecogImage
+            // 
+            this.btnNextRecogImage.Image = global::DynamicMosaicExample.Resources.Next;
+            this.btnNextRecogImage.Location = new System.Drawing.Point(224, 87);
+            this.btnNextRecogImage.Name = "btnNextRecogImage";
+            this.btnNextRecogImage.Size = new System.Drawing.Size(40, 49);
+            this.btnNextRecogImage.TabIndex = 18;
+            this.btnNextRecogImage.UseVisualStyleBackColor = true;
+            // 
+            // btnPrevRecogImage
+            // 
+            this.btnPrevRecogImage.Image = global::DynamicMosaicExample.Resources.Previous;
+            this.btnPrevRecogImage.Location = new System.Drawing.Point(184, 87);
+            this.btnPrevRecogImage.Name = "btnPrevRecogImage";
+            this.btnPrevRecogImage.Size = new System.Drawing.Size(40, 49);
+            this.btnPrevRecogImage.TabIndex = 19;
+            this.btnPrevRecogImage.UseVisualStyleBackColor = true;
+            // 
             // FrmExample
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -549,7 +535,6 @@
         private System.Windows.Forms.PictureBox pbBrowse;
         private System.Windows.Forms.Button btnImagePrev;
         private System.Windows.Forms.Button btnImageNext;
-        private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Label lblElapsedTime;
         private System.Windows.Forms.Button btnImageDelete;
@@ -560,7 +545,6 @@
         private System.Windows.Forms.Button btnLoadImage;
         private System.Windows.Forms.Button btnSaveImage;
         private System.Windows.Forms.OpenFileDialog dlgOpenImage;
-        private System.Windows.Forms.Button btnReflexClear;
         private System.Windows.Forms.Button btnWide;
         private System.Windows.Forms.Button btnNarrow;
         private System.Windows.Forms.PictureBox pbConSymbol;
@@ -574,8 +558,9 @@
         private System.Windows.Forms.Button btnConSaveImage;
         private System.Windows.Forms.Button btnConSaveAllImages;
         private System.IO.FileSystemWatcher fswImageChanged;
-        private System.Windows.Forms.ListBox lstSaved;
         private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button btnPrevRecogImage;
+        private System.Windows.Forms.Button btnNextRecogImage;
     }
 }
 
