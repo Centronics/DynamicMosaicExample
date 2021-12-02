@@ -127,7 +127,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Строка "Создать DynamicReflex".
         /// </summary>
-        readonly string _createReflexString;
+        readonly string _createReflexString = @"<Создать Reflex>";
 
         /// <summary>
         ///     Объект, наблюдающий за состоянием основной формы приложения.
@@ -162,7 +162,10 @@ namespace DynamicMosaicExample
         ///     Хранит загруженные карты, которые требуется искать на основной карте.
         ///     Предназначена для использования несколькими потоками одновременно.
         /// </summary>
-        readonly ConcurrentProcessorStorage _processorStorage = new ConcurrentProcessorStorage();
+        readonly ConcurrentProcessorStorage _processorImagesStorage = new ConcurrentProcessorStorage();
+
+
+        readonly ConcurrentProcessorStorage _processorRecognizeStorage = new ConcurrentProcessorStorage();
 
         /// <summary>
         ///     Хранит значение свойства <see cref="GroupBox.Text" /> объекта <see cref="grpResults" />.
@@ -255,6 +258,12 @@ namespace DynamicMosaicExample
         /// </summary>
         Thread _recognizerThread;
 
+        enum SourceChanged
+        {
+            IMAGES,
+            RECOGNIZE
+        }
+
         /// <summary>
         ///     Конструктор основной формы приложения.
         /// </summary>
@@ -270,11 +279,11 @@ namespace DynamicMosaicExample
                 _strRecog = btnRecognizeImage.Text;
                 _unknownSymbolName = txtSymbolPath.Text;
                 _unknownSystemName = txtConSymbol.Text;
-                _createReflexString = (string)lstResults.Items[0];
+                lstResults.Items.Add(_createReflexString);
+                lstResults.SelectedIndex = 0;
                 _strGrpResults = grpResults.Text;
                 ImageWidth = pbBrowse.Width;
                 ImageHeight = pbBrowse.Height;
-                lstResults.SelectedIndex = 0;
                 _currentState = new CurrentState(this);
                 btnNarrow.Click += _currentState.CriticalChange;
                 btnWide.Click += _currentState.CriticalChange;
@@ -287,84 +296,106 @@ namespace DynamicMosaicExample
                     NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName;
                 fswImageChanged.Filter = "*.*";
 
-                void NeedDelete(string fullPath)
+                void NeedDelete(string fullPath, SourceChanged source)
                 {
-                    foreach ((Processor _, string path) in _processorStorage.Elements)
+                    ConcurrentProcessorStorage storage;
+
+                    switch (source)
+                    {
+                        case SourceChanged.IMAGES:
+                            storage = _processorImagesStorage;
+                            break;
+                        case SourceChanged.RECOGNIZE:
+                            storage = _processorRecognizeStorage;
+                            break;
+                        default:
+                            throw new ArgumentException($@"Неизвестное значение {nameof(SourceChanged)}: {source}", nameof(source));
+                    }
+
+                    foreach ((Processor _, string path) in storage.Elements)
                         if (path.StartsWith(fullPath, StringComparison.OrdinalIgnoreCase))
-                            _concurrentFileTasks.Enqueue(new FileTask(WatcherChangeTypes.Deleted, path, string.Empty,
-                                false, false));
+                            _concurrentFileTasks.Enqueue(new FileTask(WatcherChangeTypes.Deleted, path, string.Empty, false, false, source));
                 }
 
-                void NeedCreate(string fullPath)
+                void NeedCreate(string fullPath, SourceChanged source)
                 {
                     string[] paths = GetFiles(fullPath);
                     if (paths == null || paths.Length < 1)
                         return;
                     foreach (string path in paths)
-                        _concurrentFileTasks.Enqueue(new FileTask(WatcherChangeTypes.Created, path, string.Empty, false,
-                            false));
+                        _concurrentFileTasks.Enqueue(new FileTask(WatcherChangeTypes.Created, path, string.Empty, false, false, source));
                 }
 
-                void OnChanged(object source, FileSystemEventArgs e) => SafetyExecute(() =>
+                void OnChanged(FileSystemEventArgs e, SourceChanged source) => SafetyExecute(() =>
                 {
                     if (string.IsNullOrWhiteSpace(e.FullPath))
                         return;
-                    if (string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}",
-                        StringComparison.OrdinalIgnoreCase) != 0)
+                    if (string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
                     {
                         ThreadPool.QueueUserWorkItem(state => SafetyExecute(() =>
                         {
-                            (WatcherChangeTypes type, string fullPath) = ((WatcherChangeTypes, string))state;
+                            (WatcherChangeTypes type, string fullPath, SourceChanged src) = ((WatcherChangeTypes, string, SourceChanged))state;
 
                             switch (type)
                             {
                                 case WatcherChangeTypes.Deleted:
-                                    NeedDelete(fullPath);
+                                    NeedDelete(fullPath, src);
                                     _needRefreshEvent.Set();
                                     return;
                                 case WatcherChangeTypes.Created:
-                                    NeedCreate(fullPath);
+                                    NeedCreate(fullPath, src);
                                     _needRefreshEvent.Set();
                                     return;
                             }
-                        }), (e.ChangeType, e.FullPath));
+                        }), (e.ChangeType, e.FullPath, source));
                         return;
                     }
 
-                    _concurrentFileTasks.Enqueue(new FileTask(e.ChangeType, e.FullPath, string.Empty, false, false));
+                    _concurrentFileTasks.Enqueue(new FileTask(e.ChangeType, e.FullPath, string.Empty, false, false, source));
                     _needRefreshEvent.Set();
                 });
 
-                void OnRenamed(object source, RenamedEventArgs e) => SafetyExecute(() =>
+                void OnRenamed(RenamedEventArgs e, SourceChanged source) => SafetyExecute(() =>
                 {
                     if (string.IsNullOrWhiteSpace(e.FullPath) || string.IsNullOrWhiteSpace(e.OldFullPath))
                         return;
-                    bool renamedTo = string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}",
-                        StringComparison.OrdinalIgnoreCase) == 0;
-                    bool renamedFrom = string.Compare(Path.GetExtension(e.OldFullPath), $".{ExtImg}",
-                        StringComparison.OrdinalIgnoreCase) == 0;
+                    bool renamedTo = string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0;
+                    bool renamedFrom = string.Compare(Path.GetExtension(e.OldFullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0;
                     if (!renamedTo && !renamedFrom)
                     {
                         ThreadPool.QueueUserWorkItem(state => SafetyExecute(() =>
                         {
-                            (string oldFullPath, string newFullPath) = ((string, string))state;
-                            NeedDelete(oldFullPath);
-                            NeedCreate(newFullPath);
+                            (string oldFullPath, string newFullPath, SourceChanged src) = ((string, string, SourceChanged))state;
+                            NeedDelete(oldFullPath, src);
+                            NeedCreate(newFullPath, src);
                             _needRefreshEvent.Set();
-                        }), (e.OldFullPath, e.FullPath));
+                        }), (e.OldFullPath, e.FullPath, source));
                         return;
                     }
 
-                    _concurrentFileTasks.Enqueue(new FileTask(e.ChangeType, e.FullPath, e.OldFullPath, renamedTo,
-                        renamedFrom));
+                    _concurrentFileTasks.Enqueue(new FileTask(e.ChangeType, e.FullPath, e.OldFullPath, renamedTo, renamedFrom, source));
                     _needRefreshEvent.Set();
                 });
 
-                fswImageChanged.Changed += OnChanged;
-                fswImageChanged.Created += OnChanged;
-                fswImageChanged.Deleted += OnChanged;
-                fswImageChanged.Renamed += OnRenamed;
+                void IntRecognizeOnChanged(object _, FileSystemEventArgs e) => SafetyExecute(() => OnChanged(e, SourceChanged.RECOGNIZE));
+                void IntRecognizeOnRenamed(object _, RenamedEventArgs e) => SafetyExecute(() => OnRenamed(e, SourceChanged.RECOGNIZE));
+
+                void IntImagesOnChanged(object _, FileSystemEventArgs e) => SafetyExecute(() => OnChanged(e, SourceChanged.IMAGES));
+                void IntImagesOnRenamed(object _, RenamedEventArgs e) => SafetyExecute(() => OnRenamed(e, SourceChanged.IMAGES));
+
+                fswRecognizeChanged.Changed += IntRecognizeOnChanged;
+                fswRecognizeChanged.Created += IntRecognizeOnChanged;
+                fswRecognizeChanged.Deleted += IntRecognizeOnChanged;
+                fswRecognizeChanged.Renamed += IntRecognizeOnRenamed;
+
+                fswImageChanged.Changed += IntImagesOnChanged;
+                fswImageChanged.Created += IntImagesOnChanged;
+                fswImageChanged.Deleted += IntImagesOnChanged;
+                fswImageChanged.Renamed += IntImagesOnRenamed;
+
+                fswRecognizeChanged.EnableRaisingEvents = true;
                 fswImageChanged.EnableRaisingEvents = true;
+
                 _fileThread = CreateFileRefreshThread();
                 _workWaitThread = CreateWaitThread();
             }
@@ -434,7 +465,6 @@ namespace DynamicMosaicExample
                     btnSaveImage.Enabled = value;
                     btnLoadImage.Enabled = value;
                     btnSaveImage.Enabled = btnClearImage.Enabled = value && IsPainting;
-                    btnReflexClear.Enabled = value && lstResults.Items.Count > 1;
 
                     if (value)
                     {
@@ -587,29 +617,31 @@ namespace DynamicMosaicExample
                         ThreadPool.SetMinThreads(Environment.ProcessorCount * 3, comPortMin);
                         ThreadPool.GetMaxThreads(out _, out int comPortMax);
                         ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
-                        Parallel.ForEach(
-                            Directory.EnumerateFiles(SearchImagesPath, $"*.{ExtImg}", SearchOption.AllDirectories),
-                            (fullPath, state) => SafetyExecute(() =>
-                            {
-                                try
-                                {
-                                    if (NeedStopBackground || state.IsStopped)
-                                    {
-                                        state.Stop();
-                                        return;
-                                    }
 
-                                    if (!string.IsNullOrWhiteSpace(fullPath) &&
-                                        string.Compare(Path.GetExtension(fullPath), $".{ExtImg}",
-                                            StringComparison.OrdinalIgnoreCase) == 0)
-                                        ExceptionClause(() => _processorStorage.AddProcessor(fullPath),
-                                            $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> (addition) -> {fullPath}");
-                                }
-                                catch (Exception ex)
+                        void Execute(ConcurrentProcessorStorage storage, string searchPath) => Parallel.ForEach(Directory.EnumerateFiles(searchPath, $"*.{ExtImg}", SearchOption.AllDirectories), (fullPath, state) => SafetyExecute(() =>
+                        {
+                            try
+                            {
+                                if (NeedStopBackground || state.IsStopped)
                                 {
-                                    WriteLogMessage(ex.Message);
+                                    state.Stop();
+                                    return;
                                 }
-                            }));
+
+                                if (!string.IsNullOrWhiteSpace(fullPath) &&
+                                    string.Compare(Path.GetExtension(fullPath), $".{ExtImg}",
+                                        StringComparison.OrdinalIgnoreCase) == 0)
+                                    ExceptionClause(() => storage.AddProcessor(fullPath),
+                                        $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> (addition) -> {fullPath}");
+                            }
+                            catch (Exception ex)
+                            {
+                                WriteLogMessage(ex.Message);
+                            }
+                        }));
+
+                        Execute(_processorImagesStorage, SearchImagesPath);
+                        Execute(_processorRecognizeStorage, RecognizeImagesPath);
                     }
                     finally
                     {
@@ -623,7 +655,8 @@ namespace DynamicMosaicExample
                         try
                         {
                             while (!NeedStopBackground && _concurrentFileTasks.TryDequeue(out FileTask task))
-                                SafetyExecute(() =>
+                            {
+                                void Execute(ConcurrentProcessorStorage storage) => SafetyExecute(() =>
                                 {
                                     try
                                     {
@@ -632,22 +665,22 @@ namespace DynamicMosaicExample
                                             case WatcherChangeTypes.Deleted:
                                                 if (!File.Exists(task.FilePath))
                                                     ExceptionClause(
-                                                        () => _processorStorage.RemoveProcessor(task.FilePath),
+                                                        () => storage.RemoveProcessor(task.FilePath),
                                                         $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.TaskType} -> {task.FilePath}");
                                                 break;
                                             case WatcherChangeTypes.Renamed:
                                                 if (task.RenamedFrom)
                                                     ExceptionClause(
-                                                        () => _processorStorage.RemoveProcessor(task.OldFilePath),
+                                                        () => storage.RemoveProcessor(task.OldFilePath),
                                                         $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.TaskType} -> {task.OldFilePath}");
                                                 if (task.RenamedTo)
-                                                    ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath),
+                                                    ExceptionClause(() => storage.AddProcessor(task.FilePath),
                                                         $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.TaskType} -> {task.FilePath}");
                                                 break;
                                             case WatcherChangeTypes.Created:
                                             case WatcherChangeTypes.Changed:
                                             case WatcherChangeTypes.All:
-                                                ExceptionClause(() => _processorStorage.AddProcessor(task.FilePath),
+                                                ExceptionClause(() => storage.AddProcessor(task.FilePath),
                                                     $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.TaskType} -> {task.FilePath}");
                                                 break;
                                             default:
@@ -660,6 +693,19 @@ namespace DynamicMosaicExample
                                         WriteLogMessage(ex.Message);
                                     }
                                 });
+
+                                switch (task.Source)
+                                {
+                                    case SourceChanged.IMAGES:
+                                        Execute(_processorImagesStorage);
+                                        break;
+                                    case SourceChanged.RECOGNIZE:
+                                        Execute(_processorRecognizeStorage);
+                                        break;
+                                    default:
+                                        throw new Exception($@"Неизвестное значение {nameof(SourceChanged)}: {task.Source}");
+                                }
+                            }
                         }
                         finally
                         {
@@ -890,6 +936,8 @@ namespace DynamicMosaicExample
             /// </summary>
             public bool RenamedFrom { get; }
 
+            public SourceChanged Source { get; }
+
             /// <summary>
             ///     Инициализирует новый экземпляр параметрами добавляемой задачи.
             ///     Параметры предназначены только для чтения.
@@ -900,13 +948,14 @@ namespace DynamicMosaicExample
             /// <param name="renamedTo">Указывает, был ли файл переименован в требуемуе для программы расширение.</param>
             /// <param name="renamedFrom">Указывает, был ли файл переименован из требуемуемого для программы расширения.</param>
             public FileTask(WatcherChangeTypes changes, string filePath, string oldFilePath, bool renamedTo,
-                bool renamedFrom)
+                bool renamedFrom, SourceChanged source)
             {
                 TaskType = changes;
                 FilePath = filePath;
                 OldFilePath = oldFilePath;
                 RenamedTo = renamedTo;
                 RenamedFrom = renamedFrom;
+                Source = source;
             }
         }
     }

@@ -46,6 +46,8 @@
             this.lblElapsedTime = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.grpSourceImage = new System.Windows.Forms.GroupBox();
+            this.btnPrevRecogImage = new System.Windows.Forms.Button();
+            this.btnNextRecogImage = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
             this.btnWide = new System.Windows.Forms.Button();
             this.btnNarrow = new System.Windows.Forms.Button();
@@ -64,8 +66,7 @@
             this.pbConSymbol = new System.Windows.Forms.PictureBox();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
             this.fswImageChanged = new System.IO.FileSystemWatcher();
-            this.btnNextRecogImage = new System.Windows.Forms.Button();
-            this.btnPrevRecogImage = new System.Windows.Forms.Button();
+            this.fswRecognizeChanged = new System.IO.FileSystemWatcher();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
             this.grpResults.SuspendLayout();
@@ -76,6 +77,7 @@
             this.grpContains.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.fswImageChanged)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.fswRecognizeChanged)).BeginInit();
             this.SuspendLayout();
             // 
             // btnRecognizeImage
@@ -95,8 +97,6 @@
             this.lstResults.ColumnWidth = 100;
             this.lstResults.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.lstResults.FormattingEnabled = true;
-            this.lstResults.Items.AddRange(new object[] {
-            "<Создать Reflex>"});
             this.lstResults.Location = new System.Drawing.Point(6, 16);
             this.lstResults.MultiColumn = true;
             this.lstResults.Name = "lstResults";
@@ -273,6 +273,24 @@
             this.grpSourceImage.TabIndex = 17;
             this.grpSourceImage.TabStop = false;
             this.grpSourceImage.Text = "Изображение (ЛКМ - рисовать / ПКМ - стереть)";
+            // 
+            // btnPrevRecogImage
+            // 
+            this.btnPrevRecogImage.Image = global::DynamicMosaicExample.Resources.Previous;
+            this.btnPrevRecogImage.Location = new System.Drawing.Point(184, 87);
+            this.btnPrevRecogImage.Name = "btnPrevRecogImage";
+            this.btnPrevRecogImage.Size = new System.Drawing.Size(40, 49);
+            this.btnPrevRecogImage.TabIndex = 19;
+            this.btnPrevRecogImage.UseVisualStyleBackColor = true;
+            // 
+            // btnNextRecogImage
+            // 
+            this.btnNextRecogImage.Image = global::DynamicMosaicExample.Resources.Next;
+            this.btnNextRecogImage.Location = new System.Drawing.Point(224, 87);
+            this.btnNextRecogImage.Name = "btnNextRecogImage";
+            this.btnNextRecogImage.Size = new System.Drawing.Size(40, 49);
+            this.btnNextRecogImage.TabIndex = 18;
+            this.btnNextRecogImage.UseVisualStyleBackColor = true;
             // 
             // button1
             // 
@@ -461,28 +479,15 @@
             // 
             // fswImageChanged
             // 
-            this.fswImageChanged.EnableRaisingEvents = true;
             this.fswImageChanged.IncludeSubdirectories = true;
             this.fswImageChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswImageChanged.SynchronizingObject = this;
             // 
-            // btnNextRecogImage
+            // fswRecognizeChanged
             // 
-            this.btnNextRecogImage.Image = global::DynamicMosaicExample.Resources.Next;
-            this.btnNextRecogImage.Location = new System.Drawing.Point(224, 87);
-            this.btnNextRecogImage.Name = "btnNextRecogImage";
-            this.btnNextRecogImage.Size = new System.Drawing.Size(40, 49);
-            this.btnNextRecogImage.TabIndex = 18;
-            this.btnNextRecogImage.UseVisualStyleBackColor = true;
-            // 
-            // btnPrevRecogImage
-            // 
-            this.btnPrevRecogImage.Image = global::DynamicMosaicExample.Resources.Previous;
-            this.btnPrevRecogImage.Location = new System.Drawing.Point(184, 87);
-            this.btnPrevRecogImage.Name = "btnPrevRecogImage";
-            this.btnPrevRecogImage.Size = new System.Drawing.Size(40, 49);
-            this.btnPrevRecogImage.TabIndex = 19;
-            this.btnPrevRecogImage.UseVisualStyleBackColor = true;
+            this.fswRecognizeChanged.IncludeSubdirectories = true;
+            this.fswRecognizeChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
+            this.fswRecognizeChanged.SynchronizingObject = this;
             // 
             // FrmExample
             // 
@@ -518,6 +523,7 @@
             this.grpContains.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.fswImageChanged)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.fswRecognizeChanged)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -561,6 +567,7 @@
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button btnPrevRecogImage;
         private System.Windows.Forms.Button btnNextRecogImage;
+        private System.IO.FileSystemWatcher fswRecognizeChanged;
     }
 }
 
