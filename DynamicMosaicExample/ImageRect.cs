@@ -8,26 +8,27 @@ namespace DynamicMosaicExample
     /// <summary>
     ///     Предназначен для работы с образами искомых букв.
     /// </summary>
-    internal readonly struct ImageRect
+    internal static class ImageRect
     {
+        const char TagSeparatorChar = '!';
+
         /// <summary>
         ///     Инициализирует экземпляр образа буквы для распознавания.
         /// </summary>
         /// <param name="btm">Изображение буквы.</param>
         /// <param name="tag">Название буквы.</param>
-        internal ImageRect(Bitmap btm, string tag)
+        internal static Processor GetProcessor(Bitmap btm, string tag)
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm), $@"{nameof(ImageRect)}: {nameof(btm)} = null.");
-            IsSymbol = false;
-            CurrentProcessor = null;
-            if (btm.Width != FrmExample.ImageWidth || btm.Height != FrmExample.ImageHeight)
-                return;
-            (bool result, uint _, bool isNumeric, string _) = NameParser(tag);
-            if (!result)
-                return;
-            CurrentProcessor = new Processor(ImageMap(btm), isNumeric ? $@"{tag}~" : tag);
-            IsSymbol = true;
+            if (string.IsNullOrWhiteSpace(tag))
+                throw new ArgumentException(@"Поле Tag карты не может быть пустым или белым полем.", nameof(tag));
+            if (btm.Width != FrmExample.ImageWidth)
+                throw new ArgumentException($@"Данное изображение не является образом распознающей карты, т.к. не подходит по ширине: {btm.Width}, необходимо {FrmExample.ImageWidth}.", nameof(btm));
+            if (btm.Height != FrmExample.ImageHeight)
+                throw new ArgumentException($@"Данное изображение не является образом распознающей карты, т.к. не подходит по высоте: {btm.Height}, необходимо {FrmExample.ImageHeight}.", nameof(btm));
+            (uint number, bool isNumeric) = NameParser(tag);
+            return new Processor(ImageMap(btm), isNumeric ? $@"{tag}{TagSeparatorChar}{number}" : tag);
         }
 
         /// <summary>
@@ -41,22 +42,10 @@ namespace DynamicMosaicExample
                 throw new ArgumentNullException(nameof(proc), $@"Параметр {nameof(proc)} не может быть null.");
             Bitmap b = new Bitmap(proc.Width, proc.Height);
             for (int y = 0; y < proc.Height; y++)
-            for (int x = 0; x < proc.Width; x++)
-                b.SetPixel(x, y, proc[x, y].ValueColor);
+                for (int x = 0; x < proc.Width; x++)
+                    b.SetPixel(x, y, proc[x, y].ValueColor);
             return b;
         }
-
-        /// <summary>
-        ///     Получает значение, является ли данный файл образом, предназначенным для распознавания.
-        ///     Значение <see langword="true" /> означает, что данный файл является образом для распознавания,
-        ///     <see langword="false" /> - нет.
-        /// </summary>
-        internal bool IsSymbol { get; }
-
-        /// <summary>
-        ///     Получает текущее изображение в виде карты <see cref="Processor" />.
-        /// </summary>
-        internal Processor CurrentProcessor { get; }
 
         /// <summary>
         ///     Преобразует указанное изображение в массив знаков объектов карты.
@@ -69,8 +58,8 @@ namespace DynamicMosaicExample
                 throw new ArgumentNullException(nameof(bitm));
             SignValue[,] mas = new SignValue[bitm.Width, bitm.Height];
             for (int y = 0; y < bitm.Height; y++)
-            for (int x = 0; x < bitm.Width; x++)
-                mas[x, y] = new SignValue(bitm.GetPixel(x, y));
+                for (int x = 0; x < bitm.Width; x++)
+                    mas[x, y] = new SignValue(bitm.GetPixel(x, y));
             return mas;
         }
 
@@ -82,20 +71,50 @@ namespace DynamicMosaicExample
         ///     Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном
         ///     случае - <see langword="false" />.
         /// </returns>
-        static (bool result, uint number, bool isNumeric, string symbolicName) NameParser(string tag)
+        static (uint number, bool isNumeric) NameParser(string tag)//TODO в данный момент непонятно, зачем нужен этот метод, разве что для добавления карт с одинаковыми полями Tag...
         {
-            if (string.IsNullOrWhiteSpace(tag))
-                return (false, 0, false, string.Empty);
             int k = tag.Length - 1;
             for (; k > 0; k--)
-                if (!char.IsDigit(tag[k]))
+                if (tag[k] == TagSeparatorChar)
                     break;
-            string symbName = tag.Substring(0, k + 1);
             if (k >= tag.Length - 1)
-                return (true, 0, false, symbName);
+                return (0, false);
             if (uint.TryParse(tag.Substring(k + 1), out uint number))
-                return (true, number, true, symbName);
-            return (true, 0, false, symbName);
+                return (number, true);
+            return (0, false);
+        }
+
+        /// <summary>
+        ///     Преобразует название карты, заканчивающееся символами '0', в параметры, включающие имя и количество символов '0' в
+        ///     конце названия карты <see cref="Processor" />.
+        /// </summary>
+        /// <param name="tag">Значение свойства <see cref="Processor.Tag" /> карты <see cref="Processor" />.</param>
+        /// <returns>
+        ///     Возвращает параметры, включающие имя и количество символов '0' в конце названия карты <see cref="Processor" />
+        ///     .
+        /// </returns>
+        internal static (uint count, string name) GetFileNumberByName(string tag)
+        {
+            if (string.IsNullOrWhiteSpace(tag))
+                throw new ArgumentNullException(nameof(tag), nameof(GetFileNumberByName));
+            int k = tag.Length - 1;
+            if (k > 0 && tag[k] == TagSeparatorChar)
+                if (tag[k - 1] == TagSeparatorChar)
+                    return (0, tag);
+                else
+                    return (0, tag.Substring(0, k));
+            uint count = 0;
+            for (; k > 0; k--)
+            {
+                if (tag[k] != '0')
+                    break;
+                if (count == uint.MaxValue)
+                    throw new Exception(
+                        $@"{nameof(GetFileNumberByName)}: Счётчик количества файлов дошёл до максимума.");
+                count++;
+            }
+
+            return (count, tag.Substring(0, k + 1));
         }
     }
 }

@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -24,7 +23,7 @@ namespace DynamicMosaicExample
         ///     Если путь к файлу исходного изображения отсутствует, создаётся новое изображение.
         /// </summary>
         /// <param name="btmPath">Путь к файлу исходного изображения.</param>
-        void Initialize(string btmPath = null)
+        void ImageActualize(string btmPath = null)
         {
             if (string.IsNullOrEmpty(btmPath))
             {
@@ -43,7 +42,7 @@ namespace DynamicMosaicExample
 
                 try
                 {
-                    btm = LoadRecognizeBitmap(btmPath);
+                    btm = _recognizeProcessorStorage.LoadRecognizeBitmap(btmPath);
                 }
                 catch (Exception ex)
                 {
@@ -63,44 +62,6 @@ namespace DynamicMosaicExample
             _grFront = Graphics.FromImage(_btmFront);
             pbDraw.Image = _btmFront;
             pbSuccess.Image = Resources.Unk_128;
-        }
-
-        internal Bitmap LoadRecognizeBitmap(string btmPath)
-        {
-            Bitmap btm;
-
-            try
-            {
-                using (FileStream fs = new FileStream(btmPath, FileMode.Open, FileAccess.Read, FileShare.Read))
-                    btm = new Bitmap(fs);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($@"Ошибка при загрузке изображения по пути: {btmPath}.", ex);
-            }
-
-            ImageFormat iformat = btm.RawFormat;
-            if (!iformat.Equals(ImageFormat.Bmp))
-            {
-                btm.Dispose();
-                throw new Exception($@"Загружаемое изображение не подходит по формату: {iformat}; необходимо: {ImageFormat.Bmp}. Путь: {btmPath}.");
-            }
-
-            if (WidthSizes.All(s => s != btm.Width))
-            {
-                btm.Dispose();
-                throw new Exception($@"Загружаемое изображение не подходит по ширине: {btm.Width}. Она выходит за рамки допустимого. Попробуйте создать изображение и сохранить его заново. Путь: {btmPath}.");
-            }
-
-            if (btm.Height != pbDraw.Height)
-            {
-                btm.Dispose();
-                throw new Exception($@"Загружаемое изображение не подходит по высоте: {btm.Height}; необходимо: {pbDraw.Height}. Путь: {btmPath}.");
-            }
-
-            btm.SetPixel(0, 0, btm.GetPixel(0, 0)); //Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
-
-            return btm;
         }
 
         /// <summary>
@@ -153,10 +114,10 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnWide_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            pbDraw.Width += WidthCount;
+            pbDraw.Width += WidthStep;
             btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
             btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
-            Initialize();
+            ImageActualize();
         }, () => btnSaveImage.Enabled = btnClearImage.Enabled = IsPainting);
 
         /// <summary>
@@ -167,10 +128,10 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnNarrow_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            pbDraw.Width -= WidthCount;
+            pbDraw.Width -= WidthStep;
             btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
             btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
-            Initialize();
+            ImageActualize();
         }, () => btnSaveImage.Enabled = btnClearImage.Enabled = IsPainting);
 
         /// <summary>
@@ -206,7 +167,7 @@ namespace DynamicMosaicExample
         void BtnImageNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             _currentImage++;
-            (Processor processor, string path, int count) = _processorImagesStorage.GetFirstProcessor(ref _currentImage);
+            (Processor processor, string path, int count) = _imagesProcessorStorage.GetFirstProcessor(ref _currentImage);
             UpdateImagesCount(count);
             if (processor == null || count < 1)
             {
@@ -228,7 +189,7 @@ namespace DynamicMosaicExample
         void BtnImagePrev_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             _currentImage--;
-            (Processor processor, string path, int count) = _processorImagesStorage.GetLastProcessor(ref _currentImage);
+            (Processor processor, string path, int count) = _imagesProcessorStorage.GetLastProcessor(ref _currentImage);
             UpdateImagesCount(count);
             if (processor == null || count < 1)
             {
@@ -250,7 +211,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageDelete_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            if (_processorImagesStorage.Count < 1)
+            if (_imagesProcessorStorage.Count < 1)
                 return;
 
             File.Delete(txtSymbolPath.Text);
@@ -281,12 +242,12 @@ namespace DynamicMosaicExample
         /// </summary>
         void RefreshImagesCount() => InvokeAction(() =>
         {
-            (Processor processor, string path, int count) = _processorImagesStorage[txtSymbolPath.Text];
+            (Processor processor, string path, int count) = _imagesProcessorStorage[txtSymbolPath.Text];
             if (count > 0)
             {
                 if (processor == null)
                 {
-                    (processor, path, count) = _processorImagesStorage.GetFirstProcessor(ref _currentImage);
+                    (processor, path, count) = _imagesProcessorStorage.GetFirstProcessor(ref _currentImage);
                     if (processor != null && count > 0)
                     {
                         pbBrowse.Image = ImageRect.GetBitmap(processor);
@@ -480,7 +441,7 @@ namespace DynamicMosaicExample
             {
                 ProcessorContainer processors = null;
 
-                foreach ((Processor p, string _) in _processorImagesStorage.Elements)
+                foreach ((Processor p, string _) in _imagesProcessorStorage.Elements)
                     if (processors == null)
                         processors = new ProcessorContainer(p);
                     else
@@ -729,7 +690,7 @@ namespace DynamicMosaicExample
         {
             if (dlgOpenImage.ShowDialog(this) != DialogResult.OK)
                 return;
-            Initialize(dlgOpenImage.FileName);
+            ImageActualize(dlgOpenImage.FileName);
         }, () => btnSaveImage.Enabled = btnClearImage.Enabled = IsPainting);
 
         /// <summary>

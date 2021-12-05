@@ -97,7 +97,7 @@ namespace DynamicMosaicExample
         ///     Определяет шаг (в пикселях), на который изменяется ширина сканируемого (создаваемого) изображения при нажатии
         ///     кнопок сужения или расширения.
         /// </summary>
-        const int WidthCount = 20;
+        const int WidthStep = 20;
 
         /// <summary>
         ///     Синхронизирует потоки, пытающиеся записать сообщение в лог-файл.
@@ -162,10 +162,10 @@ namespace DynamicMosaicExample
         ///     Хранит загруженные карты, которые требуется искать на основной карте.
         ///     Предназначена для использования несколькими потоками одновременно.
         /// </summary>
-        readonly ConcurrentProcessorStorage _processorImagesStorage = new ConcurrentProcessorStorage();
+        readonly ConcurrentProcessorStorage _imagesProcessorStorage = new ImageProcessorStorage();
 
 
-        readonly ConcurrentProcessorStorage _processorRecognizeStorage = new ConcurrentProcessorStorage();
+        readonly RecognizeProcessorStorage _recognizeProcessorStorage;
 
         /// <summary>
         ///     Хранит значение свойства <see cref="GroupBox.Text" /> объекта <see cref="grpResults" />.
@@ -272,10 +272,11 @@ namespace DynamicMosaicExample
             try
             {
                 InitializeComponent();
+                _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, WidthStep, pbDraw.Height);
                 Directory.CreateDirectory(SearchImagesPath);
                 Directory.CreateDirectory(RecognizeImagesPath);
                 _whitePen = new Pen(_defaultColor, 2.0f);
-                Initialize();
+                ImageActualize();
                 _strRecog = btnRecognizeImage.Text;
                 _unknownSymbolName = txtSymbolPath.Text;
                 _unknownSystemName = txtConSymbol.Text;
@@ -303,10 +304,10 @@ namespace DynamicMosaicExample
                     switch (source)
                     {
                         case SourceChanged.IMAGES:
-                            storage = _processorImagesStorage;
+                            storage = _imagesProcessorStorage;
                             break;
                         case SourceChanged.RECOGNIZE:
-                            storage = _processorRecognizeStorage;
+                            storage = _recognizeProcessorStorage;
                             break;
                         default:
                             throw new ArgumentException($@"Неизвестное значение {nameof(SourceChanged)}: {source}", nameof(source));
@@ -503,21 +504,6 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Перечисляет возможные значения ширины поля создания сканируемого изображения.
-        ///     Используется значение шага, указанное в константе <see cref="WidthCount" />.
-        /// </summary>
-        IEnumerable<int> WidthSizes
-        {
-            get
-            {
-                for (int k = pbDraw.MinimumSize.Width, max = pbDraw.MaximumSize.Width; k <= max; k += WidthCount)
-                    yield return k;
-                for (int k = pbDraw.MaximumSize.Width, min = pbDraw.MinimumSize.Width; k >= min; k -= WidthCount)
-                    yield return k;
-            }
-        }
-
-        /// <summary>
         ///     Получает список файлов изображений карт в указанной папке.
         ///     Это файлы с расширением <see cref="ExtImg" />.
         ///     В случае какой-либо ошибки возвращает <see langword="null" />.
@@ -538,7 +524,7 @@ namespace DynamicMosaicExample
             }
         }
 
-        IEnumerable<Processor> RecognizeImages => from path in GetFiles(RecognizeImagesPath) let btm = LoadRecognizeBitmap(path) select new Processor(btm, Path.GetFileNameWithoutExtension(path));
+        IEnumerable<Processor> RecognizeImages => from path in GetFiles(RecognizeImagesPath) let btm = _recognizeProcessorStorage.LoadRecognizeBitmap(path) select new Processor(btm, Path.GetFileNameWithoutExtension(path));
 
         /// <summary>
         ///     Останавливает процесс распознавания.
@@ -640,8 +626,8 @@ namespace DynamicMosaicExample
                             }
                         }));
 
-                        Execute(_processorImagesStorage, SearchImagesPath);
-                        Execute(_processorRecognizeStorage, RecognizeImagesPath);
+                        Execute(_imagesProcessorStorage, SearchImagesPath);
+                        Execute(_recognizeProcessorStorage, RecognizeImagesPath);
                     }
                     finally
                     {
@@ -697,10 +683,10 @@ namespace DynamicMosaicExample
                                 switch (task.Source)
                                 {
                                     case SourceChanged.IMAGES:
-                                        Execute(_processorImagesStorage);
+                                        Execute(_imagesProcessorStorage);
                                         break;
                                     case SourceChanged.RECOGNIZE:
-                                        Execute(_processorRecognizeStorage);
+                                        Execute(_recognizeProcessorStorage);
                                         break;
                                     default:
                                         throw new Exception($@"Неизвестное значение {nameof(SourceChanged)}: {task.Source}");

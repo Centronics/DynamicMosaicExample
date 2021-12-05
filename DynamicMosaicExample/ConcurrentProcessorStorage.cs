@@ -13,8 +13,12 @@ namespace DynamicMosaicExample
     ///     Потокобезопасное хранилище карт <see cref="Processor" /> с поддержкой поиска с использованием хеш-таблицы.
     ///     Поддерживаются повторяющиеся ключи.
     /// </summary>
-    internal sealed class ConcurrentProcessorStorage
+    internal abstract class ConcurrentProcessorStorage
     {
+        protected abstract Processor GetAddingProcessor(string fullPath);
+
+        protected abstract string GetProcessorTag(string fullPath);
+
         /// <summary>
         ///     Коллекция карт, идентифицируемых по хешу.
         /// </summary>
@@ -143,32 +147,10 @@ namespace DynamicMosaicExample
             if (!IsOperationAllowed)
                 throw new InvalidOperationException($@"{nameof(AddProcessor)}: Операция недопустима.");
             fullPath = Path.GetFullPath(fullPath);
-            ImageRect ir;
+            Processor addingProcessor;
             try
             {
-                FileStream fs = null;
-                for (int k = 0; k < 50; k++)
-                {
-                    try
-                    {
-                        fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                    }
-                    catch (Exception ex)
-                    {
-                        if (k > 48)
-                            throw new FileNotFoundException($@"{nameof(AddProcessor)}: {ex.Message}", fullPath);
-                        Thread.Sleep(100);
-                        continue;
-                    }
-
-                    break;
-                }
-
-                Bitmap btm;
-                using (fs)
-                    btm = new Bitmap(
-                        fs ?? throw new InvalidOperationException($@"{nameof(AddProcessor)}: {nameof(fs)} == null."));
-                ir = new ImageRect(btm, Path.GetFileNameWithoutExtension(fullPath));
+                addingProcessor = GetAddingProcessor(fullPath);
             }
             catch
             {
@@ -176,20 +158,14 @@ namespace DynamicMosaicExample
                 throw;
             }
 
-            if (!ir.IsSymbol)
-            {
-                RemoveProcessor(fullPath);
-                return;
-            }
-
-            int hashCode = CRCIntCalc.GetHash(ir.CurrentProcessor);
+            int hashCode = CRCIntCalc.GetHash(addingProcessor);
             lock (_syncObject)
             {
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(AddProcessor)}: Операция недопустима.");
                 try
                 {
-                    AddElement(hashCode, fullPath, ir.CurrentProcessor);
+                    AddElement(hashCode, fullPath, addingProcessor);
                 }
                 catch
                 {
@@ -197,6 +173,31 @@ namespace DynamicMosaicExample
                     throw;
                 }
             }
+        }
+
+        protected static Bitmap LoadBitmap(string fullPath)
+        {
+            FileStream fs = null;
+
+            for (int k = 0; k < 50; k++)
+            {
+                try
+                {
+                    fs = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read);
+                }
+                catch (Exception ex)
+                {
+                    if (k > 48)
+                        throw new FileNotFoundException($@"{nameof(AddProcessor)}: {ex.Message}", fullPath, ex);
+                    Thread.Sleep(100);
+                    continue;
+                }
+
+                break;
+            }
+
+            using (fs)
+                return new Bitmap(fs ?? throw new InvalidOperationException($@"{nameof(LoadBitmap)}: {nameof(fs)} == null."));
         }
 
         /// <summary>
@@ -213,7 +214,7 @@ namespace DynamicMosaicExample
         {
             string fPath = fullPath.ToLower();
             if (_dictionaryByPath.ContainsKey(fPath))
-                RemoveProcessor(fullPath);
+                RemoveProcessor(fullPath);//TODO вместо удаления надо сделать добавление нового символа
 
             _dictionaryByPath.Add(fPath, new ProcPath(processor, fullPath));
             if (_dictionary.TryGetValue(hashCode, out ProcHash ph))
@@ -230,41 +231,8 @@ namespace DynamicMosaicExample
         /// <returns>Возвращает строку, содержащую имя и количество символов '0' в конце названия карты <see cref="Processor" />.</returns>
         internal static string GetProcessorName(string tag)
         {
-            (uint count, string name) = GetFilesNumberByName(tag);
+            (uint count, string name) = ImageRect.GetFileNumberByName(tag);
             return count == 0 ? name : $@"{name + count}";
-        }
-
-        /// <summary>
-        ///     Преобразует название карты, заканчивающееся символами '0', в параметры, включающие имя и количество символов '0' в
-        ///     конце названия карты <see cref="Processor" />.
-        /// </summary>
-        /// <param name="tag">Значение свойства <see cref="Processor.Tag" /> карты <see cref="Processor" />.</param>
-        /// <returns>
-        ///     Возвращает параметры, включающие имя и количество символов '0' в конце названия карты <see cref="Processor" />
-        ///     .
-        /// </returns>
-        static (uint count, string name) GetFilesNumberByName(string tag)
-        {
-            if (string.IsNullOrWhiteSpace(tag))
-                throw new ArgumentNullException(nameof(tag), nameof(GetFilesNumberByName));
-            int k = tag.Length - 1;
-            if (k > 0 && tag[k] == '~')
-                if (tag[k - 1] == '~')
-                    return (0, tag);
-                else
-                    return (0, tag.Substring(0, k));
-            uint count = 0;
-            for (; k > 0; k--)
-            {
-                if (tag[k] != '0')
-                    break;
-                if (count == uint.MaxValue)
-                    throw new Exception(
-                        $@"{nameof(GetFilesNumberByName)}: Счётчик количества файлов дошёл до максимума.");
-                count++;
-            }
-
-            return (count, tag.Substring(0, k + 1));
         }
 
         /// <summary>
@@ -405,7 +373,7 @@ namespace DynamicMosaicExample
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor),
                     $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
-            (uint count, string name) = GetFilesNumberByName(processor.Tag);
+            (uint count, string name) = ImageRect.GetFileNumberByName(processor.Tag);
             SaveToFile(ImageRect.GetBitmap(processor), count == 0 ? name : $@"{name + count}");
         }
 
