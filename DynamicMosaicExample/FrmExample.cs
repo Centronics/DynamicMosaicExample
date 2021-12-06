@@ -439,15 +439,9 @@ namespace DynamicMosaicExample
 
             void CreateReflex()
             {
-                ProcessorContainer processors = null;
+                Processor[] processors = _imagesProcessorStorage.Elements.Select(t => t.processor).ToArray();
 
-                foreach ((Processor p, string _) in _imagesProcessorStorage.Elements)
-                    if (processors == null)
-                        processors = new ProcessorContainer(p);
-                    else
-                        processors.Add(p);
-
-                if (processors == null)
+                if (!processors.Any())
                 {
                     ErrorMessageInOtherThread(
                         @"Образы для распознавания отсутствуют. Создайте хотя бы один.");
@@ -462,7 +456,7 @@ namespace DynamicMosaicExample
 
                 try
                 {
-                    recognizer = new DynamicReflex(processors);
+                    recognizer = new DynamicReflex(new ProcessorContainer(processors));
                 }
                 finally
                 {

@@ -10,7 +10,7 @@ namespace DynamicMosaicExample
     /// </summary>
     internal static class ImageRect
     {
-        const char TagSeparatorChar = '!';
+        internal const char TagSeparatorChar = '!';
 
         /// <summary>
         ///     Инициализирует экземпляр образа буквы для распознавания.
@@ -27,15 +27,14 @@ namespace DynamicMosaicExample
                 throw new ArgumentException($@"Данное изображение не является образом распознающей карты, т.к. не подходит по ширине: {btm.Width}, необходимо {FrmExample.ImageWidth}.", nameof(btm));
             if (btm.Height != FrmExample.ImageHeight)
                 throw new ArgumentException($@"Данное изображение не является образом распознающей карты, т.к. не подходит по высоте: {btm.Height}, необходимо {FrmExample.ImageHeight}.", nameof(btm));
-            (uint number, bool isNumeric) = NameParser(tag);
-            return new Processor(ImageMap(btm), isNumeric ? $@"{tag}{TagSeparatorChar}{number}" : tag);
+            return new Processor(ImageMap(btm), tag);
         }
 
         /// <summary>
-        ///     Преобразует <see cref="DynamicParser.Processor" /> в <see cref="Bitmap" />.
+        ///     Преобразует <see cref="Processor" /> в <see cref="Bitmap" />.
         /// </summary>
-        /// <param name="proc"><see cref="DynamicParser.Processor" />, который требуется преобразовать.</param>
-        /// <returns>Возвращает <see cref="DynamicParser.Processor" />, преобразованный в <see cref="Bitmap" />.</returns>
+        /// <param name="proc"><see cref="Processor" />, который требуется преобразовать.</param>
+        /// <returns>Возвращает <see cref="Processor" />, преобразованный в <see cref="Bitmap" />.</returns>
         internal static Bitmap GetBitmap(Processor proc)
         {
             if (proc == null)
@@ -71,17 +70,15 @@ namespace DynamicMosaicExample
         ///     Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном
         ///     случае - <see langword="false" />.
         /// </returns>
-        static (uint number, bool isNumeric) NameParser(string tag)//TODO в данный момент непонятно, зачем нужен этот метод, разве что для добавления карт с одинаковыми полями Tag...
+        internal static (ulong number, bool isNumeric, string strPart) NameParser(string tag)
         {
             int k = tag.Length - 1;
             for (; k > 0; k--)
-                if (tag[k] == TagSeparatorChar)
+                if (!char.IsDigit(tag[k]))
                     break;
-            if (k >= tag.Length - 1)
-                return (0, false);
-            if (uint.TryParse(tag.Substring(k + 1), out uint number))
-                return (number, true);
-            return (0, false);
+            if (k == tag.Length - 1)
+                return (0, false, tag);
+            return ulong.TryParse(tag.Substring(k + 1), out ulong number) ? (number, true, tag.Substring(0, k)) : (0, false, $@"{tag}{TagSeparatorChar}");
         }
 
         /// <summary>

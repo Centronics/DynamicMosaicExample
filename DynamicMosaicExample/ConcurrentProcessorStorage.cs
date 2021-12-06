@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using DynamicMosaic;
 using DynamicParser;
 
 namespace DynamicMosaicExample
@@ -50,12 +51,51 @@ namespace DynamicMosaicExample
             {
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
+
                 lock (_syncObject)
                 {
                     if (!IsOperationAllowed)
                         throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
-                    foreach (ProcPath p in _dictionaryByPath.Values)
-                        yield return (p.CurrentProcessor, p.CurrentPath);
+
+                    HashSet<string> tagSet = new HashSet<string>();
+
+                    unchecked
+                    {
+                        foreach (ProcPath p in _dictionaryByPath.Values)
+                        {
+                            string tag = GetProcessorTag(p.CurrentPath);
+                            (ulong number, bool isNumeric, string strPart) = ImageRect.NameParser(tag);
+                            if (isNumeric)
+                            {
+                                for (ulong k = number + 1; k != number; k++)
+                                {
+                                    string t = $@"{strPart}{k}";
+                                    if (!tagSet.Add(t))
+                                        continue;
+                                    yield return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, t), p.CurrentPath);
+                                    break;
+                                }
+
+                                continue;
+                            }
+
+                            string rTag = $@"{tag}{ImageRect.TagSeparatorChar}";
+                            if (tagSet.Add(rTag))
+                            {
+                                yield return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, rTag), p.CurrentPath);
+                                continue;
+                            }
+
+                            for (ulong k = number + 1; k != number; k++)
+                            {
+                                string t = $@"{rTag}{k}";
+                                if (!tagSet.Add(t))
+                                    continue;
+                                yield return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, t), p.CurrentPath);
+                                break;
+                            }
+                        }
+                    }
                 }
             }
         }
