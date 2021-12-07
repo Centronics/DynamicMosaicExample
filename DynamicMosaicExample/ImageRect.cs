@@ -70,15 +70,15 @@ namespace DynamicMosaicExample
         ///     Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном
         ///     случае - <see langword="false" />.
         /// </returns>
-        internal static (ulong number, bool isNumeric, string strPart) NameParser(string tag)
+        internal static (ulong number, string strPart) NameParser(string tag)
         {
-            int k = tag.Length - 1;
-            for (; k > 0; k--)
+            for (int k = tag.Length - 1; k >= 0; k--)
                 if (!char.IsDigit(tag[k]))
-                    break;
-            if (k == tag.Length - 1)
-                return (0, false, tag);
-            return ulong.TryParse(tag.Substring(k + 1), out ulong number) ? (number, true, tag.Substring(0, k)) : (0, false, $@"{tag}{TagSeparatorChar}");
+                    return k > 0 && ulong.TryParse(tag.Substring(k + 1), out ulong number)
+                        ? (number, tag.Substring(0, k + 1))
+                        : (0, $@"{tag}{TagSeparatorChar}");
+
+            throw new ArgumentException($@"{nameof(NameParser)}: Имя файла пустое.", nameof(tag));
         }
 
         /// <summary>

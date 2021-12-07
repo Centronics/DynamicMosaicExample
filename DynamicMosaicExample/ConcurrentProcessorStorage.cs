@@ -59,44 +59,31 @@ namespace DynamicMosaicExample
 
                     HashSet<string> tagSet = new HashSet<string>();
 
-                    unchecked
+                    foreach (ProcPath p in _dictionaryByPath.Values)
                     {
-                        foreach (ProcPath p in _dictionaryByPath.Values)
-                        {
-                            string tag = GetProcessorTag(p.CurrentPath);
-                            (ulong number, bool isNumeric, string strPart) = ImageRect.NameParser(tag);
-                            if (isNumeric)
-                            {
-                                for (ulong k = number + 1; k != number; k++)
-                                {
-                                    string t = $@"{strPart}{k}";
-                                    if (!tagSet.Add(t))
-                                        continue;
-                                    yield return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, t), p.CurrentPath);
-                                    break;
-                                }
-
-                                continue;
-                            }
-
-                            string rTag = $@"{tag}{ImageRect.TagSeparatorChar}";
-                            if (tagSet.Add(rTag))
-                            {
-                                yield return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, rTag), p.CurrentPath);
-                                continue;
-                            }
-
-                            for (ulong k = number + 1; k != number; k++)
-                            {
-                                string t = $@"{rTag}{k}";
-                                if (!tagSet.Add(t))
-                                    continue;
-                                yield return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, t), p.CurrentPath);
-                                break;
-                            }
-                        }
+                        (ulong number, string strPart) = ImageRect.NameParser(GetProcessorTag(p.CurrentPath));
+                        yield return AddTagToSet(tagSet, p, strPart, number);
                     }
                 }
+            }
+        }
+
+        static (Processor processor, string path) AddTagToSet(ISet<string> tagSet, ProcPath p, string tag, ulong number)
+        {
+            unchecked
+            {
+                if (tagSet.Add(tag))
+                    return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, tag), p.CurrentPath);
+
+                ulong k = number;
+                do
+                {
+                    string t = $@"{tag}{k}";
+                    if (tagSet.Add(t))
+                        return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, t), p.CurrentPath);
+                } while (++k != number);
+
+                throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.CurrentProcessor.Tag} по пути {p.CurrentPath}, изначальное имя карты {tag}, номер {number}.");
             }
         }
 
