@@ -669,10 +669,9 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            string savePath = Path.Combine(RecognizeImagesPath, $@"{txtWord.Text}.{ExtImg}");
-            //if (File.Exists(savePath) && MessageBox.Show(@"Обработать изображения из папки?", @"Обработка изображений", MessageBoxButtons.YesNo, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1) == DialogResult.Yes)
+            _recognizeProcessorStorage.SaveToFile(_btmFront, Path.Combine(RecognizeImagesPath, $@"{txtWord.Text}.{ExtImg}"));
+            //сначала загрузить все карты для распознавания, затем разрешать их сохранять
 
-            ConcurrentProcessorStorage.SaveToFile(_btmFront, savePath);
         });
 
         /// <summary>

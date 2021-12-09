@@ -32,6 +32,8 @@ namespace DynamicMosaicExample
             
         }
 
+        protected override string ImagesPath => FrmExample.RecognizeImagesPath;
+
         /// <summary>
         ///     Перечисляет возможные значения ширины поля создания сканируемого изображения.
         /// </summary>

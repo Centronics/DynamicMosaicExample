@@ -20,6 +20,8 @@ namespace DynamicMosaicExample
 
         protected abstract string GetProcessorTag(string fullPath);
 
+        protected abstract string ImagesPath { get; }
+
         /// <summary>
         ///     Коллекция карт, идентифицируемых по хешу.
         /// </summary>
@@ -395,21 +397,21 @@ namespace DynamicMosaicExample
         ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
-        internal static void SaveToFile(Processor processor)
+        internal void SaveToFile(Processor processor)//TODO реализовать через контейнер (с проверкой по существующим картам) (как в Elements...)
         {
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor),
                     $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
             (uint count, string name) = ImageRect.GetFileNumberByName(processor.Tag);
-            SaveToFile(ImageRect.GetBitmap(processor), count == 0 ? name : $@"{name + count}");
+            SaveToFile(ImageRect.GetBitmap(processor), count == 0 ? name : name + count);
         }
 
         /// <summary>
         ///     Сохраняет указанное изображение на жёсткий диск.
         /// </summary>
         /// <param name="btm">Изображение, которое требуется сохранить.</param>
-        /// <param name="path">Путь, по которому требуется сохранить изображение.</param>
-        internal static void SaveToFile(Bitmap btm, string path)
+        /// <param name="path">Абсолютный путь, по которому требуется сохранить изображение. Если путь относительный, то используется <see cref="FrmExample.SearchImagesPath"/>.</param>
+        internal void SaveToFile(Bitmap btm, string path)
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm),
@@ -419,8 +421,8 @@ namespace DynamicMosaicExample
                     $@"{nameof(SaveToFile)}: Путь, по которому требуется сохранить изображение, не задан.",
                     nameof(path));
             path = Path.ChangeExtension(path, string.Empty);
-            string resultTmp = Path.Combine(FrmExample.SearchImagesPath, $@"{path}bmpTMP");
-            string result = Path.Combine(FrmExample.SearchImagesPath, $@"{path}{FrmExample.ExtImg}");
+            string resultTmp = Path.Combine(ImagesPath, $@"{path}bmpTMP");
+            string result = Path.Combine(ImagesPath, path + FrmExample.ExtImg);
             using (FileStream fs = new FileStream(resultTmp, FileMode.Create, FileAccess.Write))
                 btm.Save(fs, ImageFormat.Bmp);
             try

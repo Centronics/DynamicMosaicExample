@@ -9,5 +9,6 @@ namespace DynamicMosaicExample
         protected override Processor GetAddingProcessor(string fullPath) => ImageRect.GetProcessor(LoadBitmap(fullPath), GetProcessorTag(fullPath));
 
         protected override string GetProcessorTag(string fullPath) => Path.GetFileNameWithoutExtension(fullPath);
+        protected override string ImagesPath => FrmExample.SearchImagesPath;
     }
 }
