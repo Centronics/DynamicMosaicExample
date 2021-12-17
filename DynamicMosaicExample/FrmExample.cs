@@ -902,7 +902,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="tag">Значение свойства <see cref="Processor.Tag" />.</param>
         void UpdateConSymbolName(string tag) => txtConSymbol.Text =
-            $@"№ {SelectedReflex.reflexMapIndex + 1} {ConcurrentProcessorStorage.GetProcessorName(tag)}";
+            $@"№ {SelectedReflex.reflexMapIndex + 1} {tag}";
 
         /// <summary>
         ///     Сохраняет выбранную карту <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.

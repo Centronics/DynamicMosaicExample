@@ -20,7 +20,28 @@ namespace DynamicMosaicExample
 
         protected abstract string GetProcessorTag(string fullPath);
 
+        static (Processor processor, string path, string alias) AddTagToSet(ISet<string> tagSet, ProcPath p, string tag, ulong? number)
+        {
+            unchecked
+            {
+                string sourcePath = Path.GetDirectoryName(p.CurrentPath);
+                ulong k = number ?? 0, mk = k;
+
+                do
+                {
+                    string t = number == null && k == 0 ? tag : $@"{tag}{k - 1}";
+                    if (tagSet.Add(t))
+                        return (p.CurrentProcessor, p.CurrentPath, GetImagePath(sourcePath, t));
+                } while (++k != mk);
+
+                string n = number == null ? "<пусто>" : number.ToString();
+                throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.CurrentProcessor.Tag} по пути {p.CurrentPath}, изначальное имя карты {tag}, номер {n}.");
+            }
+        }
+
         protected abstract string ImagesPath { get; }
+
+        static string GetImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(GetImagePath)}: Исходный путь образа не указан."), name)}.{FrmExample.ExtImg}";
 
         /// <summary>
         ///     Коллекция карт, идентифицируемых по хешу.
@@ -47,45 +68,30 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
-        internal IEnumerable<(Processor processor, string path)> Elements
+        internal IEnumerable<(Processor processor, string path, string alias)> Elements => GetElementWithValue();
+
+        IEnumerable<(Processor processor, string path, string alias)> GetElementWithValue(Processor additionProc = null)
         {
-            get
+            if (!IsOperationAllowed)//TODO убрать
+                throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
+
+            lock (_syncObject)
             {
                 if (!IsOperationAllowed)
                     throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
 
-                lock (_syncObject)
+                HashSet<string> tagSet = new HashSet<string>();
+
+                foreach (ProcPath p in _dictionaryByPath.Values)
                 {
-                    if (!IsOperationAllowed)
-                        throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
-
-                    HashSet<string> tagSet = new HashSet<string>();
-
-                    foreach (ProcPath p in _dictionaryByPath.Values)
-                    {
-                        (ulong number, string strPart) = ImageRect.NameParser(GetProcessorTag(p.CurrentPath));
-                        yield return AddTagToSet(tagSet, p, strPart, number);
-                    }
+                    (ulong? number, string strPart) = ImageRect.NameParser(GetProcessorTag(p.CurrentPath));
+                    (Processor, string, string) result = AddTagToSet(tagSet, p, strPart, number);
+                    if (additionProc == null)
+                        yield return result;
                 }
-            }
-        }
 
-        static (Processor processor, string path) AddTagToSet(ISet<string> tagSet, ProcPath p, string tag, ulong number)
-        {
-            unchecked
-            {
-                if (tagSet.Add(tag))
-                    return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, tag), p.CurrentPath);
-
-                ulong k = number;
-                do
-                {
-                    string t = $@"{tag}{k}";
-                    if (tagSet.Add(t))
-                        return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, t), p.CurrentPath);
-                } while (++k != number);
-
-                throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.CurrentProcessor.Tag} по пути {p.CurrentPath}, изначальное имя карты {tag}, номер {number}.");
+                if (additionProc != null)
+                    yield return AddTagToSet(tagSet, new ProcPath(additionProc, GetImagePath(ImagesPath, additionProc.Tag)), additionProc.Tag, null);
             }
         }
 
@@ -253,18 +259,6 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Преобразует название карты, заканчивающееся символами '0', в строку, содержащую имя и количество символов '0' в
-        ///     конце названия карты <see cref="Processor" />.
-        /// </summary>
-        /// <param name="tag">Значение свойства <see cref="Processor.Tag" /> карты <see cref="Processor" />.</param>
-        /// <returns>Возвращает строку, содержащую имя и количество символов '0' в конце названия карты <see cref="Processor" />.</returns>
-        internal static string GetProcessorName(string tag)
-        {
-            (uint count, string name) = ImageRect.GetFileNumberByName(tag);
-            return count == 0 ? name : $@"{name + count}";
-        }
-
-        /// <summary>
         ///     Получает указанную или последнюю карту в случае недопустимого значения в индексе карты <see cref="Processor" />,
         ///     которую необходимо получить.
         ///     Актуализирует номер полученной карты и путь к ней.
@@ -397,13 +391,18 @@ namespace DynamicMosaicExample
         ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
-        internal void SaveToFile(Processor processor)//TODO реализовать через контейнер (с проверкой по существующим картам) (как в Elements...)
+        internal void SaveToFile(Processor processor)
         {
             if (processor == null)
-                throw new ArgumentNullException(nameof(processor),
-                    $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
-            (uint count, string name) = ImageRect.GetFileNumberByName(processor.Tag);
-            SaveToFile(ImageRect.GetBitmap(processor), count == 0 ? name : name + count);
+                throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
+
+            lock (_syncObject)
+            {
+                (Processor processor, string, string alias)[] tArr = GetElementWithValue(processor).ToArray();
+                if (tArr.Length != 1)
+                    throw new Exception($@"{nameof(SaveToFile)}: Массив данных неподходящей длины ({tArr.Length}).");
+                SaveToFile(ImageRect.GetBitmap(tArr[0].processor), tArr[0].alias);
+            }
         }
 
         /// <summary>
@@ -444,7 +443,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Хранит карту <see cref="Processor" /> и путь <see cref="string" /> к ней.
         /// </summary>
-        readonly struct ProcPath
+        protected readonly struct ProcPath
         {
             /// <summary>
             ///     Хранимая карта.

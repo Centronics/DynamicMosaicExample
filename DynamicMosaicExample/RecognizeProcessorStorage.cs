@@ -2,7 +2,9 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 using System.Linq;
+using DynamicMosaic;
 using DynamicParser;
 
 namespace DynamicMosaicExample
@@ -27,12 +29,23 @@ namespace DynamicMosaicExample
 
         protected override Processor GetAddingProcessor(string fullPath) => new Processor(LoadRecognizeBitmap(fullPath), GetProcessorTag(fullPath));
 
-        protected override string GetProcessorTag(string fullPath)
-        {
-            
-        }
+        protected override string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(Path.GetFileNameWithoutExtension(fullPath))}{ImageRect.TagSeparatorChar}";
 
         protected override string ImagesPath => FrmExample.RecognizeImagesPath;
+
+        static string GetQueryFromPath(string fullPath)
+        {
+            if (string.IsNullOrWhiteSpace(fullPath))
+                throw new ArgumentException();
+
+            fullPath = Path.GetFileNameWithoutExtension(fullPath);
+
+            for (int k = fullPath.Length - 1; k >= 0; k--)
+                if (fullPath[k] == ImageRect.TagSeparatorChar)
+                    return fullPath.Substring(0, k);
+
+            return fullPath;
+        }
 
         /// <summary>
         ///     Перечисляет возможные значения ширины поля создания сканируемого изображения.

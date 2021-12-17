@@ -70,13 +70,13 @@ namespace DynamicMosaicExample
         ///     Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном
         ///     случае - <see langword="false" />.
         /// </returns>
-        internal static (ulong number, string strPart) NameParser(string tag)
+        internal static (ulong? number, string strPart) NameParser(string tag)
         {
             for (int k = tag.Length - 1; k >= 0; k--)
-                if (!char.IsDigit(tag[k]))
+                if (tag[k] == TagSeparatorChar || !char.IsDigit(tag[k]))
                     return k > 0 && ulong.TryParse(tag.Substring(k + 1), out ulong number)
                         ? (number, tag.Substring(0, k + 1))
-                        : (0, $@"{tag}{TagSeparatorChar}");
+                        : ((ulong?)null, $@"{tag}{TagSeparatorChar}");
 
             throw new ArgumentException($@"{nameof(NameParser)}: Имя файла пустое.", nameof(tag));
         }
@@ -90,28 +90,28 @@ namespace DynamicMosaicExample
         ///     Возвращает параметры, включающие имя и количество символов '0' в конце названия карты <see cref="Processor" />
         ///     .
         /// </returns>
-        internal static (uint count, string name) GetFileNumberByName(string tag)
+        internal static (uint? count, string name) GetFileNumberByName(string tag)
         {
             if (string.IsNullOrWhiteSpace(tag))
                 throw new ArgumentNullException(nameof(tag), nameof(GetFileNumberByName));
             int k = tag.Length - 1;
             if (k > 0 && tag[k] == TagSeparatorChar)
                 if (tag[k - 1] == TagSeparatorChar)
-                    return (0, tag);
+                    return (null, tag);
                 else
-                    return (0, tag.Substring(0, k));
-            uint count = 0;
+                    return (null, tag.Substring(0, k));
+            uint c = 0;
             for (; k > 0; k--)
             {
                 if (tag[k] != '0')
                     break;
-                if (count == uint.MaxValue)
+                if (c == uint.MaxValue)
                     throw new Exception(
                         $@"{nameof(GetFileNumberByName)}: Счётчик количества файлов дошёл до максимума.");
-                count++;
+                c++;
             }
 
-            return (count, tag.Substring(0, k + 1));
+            return (c == 0 ? (uint?)null : c, tag.Substring(0, k + 1));
         }
     }
 }

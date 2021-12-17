@@ -313,7 +313,7 @@ namespace DynamicMosaicExample
                             throw new ArgumentException($@"Неизвестное значение {nameof(SourceChanged)}: {source}", nameof(source));
                     }
 
-                    foreach ((Processor _, string path) in storage.Elements)
+                    foreach ((Processor _, string path, string _) in storage.Elements)
                         if (path.StartsWith(fullPath, StringComparison.OrdinalIgnoreCase))
                             _concurrentFileTasks.Enqueue(new FileTask(WatcherChangeTypes.Deleted, path, string.Empty, false, false, source));
                 }
