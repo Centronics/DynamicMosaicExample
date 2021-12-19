@@ -225,7 +225,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageCreate_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            using (FrmSymbol fs = new FrmSymbol())
+            using (FrmSymbol fs = new FrmSymbol(_imagesProcessorStorage))
                 fs.ShowDialog();
         });
 
@@ -669,9 +669,7 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            _recognizeProcessorStorage.SaveToFile(_btmFront, Path.Combine(RecognizeImagesPath, $@"{txtWord.Text}.{ExtImg}"));
-            //сначала загрузить все карты для распознавания, затем разрешать их сохранять
-
+            _recognizeProcessorStorage.SaveToFile(new Processor(_btmFront, txtWord.Text));
         });
 
         /// <summary>
@@ -910,7 +908,7 @@ namespace DynamicMosaicExample
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
-            ConcurrentProcessorStorage.SaveToFile(SelectedReflex.reflex.Processors.ElementAt(SelectedReflex.reflexMapIndex)));
+            _imagesProcessorStorage.SaveToFile(SelectedReflex.reflex.Processors.ElementAt(SelectedReflex.reflexMapIndex)));
 
         /// <summary>
         ///     Сохраняет все карты <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.
@@ -920,7 +918,7 @@ namespace DynamicMosaicExample
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             foreach (Processor p in SelectedReflex.reflex.Processors)
-                ConcurrentProcessorStorage.SaveToFile(p);
+                _imagesProcessorStorage.SaveToFile(p);
         });
 
         /// <summary>

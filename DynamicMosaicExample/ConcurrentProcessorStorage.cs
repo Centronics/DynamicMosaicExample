@@ -5,7 +5,6 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using DynamicMosaic;
 using DynamicParser;
 
 namespace DynamicMosaicExample
@@ -68,30 +67,39 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
-        internal IEnumerable<(Processor processor, string path, string alias)> Elements => GetElementWithValue();
-
-        IEnumerable<(Processor processor, string path, string alias)> GetElementWithValue(Processor additionProc = null)
+        internal IEnumerable<(Processor processor, string path, string alias)> Elements
         {
-            if (!IsOperationAllowed)//TODO убрать
-                throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
-
-            lock (_syncObject)
+            get
             {
-                if (!IsOperationAllowed)
-                    throw new InvalidOperationException($@"{nameof(Elements)}: Операция недопустима.");
-
-                HashSet<string> tagSet = new HashSet<string>();
-
-                foreach (ProcPath p in _dictionaryByPath.Values)
+                lock (_syncObject)
                 {
-                    (ulong? number, string strPart) = ImageRect.NameParser(GetProcessorTag(p.CurrentPath));
-                    (Processor, string, string) result = AddTagToSet(tagSet, p, strPart, number);
-                    if (additionProc == null)
-                        yield return result;
-                }
+                    HashSet<string> tagSet = new HashSet<string>();
 
-                if (additionProc != null)
-                    yield return AddTagToSet(tagSet, new ProcPath(additionProc, GetImagePath(ImagesPath, additionProc.Tag)), additionProc.Tag, null);
+                    foreach (ProcPath p in _dictionaryByPath.Values)
+                    {
+                        (ulong? number, string strPart) = ImageRect.NameParser(GetProcessorTag(p.CurrentPath));
+                        yield return AddTagToSet(tagSet, p, strPart, number);
+                    }
+                }
+            }
+        }
+
+        HashSet<string> Names
+        {
+            get
+            {
+                lock (_syncObject)
+                {
+                    HashSet<string> tagSet = new HashSet<string>();
+
+                    foreach (ProcPath p in _dictionaryByPath.Values)
+                    {
+                        (ulong? number, string strPart) = ImageRect.NameParser(GetProcessorTag(p.CurrentPath));
+                        AddTagToSet(tagSet, p, strPart, number);
+                    }
+
+                    return tagSet;
+                }
             }
         }
 
@@ -249,7 +257,7 @@ namespace DynamicMosaicExample
         {
             string fPath = fullPath.ToLower();
             if (_dictionaryByPath.ContainsKey(fPath))
-                RemoveProcessor(fullPath);//TODO вместо удаления надо сделать добавление нового символа
+                RemoveProcessor(fullPath);
 
             _dictionaryByPath.Add(fPath, new ProcPath(processor, fullPath));
             if (_dictionary.TryGetValue(hashCode, out ProcHash ph))
@@ -398,10 +406,8 @@ namespace DynamicMosaicExample
 
             lock (_syncObject)
             {
-                (Processor processor, string, string alias)[] tArr = GetElementWithValue(processor).ToArray();
-                if (tArr.Length != 1)
-                    throw new Exception($@"{nameof(SaveToFile)}: Массив данных неподходящей длины ({tArr.Length}).");
-                SaveToFile(ImageRect.GetBitmap(tArr[0].processor), tArr[0].alias);
+                (Processor proc, string _, string alias) = AddTagToSet(Names, new ProcPath(processor, GetImagePath(ImagesPath, processor.Tag)), processor.Tag, null);
+                SaveToFile(ImageRect.GetBitmap(proc), alias);
             }
         }
 
@@ -410,7 +416,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="btm">Изображение, которое требуется сохранить.</param>
         /// <param name="path">Абсолютный путь, по которому требуется сохранить изображение. Если путь относительный, то используется <see cref="FrmExample.SearchImagesPath"/>.</param>
-        internal void SaveToFile(Bitmap btm, string path)
+        void SaveToFile(Bitmap btm, string path)
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm),
