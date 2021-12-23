@@ -213,7 +213,7 @@
             this.grpResults.Size = new System.Drawing.Size(265, 90);
             this.grpResults.TabIndex = 6;
             this.grpResults.TabStop = false;
-            this.grpResults.Text = "Созданные объекты Reflex";
+            this.grpResults.Text = "Версии DynamicReflex";
             // 
             // btnReflexRemove
             // 
@@ -479,12 +479,14 @@
             // 
             // fswImageChanged
             // 
+            this.fswImageChanged.EnableRaisingEvents = true;
             this.fswImageChanged.IncludeSubdirectories = true;
             this.fswImageChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswImageChanged.SynchronizingObject = this;
             // 
             // fswRecognizeChanged
             // 
+            this.fswRecognizeChanged.EnableRaisingEvents = true;
             this.fswRecognizeChanged.IncludeSubdirectories = true;
             this.fswRecognizeChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswRecognizeChanged.SynchronizingObject = this;
