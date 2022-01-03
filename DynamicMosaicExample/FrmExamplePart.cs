@@ -202,7 +202,7 @@ namespace DynamicMosaicExample
         ///     Коллекция задействованных элементов <see cref="DynamicReflex" />.
         ///     Содержит <see cref="DynamicReflex" />, запрос, статус выполнения запроса, номер просматриваемой карты на данный момент.
         /// </summary>
-        readonly List<(DynamicReflex reflex, string query, bool? status, int reflexMapIndex)> _recognizerReflexes = new List<(DynamicReflex reflex, string query, bool? status, int reflexMapIndex)> { (null, string.Empty, null, -1) };
+        readonly List<(Processor[] processors, string query, bool? status, int reflexMapIndex, string systemName)> _recognizeResults = new List<(Processor[] processors, string query, bool? status, int reflexMapIndex, string systemName)> { (null, string.Empty, null, -1, string.Empty) };
 
         /// <summary>
         ///     Отражает статус работы потока распознавания изображения.
@@ -247,10 +247,10 @@ namespace DynamicMosaicExample
 
         bool NeedStopBackground => _stopBackgroundThreadEventFlag.WaitOne(0);
 
-        (DynamicReflex reflex, string query, bool? status, int reflexMapIndex) SelectedReflex
+        (Processor[] processors, string query, bool? status, int reflexMapIndex, string systemName) SelectedResult
         {
-            get => _recognizerReflexes[lstResults.SelectedIndex];
-            set => _recognizerReflexes[lstResults.SelectedIndex] = value;
+            get => _recognizeResults[lstResults.SelectedIndex];
+            set => _recognizeResults[lstResults.SelectedIndex] = value;
         }
 
         /// <summary>

@@ -418,71 +418,8 @@ namespace DynamicMosaicExample
                 }
             }
 
-            void CreateReflex()
-            {
-                Processor[] processors = _imagesProcessorStorage.Elements.Select(t => t.processor).ToArray();
-
-                if (!processors.Any())
-                {
-                    ErrorMessageInOtherThread(
-                        @"Образы для распознавания отсутствуют. Создайте хотя бы один.");
-                    return;
-                }
-
-                _currentState.CriticalChange(sender, e);
-                _currentState.WordChange(sender, e);
-                _stwRecognize.Restart();
-
-                DynamicReflex recognizer;
-
-                try
-                {
-                    recognizer = new DynamicReflex(new ProcessorContainer(processors));
-                }
-                finally
-                {
-                    _stwRecognize.Stop();
-                }
-
-                InvokeAction(() =>
-                {
-                    _recognizerReflexes.Insert(1, (recognizer, string.Empty, false, 0));
-                    lstResults.Items.Insert(1, $@"({recognizer.Processors.Count()}) {DateTime.Now:HH:mm:ss}");
-                    lstResults.SelectedIndex = 1;
-                    grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count - 1})";
-                });
-            }
-
-            void UseSelectedReflex(DynamicReflex recognizer, (Processor, string)[] query)
-            {
-                _currentState.CriticalChange(sender, e);
-                _currentState.WordChange(sender, e);
-                _stwRecognize.Restart();
-
-                bool result = false;
-
-                try
-                {
-                    result = recognizer.FindRelation(query);
-
-                    InvokeAction(() =>
-                    {
-                        SelectedReflex = (recognizer, string.Empty, result, 0);
-                        lstResults.Items[lstResults.SelectedIndex] = $@"({recognizer.Processors.Count()}) {DateTime.Now:HH:mm:ss}";//TODO сделать возможность просмотра истории выполненных запросов (в случае, если содержимое папки с образами не успело измениться), просмотр общего результата по обработке запросов из созданного Reflex (сделать автосохранение пользовательских запросов при старте распознавания)
-                    });//сохранять систему в отдельную папку с образами
-                }//запрос из одного ! распознается, а сохранённые образы в запросы?
-                finally
-                {
-                    _stwRecognize.Stop();
-                    pbSuccess.Image = result ? Resources.OK_128 : Resources.Error_128;
-                    _currentState.State = result ? RecognizeState.SUCCESS : RecognizeState.ERROR;
-                }
-            }
-
             if (StopRecognize())
                 return;
-
-            DynamicReflex recognizerReflex = SelectedReflex.reflex;
 
             _errorMessageIsShowed = false;
             EnableButtons = false;
@@ -517,10 +454,45 @@ namespace DynamicMosaicExample
                         return;
                     }
 
-                    if (recognizerReflex == null)
-                        CreateReflex();
-                    else
-                        UseSelectedReflex(recognizerReflex, query);
+                    Processor[] processors = _imagesProcessorStorage.Elements.Select(t => t.processor).ToArray();
+
+                    if (!processors.Any())
+                    {
+                        ErrorMessageInOtherThread(@"Образы для распознавания отсутствуют. Создайте хотя бы один.");
+                        return;
+                    }
+
+                    DynamicReflex recognizer = new DynamicReflex(new ProcessorContainer(processors));
+
+                    _currentState.CriticalChange(sender, e);
+                    _currentState.WordChange(sender, e);
+                    _stwRecognize.Restart();
+
+                    bool result = false;
+
+                    try
+                    {
+                        result = recognizer.FindRelation(query);
+                    }//запрос из одного ! распознается, а сохранённые образы в запросы?
+                    finally
+                    {
+                        _stwRecognize.Stop();
+                        pbSuccess.Image = result ? Resources.OK_128 : Resources.Error_128;
+                        _currentState.State = result ? RecognizeState.SUCCESS : RecognizeState.ERROR;
+                    }
+
+                    Processor[] ps = recognizer.Processors.ToArray();
+
+                    InvokeAction(() =>
+                    {
+                        string systemName = $@"({ps.Length}) {DateTime.Now:HH:mm:ss}";
+                        _recognizeResults.Insert(1, (ps, string.Empty, false, 0, systemName));
+                        lstResults.Items.Insert(1, systemName);
+                        grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count})";
+
+                        //SelectedResult = (recognizer.Processors.ToArray(), string.Empty, result, 0);
+                        //lstResults.Items[lstResults.SelectedIndex] = $@"({recognizer.Processors.Count()}) {DateTime.Now:HH:mm:ss}"; //TODO сделать возможность просмотра истории выполненных запросов (в случае, если содержимое папки с образами не успело измениться), просмотр общего результата по обработке запросов из созданного Reflex (сделать автосохранение пользовательских запросов при старте распознавания)
+                    });//сохранять систему в отдельную папку с образами
                 }
                 catch (ThreadAbortException)
                 {
@@ -646,7 +618,7 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            _recognizeProcessorStorage.SaveToFile(new Processor(_btmFront, txtWord.Text));
+            _recognizeProcessorStorage.SaveToFile(new Processor(_btmFront, txtWord.Text), string.Empty);
         });
 
         /// <summary>
@@ -784,8 +756,8 @@ namespace DynamicMosaicExample
 
             if (lstResults.SelectedIndex > 0)
             {
-                (DynamicReflex reflex, string _, bool? _, int reflexMapIndex) = SelectedReflex;
-                Processor p = reflex.Processors.ElementAt(reflexMapIndex);
+                (Processor[] processors, string _, bool? _, int reflexMapIndex, string _) = SelectedResult;
+                Processor p = processors[reflexMapIndex];
                 pbConSymbol.Image = ImageRect.GetBitmap(p);
                 UpdateConSymbolName(p.Tag);
                 txtConSymbol.Enabled = true;
@@ -819,7 +791,7 @@ namespace DynamicMosaicExample
                 return;
             if (lstResults.SelectedIndex == 1)
                 _currentState.CriticalChange(sender, e);
-            _recognizerReflexes.RemoveAt(lstResults.SelectedIndex);
+            _recognizeResults.RemoveAt(lstResults.SelectedIndex);
             lstResults.Items.RemoveAt(lstResults.SelectedIndex);
             lstResults.SelectedIndex = 0;
             int count = lstResults.Items.Count - 1;
@@ -843,13 +815,13 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            (DynamicReflex reflex, string, bool?, int reflexMapIndex) q = SelectedReflex;
-            if (q.reflexMapIndex >= q.reflex.Processors.Count() - 1)
+            (Processor[] processors, string, bool?, int reflexMapIndex, string) q = SelectedResult;
+            if (q.reflexMapIndex >= q.processors.Length - 1)
                 q.reflexMapIndex = 0;
             else
                 q.reflexMapIndex++;
-            SelectedReflex = q;
-            Processor p = q.reflex.Processors.ElementAt(q.reflexMapIndex);
+            SelectedResult = q;
+            Processor p = q.processors[q.reflexMapIndex];
             pbConSymbol.Image = ImageRect.GetBitmap(p);
             UpdateConSymbolName(p.Tag);
         });
@@ -861,13 +833,13 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConPrevious_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            (DynamicReflex reflex, string, bool?, int reflexMapIndex) q = SelectedReflex;
+            (Processor[] processors, string, bool?, int reflexMapIndex, string) q = SelectedResult;
             if (q.reflexMapIndex < 1)
-                q.reflexMapIndex = q.reflex.Processors.Count() - 1;
+                q.reflexMapIndex = q.processors.Length - 1;
             else
                 q.reflexMapIndex--;
-            SelectedReflex = q;
-            Processor p = q.reflex.Processors.ElementAt(q.reflexMapIndex);
+            SelectedResult = q;
+            Processor p = q.processors[q.reflexMapIndex];
             pbConSymbol.Image = ImageRect.GetBitmap(p);
             UpdateConSymbolName(p.Tag);
         });
@@ -877,7 +849,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="tag">Значение свойства <see cref="Processor.Tag" />.</param>
         void UpdateConSymbolName(string tag) => txtConSymbol.Text =
-            $@"№ {SelectedReflex.reflexMapIndex + 1} {tag}";
+            $@"№ {SelectedResult.reflexMapIndex + 1} {tag}";
 
         /// <summary>
         ///     Сохраняет выбранную карту <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.
@@ -885,7 +857,7 @@ namespace DynamicMosaicExample
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
-            _imagesProcessorStorage.SaveToFile(SelectedReflex.reflex.Processors.ElementAt(SelectedReflex.reflexMapIndex)));
+            _imagesProcessorStorage.SaveToFile(SelectedResult.processors[SelectedResult.reflexMapIndex], SelectedResult.systemName));
 
         /// <summary>
         ///     Сохраняет все карты <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.
@@ -894,8 +866,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            foreach (Processor p in SelectedReflex.reflex.Processors)
-                _imagesProcessorStorage.SaveToFile(p);
+            foreach (Processor p in SelectedResult.processors)
+                _imagesProcessorStorage.SaveToFile(p, SelectedResult.systemName);
         });
 
         /// <summary>
@@ -938,7 +910,7 @@ namespace DynamicMosaicExample
                 _fileThread.Start();
                 _workWaitThread.Start();
 
-                lstResults.Items.AddRange(new object[] {
+                /*lstResults.Items.AddRange(new object[] {
 
                     $@"(1) {DateTime.Now:HH:mm:ss}",
                     $@"(2) {DateTime.Now:HH:mm:ss}",
@@ -950,7 +922,7 @@ namespace DynamicMosaicExample
                     "Item 3, column 2",
                     $@"(6) {DateTime.Now:HH:mm:ss}",
                     $@"(7) {DateTime.Now:HH:mm:ss}",
-                    "Item 4, column 3"});
+                    "Item 4, column 3"});*/
 
             }
             catch (Exception ex)

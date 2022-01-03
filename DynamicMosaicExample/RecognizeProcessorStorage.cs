@@ -4,7 +4,6 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-using DynamicMosaic;
 using DynamicParser;
 
 namespace DynamicMosaicExample
@@ -29,9 +28,29 @@ namespace DynamicMosaicExample
 
         protected override Processor GetAddingProcessor(string fullPath) => new Processor(LoadRecognizeBitmap(fullPath), GetProcessorTag(fullPath));
 
-        protected override string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(Path.GetFileNameWithoutExtension(fullPath))}{ImageRect.TagSeparatorChar}";
+        protected override string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(fullPath)}";
 
         protected override string ImagesPath => FrmExample.RecognizeImagesPath;
+
+        /// <summary>
+        ///     Сохраняет указанную карту <see cref="Processor" /> на жёсткий диск в формате BMP.
+        ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
+        /// </summary>
+        /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
+        internal override void SaveToFile(Processor processor, string folderName)
+        {
+            if (!string.IsNullOrEmpty(folderName))
+                throw new InvalidOperationException($@"{nameof(SaveToFile)}: В классе {nameof(RecognizeProcessorStorage)} аргумент {nameof(folderName)} не может быть задан.");
+
+            if (processor == null)
+                throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
+
+            lock (_syncObject)
+            {
+                (Processor proc, string _, string alias) = AddTagToSet(NamesToSave, new ProcPath(processor, GetImagePath(ImagesPath, processor.Tag + ImageRect.TagSeparatorChar)), processor.Tag, null, true);
+                SaveToFile(ImageRect.GetBitmap(proc), alias);
+            }
+        }
 
         static string GetQueryFromPath(string fullPath)
         {

@@ -123,7 +123,7 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            _imagesProcessorStorage.SaveToFile(new Processor(_btmFront, txtSymbol.Text[0].ToString()));
+            _imagesProcessorStorage.SaveToFile(new Processor(_btmFront, txtSymbol.Text[0].ToString()), string.Empty);
             DialogResult = DialogResult.OK;
         });
 

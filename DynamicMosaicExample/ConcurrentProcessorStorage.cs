@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using DynamicMosaic;
 using DynamicParser;
 
 namespace DynamicMosaicExample
@@ -19,7 +20,13 @@ namespace DynamicMosaicExample
 
         protected abstract string GetProcessorTag(string fullPath);
 
-        static (Processor processor, string path, string alias) AddTagToSet(ISet<string> tagSet, ProcPath p, string tag, ulong? number)
+        protected abstract string ImagesPath { get; }
+
+        protected static string GetImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(GetImagePath)}: Исходный путь образа не указан."), name)}.{FrmExample.ExtImg}";
+
+        internal abstract void SaveToFile(Processor processor, string folderName);
+
+        protected static (Processor processor, string path, string alias) AddTagToSet(ISet<string> tagSet, ProcPath p, string tag, ulong? number, bool toSave)
         {
             unchecked
             {
@@ -28,19 +35,15 @@ namespace DynamicMosaicExample
 
                 do
                 {
-                    string t = number == null && k == 0 ? tag : $@"{tag}{k - 1}";
+                    string t = number == null && k == 0 ? toSave ? tag + ImageRect.TagSeparatorChar : tag : toSave ? $@"{tag}{ImageRect.TagSeparatorChar}{k - 1}" : $@"{tag}{k - 1}";
                     if (tagSet.Add(t))
-                        return (p.CurrentProcessor, p.CurrentPath, GetImagePath(sourcePath, t));
+                        return (toSave ? p.CurrentProcessor : ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, t), p.CurrentPath, GetImagePath(sourcePath, t));
                 } while (++k != mk);
 
                 string n = number == null ? "<пусто>" : number.ToString();
                 throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.CurrentProcessor.Tag} по пути {p.CurrentPath}, изначальное имя карты {tag}, номер {n}.");
             }
         }
-
-        protected abstract string ImagesPath { get; }
-
-        static string GetImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(GetImagePath)}: Исходный путь образа не указан."), name)}.{FrmExample.ExtImg}";
 
         /// <summary>
         ///     Коллекция карт, идентифицируемых по хешу.
@@ -56,7 +59,7 @@ namespace DynamicMosaicExample
         ///     Объект для синхронизации доступа к экземпляру класса <see cref="ConcurrentProcessorStorage" />, с использованием
         ///     конструкции <see langword="lock" />.
         /// </summary>
-        readonly object _syncObject = new object();
+        protected readonly object _syncObject = new object();
 
         /// <summary>
         ///     Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage" />.
@@ -71,14 +74,14 @@ namespace DynamicMosaicExample
 
                     foreach (ProcPath p in _dictionaryByPath.Values)
                     {
-                        (ulong? number, string strPart) = ImageRect.NameParser(GetProcessorTag(p.CurrentPath));
-                        yield return AddTagToSet(tagSet, p, strPart, number);
+                        (ulong? number, string strPart) = ImageRect.NameParser(p.CurrentProcessor.Tag);
+                        yield return AddTagToSet(tagSet, p, strPart, number, false);
                     }
                 }
             }
         }
 
-        HashSet<string> Names
+        protected HashSet<string> NamesToSave
         {
             get
             {
@@ -88,8 +91,8 @@ namespace DynamicMosaicExample
 
                     foreach (ProcPath p in _dictionaryByPath.Values)
                     {
-                        (ulong? number, string strPart) = ImageRect.NameParser(GetProcessorTag(p.CurrentPath));
-                        AddTagToSet(tagSet, p, strPart, number);
+                        (ulong? number, string strPart) = ImageRect.NameParser(p.CurrentProcessor.Tag);
+                        AddTagToSet(tagSet, p, strPart, number, true);
                     }
 
                     return tagSet;
@@ -328,28 +331,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Сохраняет указанную карту <see cref="Processor" /> на жёсткий диск в формате BMP.
-        ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
-        /// </summary>
-        /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
-        internal void SaveToFile(Processor processor)
-        {
-            if (processor == null)
-                throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
-
-            lock (_syncObject)
-            {
-                (Processor proc, string _, string alias) = AddTagToSet(Names, new ProcPath(processor, GetImagePath(ImagesPath, processor.Tag)), processor.Tag, null);
-                SaveToFile(ImageRect.GetBitmap(proc), alias);
-            }
-        }
-
-        /// <summary>
         ///     Сохраняет указанное изображение на жёсткий диск.
         /// </summary>
         /// <param name="btm">Изображение, которое требуется сохранить.</param>
         /// <param name="path">Абсолютный путь, по которому требуется сохранить изображение. Если путь относительный, то используется <see cref="FrmExample.SearchImagesPath"/>.</param>
-        void SaveToFile(Bitmap btm, string path)
+        protected void SaveToFile(Bitmap btm, string path)
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm),
