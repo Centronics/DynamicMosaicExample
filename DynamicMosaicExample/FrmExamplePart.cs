@@ -125,11 +125,6 @@ namespace DynamicMosaicExample
         readonly ConcurrentQueue<FileTask> _concurrentFileTasks = new ConcurrentQueue<FileTask>();
 
         /// <summary>
-        ///     Строка "Создать DynamicReflex".
-        /// </summary>
-        readonly string _createReflexString = @"<Создать Reflex>";
-
-        /// <summary>
         ///     Объект, наблюдающий за состоянием основной формы приложения.
         /// </summary>
         readonly CurrentState _currentState;
@@ -202,7 +197,7 @@ namespace DynamicMosaicExample
         ///     Коллекция задействованных элементов <see cref="DynamicReflex" />.
         ///     Содержит <see cref="DynamicReflex" />, запрос, статус выполнения запроса, номер просматриваемой карты на данный момент.
         /// </summary>
-        readonly List<(Processor[] processors, string query, bool? status, int reflexMapIndex, string systemName)> _recognizeResults = new List<(Processor[] processors, string query, bool? status, int reflexMapIndex, string systemName)> { (null, string.Empty, null, -1, string.Empty) };
+        readonly List<(Processor[] processors, int reflexMapIndex, string systemName)> _recognizeResults = new List<(Processor[] processors, int reflexMapIndex, string systemName)>();
 
         /// <summary>
         ///     Отражает статус работы потока распознавания изображения.
@@ -219,6 +214,14 @@ namespace DynamicMosaicExample
         /// </summary>
         Bitmap _btmFront;
 
+        Bitmap _savedCopy;
+
+        string _savedQuery;
+
+        string _savedPath = string.Empty;
+
+        int _prevSelectedIndex = -1;
+
         /// <summary>
         ///     Отражает статус всех кнопок на данный момент.
         /// </summary>
@@ -228,6 +231,8 @@ namespace DynamicMosaicExample
         ///     Индекс <see cref="ImageRect" />, рассматриваемый в данный момент.
         /// </summary>
         int _currentImage;
+
+        int _currentRecognizeProcIndex;
 
         /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
@@ -247,7 +252,7 @@ namespace DynamicMosaicExample
 
         bool NeedStopBackground => _stopBackgroundThreadEventFlag.WaitOne(0);
 
-        (Processor[] processors, string query, bool? status, int reflexMapIndex, string systemName) SelectedResult
+        (Processor[] processors, int reflexMapIndex, string systemName) SelectedResult
         {
             get => _recognizeResults[lstResults.SelectedIndex];
             set => _recognizeResults[lstResults.SelectedIndex] = value;
@@ -277,11 +282,10 @@ namespace DynamicMosaicExample
                 Directory.CreateDirectory(RecognizeImagesPath);
                 _whitePen = new Pen(_defaultColor, 2.0f);
                 ImageActualize();
-                _strRecog = btnRecognizeImage.Text;
+                _prevSelectedIndex = lstResults.SelectedIndex;
                 _unknownSymbolName = txtSymbolPath.Text;
                 _unknownSystemName = txtConSymbol.Text;
-                lstResults.Items.Add(_createReflexString);
-                lstResults.SelectedIndex = 0;
+                _strRecog = btnRecognizeImage.Text;
                 _strGrpResults = grpResults.Text;
                 ImageWidth = pbBrowse.Width;
                 ImageHeight = pbBrowse.Height;
@@ -291,7 +295,12 @@ namespace DynamicMosaicExample
                 btnClearImage.Click += _currentState.CriticalChange;
                 btnLoadImage.Click += _currentState.CriticalChange;
                 txtWord.TextChanged += _currentState.WordChange;
-                fswImageChanged.Path = SearchImagesPath;
+                fswRecognizeChanged.Path = SearchImagesPath;
+                fswRecognizeChanged.IncludeSubdirectories = true;
+                fswRecognizeChanged.NotifyFilter =
+                    NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName;
+                fswRecognizeChanged.Filter = "*.*";
+                fswImageChanged.Path = RecognizeImagesPath;
                 fswImageChanged.IncludeSubdirectories = true;
                 fswImageChanged.NotifyFilter =
                     NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName;
@@ -463,7 +472,6 @@ namespace DynamicMosaicExample
                     btnImageDelete.Enabled = value;
                     txtImagesCount.Enabled = value;
                     txtWord.ReadOnly = !value;
-                    btnSaveImage.Enabled = value;
                     btnLoadImage.Enabled = value;
                     btnSaveImage.Enabled = btnClearImage.Enabled = value && IsPainting;
 
@@ -520,11 +528,9 @@ namespace DynamicMosaicExample
             }
             catch
             {
-                return new string[0];
+                return Array.Empty<string>();
             }
         }
-
-        IEnumerable<Processor> RecognizeImages => from path in GetFiles(RecognizeImagesPath) let btm = _recognizeProcessorStorage.LoadRecognizeBitmap(path) select new Processor(btm, Path.GetFileNameWithoutExtension(path));
 
         /// <summary>
         ///     Останавливает процесс распознавания.
@@ -933,6 +939,7 @@ namespace DynamicMosaicExample
             /// <param name="oldFilePath">Исходный путь к файлу или папке, в которой произошли изменения.</param>
             /// <param name="renamedTo">Указывает, был ли файл переименован в требуемуе для программы расширение.</param>
             /// <param name="renamedFrom">Указывает, был ли файл переименован из требуемуемого для программы расширения.</param>
+            /// <param name="source">Указывает тип источника данных (либо распознаваемые изображения, либо искомые).</param>
             public FileTask(WatcherChangeTypes changes, string filePath, string oldFilePath, bool renamedTo,
                 bool renamedFrom, SourceChanged source)
             {

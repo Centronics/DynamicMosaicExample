@@ -229,5 +229,15 @@ namespace DynamicMosaicExample {
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
+        
+        /// <summary>
+        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
+        /// </summary>
+        public static System.Drawing.Bitmap UpToQueries {
+            get {
+                object obj = ResourceManager.GetObject("UpToQueries", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
     }
 }

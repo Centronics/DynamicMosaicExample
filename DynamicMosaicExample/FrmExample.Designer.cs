@@ -33,6 +33,7 @@
             this.lstResults = new System.Windows.Forms.ListBox();
             this.txtWord = new System.Windows.Forms.TextBox();
             this.grpImages = new System.Windows.Forms.GroupBox();
+            this.btnImageUpToQueries = new System.Windows.Forms.Button();
             this.txtSymbolPath = new System.Windows.Forms.TextBox();
             this.txtImagesCount = new System.Windows.Forms.TextBox();
             this.btnImageDelete = new System.Windows.Forms.Button();
@@ -48,7 +49,7 @@
             this.grpSourceImage = new System.Windows.Forms.GroupBox();
             this.btnPrevRecogImage = new System.Windows.Forms.Button();
             this.btnNextRecogImage = new System.Windows.Forms.Button();
-            this.button1 = new System.Windows.Forms.Button();
+            this.btnDeleteImage = new System.Windows.Forms.Button();
             this.btnWide = new System.Windows.Forms.Button();
             this.btnNarrow = new System.Windows.Forms.Button();
             this.btnLoadImage = new System.Windows.Forms.Button();
@@ -119,6 +120,7 @@
             // 
             // grpImages
             // 
+            this.grpImages.Controls.Add(this.btnImageUpToQueries);
             this.grpImages.Controls.Add(this.txtSymbolPath);
             this.grpImages.Controls.Add(this.txtImagesCount);
             this.grpImages.Controls.Add(this.btnImageDelete);
@@ -132,6 +134,16 @@
             this.grpImages.TabIndex = 12;
             this.grpImages.TabStop = false;
             this.grpImages.Text = "Образы искомых букв";
+            // 
+            // btnImageUpToQueries
+            // 
+            this.btnImageUpToQueries.Image = global::DynamicMosaicExample.Resources.UpToQueries;
+            this.btnImageUpToQueries.Location = new System.Drawing.Point(138, 40);
+            this.btnImageUpToQueries.Name = "btnImageUpToQueries";
+            this.btnImageUpToQueries.Size = new System.Drawing.Size(40, 40);
+            this.btnImageUpToQueries.TabIndex = 20;
+            this.btnImageUpToQueries.UseVisualStyleBackColor = true;
+            this.btnImageUpToQueries.Click += new System.EventHandler(this.BtnImageUpToQueries_Click);
             // 
             // txtSymbolPath
             // 
@@ -176,7 +188,7 @@
             // btnImageCreate
             // 
             this.btnImageCreate.Image = global::DynamicMosaicExample.Resources.CreateImage;
-            this.btnImageCreate.Location = new System.Drawing.Point(159, 40);
+            this.btnImageCreate.Location = new System.Drawing.Point(182, 40);
             this.btnImageCreate.Name = "btnImageCreate";
             this.btnImageCreate.Size = new System.Drawing.Size(40, 40);
             this.btnImageCreate.TabIndex = 14;
@@ -187,7 +199,7 @@
             // 
             this.btnImageNext.Enabled = false;
             this.btnImageNext.Image = global::DynamicMosaicExample.Resources.Next;
-            this.btnImageNext.Location = new System.Drawing.Point(101, 40);
+            this.btnImageNext.Location = new System.Drawing.Point(94, 40);
             this.btnImageNext.Name = "btnImageNext";
             this.btnImageNext.Size = new System.Drawing.Size(40, 40);
             this.btnImageNext.TabIndex = 16;
@@ -213,15 +225,15 @@
             this.grpResults.Size = new System.Drawing.Size(265, 90);
             this.grpResults.TabIndex = 6;
             this.grpResults.TabStop = false;
-            this.grpResults.Text = "Версии DynamicReflex";
+            this.grpResults.Text = "История состояний объекта";
             // 
             // btnReflexRemove
             // 
             this.btnReflexRemove.Enabled = false;
             this.btnReflexRemove.Image = global::DynamicMosaicExample.Resources.RemoveSelected;
-            this.btnReflexRemove.Location = new System.Drawing.Point(225, 31);
+            this.btnReflexRemove.Location = new System.Drawing.Point(225, 15);
             this.btnReflexRemove.Name = "btnReflexRemove";
-            this.btnReflexRemove.Size = new System.Drawing.Size(37, 37);
+            this.btnReflexRemove.Size = new System.Drawing.Size(37, 69);
             this.btnReflexRemove.TabIndex = 14;
             this.btnReflexRemove.UseVisualStyleBackColor = true;
             this.btnReflexRemove.Click += new System.EventHandler(this.BtnReflexRemove_Click);
@@ -231,9 +243,9 @@
             this.label2.AutoSize = true;
             this.label2.Location = new System.Drawing.Point(6, 16);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(206, 13);
+            this.label2.Size = new System.Drawing.Size(158, 13);
             this.label2.TabIndex = 14;
-            this.label2.Text = "Затраченное время на распознавание:";
+            this.label2.Text = "Затраченное время на поиск:";
             // 
             // lblElapsedTime
             // 
@@ -257,7 +269,7 @@
             // 
             this.grpSourceImage.Controls.Add(this.btnPrevRecogImage);
             this.grpSourceImage.Controls.Add(this.btnNextRecogImage);
-            this.grpSourceImage.Controls.Add(this.button1);
+            this.grpSourceImage.Controls.Add(this.btnDeleteImage);
             this.grpSourceImage.Controls.Add(this.btnWide);
             this.grpSourceImage.Controls.Add(this.btnNarrow);
             this.grpSourceImage.Controls.Add(this.btnLoadImage);
@@ -282,6 +294,7 @@
             this.btnPrevRecogImage.Size = new System.Drawing.Size(40, 49);
             this.btnPrevRecogImage.TabIndex = 19;
             this.btnPrevRecogImage.UseVisualStyleBackColor = true;
+            this.btnPrevRecogImage.Click += new System.EventHandler(this.BtnPrevRecogImage_Click);
             // 
             // btnNextRecogImage
             // 
@@ -291,15 +304,17 @@
             this.btnNextRecogImage.Size = new System.Drawing.Size(40, 49);
             this.btnNextRecogImage.TabIndex = 18;
             this.btnNextRecogImage.UseVisualStyleBackColor = true;
+            this.btnNextRecogImage.Click += new System.EventHandler(this.BtnNextRecogImage_Click);
             // 
-            // button1
+            // btnDeleteImage
             // 
-            this.button1.Image = global::DynamicMosaicExample.Resources.DeleteFile;
-            this.button1.Location = new System.Drawing.Point(52, 113);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(50, 23);
-            this.button1.TabIndex = 17;
-            this.button1.UseVisualStyleBackColor = true;
+            this.btnDeleteImage.Image = global::DynamicMosaicExample.Resources.DeleteFile;
+            this.btnDeleteImage.Location = new System.Drawing.Point(52, 113);
+            this.btnDeleteImage.Name = "btnDeleteImage";
+            this.btnDeleteImage.Size = new System.Drawing.Size(50, 23);
+            this.btnDeleteImage.TabIndex = 17;
+            this.btnDeleteImage.UseVisualStyleBackColor = true;
+            this.btnDeleteImage.Click += new System.EventHandler(this.BtnDeleteImage_Click);
             // 
             // btnWide
             // 
@@ -487,7 +502,6 @@
             // fswRecognizeChanged
             // 
             this.fswRecognizeChanged.EnableRaisingEvents = true;
-            this.fswRecognizeChanged.IncludeSubdirectories = true;
             this.fswRecognizeChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswRecognizeChanged.SynchronizingObject = this;
             // 
@@ -507,7 +521,7 @@
             this.MinimizeBox = false;
             this.Name = "FrmExample";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Пример применения библиотеки DynamicMosaic";
+            this.Text = "Демонстрационный стенд";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmExample_FormClosing);
             this.Load += new System.EventHandler(this.FrmExample_Load);
             this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.FrmExample_KeyUp);
@@ -566,10 +580,11 @@
         private System.Windows.Forms.Button btnConSaveImage;
         private System.Windows.Forms.Button btnConSaveAllImages;
         private System.IO.FileSystemWatcher fswImageChanged;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button btnDeleteImage;
         private System.Windows.Forms.Button btnPrevRecogImage;
         private System.Windows.Forms.Button btnNextRecogImage;
         private System.IO.FileSystemWatcher fswRecognizeChanged;
+        private System.Windows.Forms.Button btnImageUpToQueries;
     }
 }
 

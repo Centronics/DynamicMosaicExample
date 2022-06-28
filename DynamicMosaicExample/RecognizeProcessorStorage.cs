@@ -26,9 +26,9 @@ namespace DynamicMosaicExample
             _widthStep = widthStep;
         }
 
-        protected override Processor GetAddingProcessor(string fullPath) => new Processor(LoadRecognizeBitmap(fullPath), GetProcessorTag(fullPath));
+        public override Processor GetAddingProcessor(string fullPath) => new Processor(LoadRecognizeBitmap(fullPath), GetProcessorTag(fullPath));
 
-        protected override string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(fullPath)}";
+        public override string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(fullPath)}";
 
         protected override string ImagesPath => FrmExample.RecognizeImagesPath;
 
@@ -37,7 +37,7 @@ namespace DynamicMosaicExample
         ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
-        internal override void SaveToFile(Processor processor, string folderName)
+        internal override string SaveToFile(Processor processor, string folderName)
         {
             if (!string.IsNullOrEmpty(folderName))
                 throw new InvalidOperationException($@"{nameof(SaveToFile)}: В классе {nameof(RecognizeProcessorStorage)} аргумент {nameof(folderName)} не может быть задан.");
@@ -47,8 +47,9 @@ namespace DynamicMosaicExample
 
             lock (_syncObject)
             {
-                (Processor proc, string _, string alias) = AddTagToSet(NamesToSave, new ProcPath(processor, GetImagePath(ImagesPath, processor.Tag + ImageRect.TagSeparatorChar)), processor.Tag, null, true);
+                (Processor proc, string _, string alias) = AddTagToSet(NamesToSave, new ProcPath(processor, GetImagePath(ImagesPath, processor.Tag + ImageRect.TagSeparatorChar)), processor.Tag, null);
                 SaveToFile(ImageRect.GetBitmap(proc), alias);
+                return alias;
             }
         }
 
@@ -81,7 +82,7 @@ namespace DynamicMosaicExample
             }
         }
 
-        internal Bitmap LoadRecognizeBitmap(string fullPath)
+        Bitmap LoadRecognizeBitmap(string fullPath)
         {
             Bitmap btm;
 
@@ -116,6 +117,18 @@ namespace DynamicMosaicExample
             btm.SetPixel(0, 0, btm.GetPixel(0, 0)); //Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
 
             return btm;
+        }
+
+        internal override IEnumerable<(Processor processor, string path, string alias)> Elements
+        {
+            get
+            {
+                lock (_syncObject)
+                {
+                    foreach (ProcPath p in _dictionaryByPath.Values)
+                        yield return (p.CurrentProcessor, p.CurrentPath, string.Empty);
+                }
+            }
         }
     }
 }
