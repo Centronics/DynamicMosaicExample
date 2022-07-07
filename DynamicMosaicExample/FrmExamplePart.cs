@@ -216,7 +216,7 @@ namespace DynamicMosaicExample
 
         Bitmap _savedCopy;
 
-        string _savedQuery;
+        string _savedQuery = string.Empty;
 
         string _savedPath = string.Empty;
 
@@ -295,12 +295,12 @@ namespace DynamicMosaicExample
                 btnClearImage.Click += _currentState.CriticalChange;
                 btnLoadImage.Click += _currentState.CriticalChange;
                 txtWord.TextChanged += _currentState.WordChange;
-                fswRecognizeChanged.Path = SearchImagesPath;
+                fswRecognizeChanged.Path = RecognizeImagesPath;
                 fswRecognizeChanged.IncludeSubdirectories = true;
                 fswRecognizeChanged.NotifyFilter =
                     NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName;
                 fswRecognizeChanged.Filter = "*.*";
-                fswImageChanged.Path = RecognizeImagesPath;
+                fswImageChanged.Path = SearchImagesPath;
                 fswImageChanged.IncludeSubdirectories = true;
                 fswImageChanged.NotifyFilter =
                     NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.DirectoryName;
@@ -329,7 +329,7 @@ namespace DynamicMosaicExample
 
                 void NeedCreate(string fullPath, SourceChanged source)
                 {
-                    string[] paths = GetFiles(fullPath);
+                    string[] paths = GetFiles(fullPath); // приходит неправильный путь
                     if (paths == null || paths.Length < 1)
                         return;
                     foreach (string path in paths)
@@ -346,7 +346,7 @@ namespace DynamicMosaicExample
                         {
                             (WatcherChangeTypes type, string fullPath, SourceChanged src) = ((WatcherChangeTypes, string, SourceChanged))state;
 
-                            switch (type)
+                            switch (type) // тестировать папки
                             {
                                 case WatcherChangeTypes.Deleted:
                                     NeedDelete(fullPath, src);
@@ -461,15 +461,20 @@ namespace DynamicMosaicExample
         /// </summary>
         bool EnableButtons
         {
+            get => _buttonsEnabled;
             set
             {
                 if (value == _buttonsEnabled)
                     return;
+
                 InvokeAction(() =>
                 {
                     pbDraw.Enabled = value;
                     btnImageCreate.Enabled = value;
                     btnImageDelete.Enabled = value;
+                    btnImageUpToQueries.Enabled = value;
+                    btnImagePrev.Enabled = value;
+                    btnImageNext.Enabled = value;
                     txtImagesCount.Enabled = value;
                     txtWord.ReadOnly = !value;
                     btnLoadImage.Enabled = value;
@@ -610,7 +615,7 @@ namespace DynamicMosaicExample
                         ThreadPool.GetMaxThreads(out _, out int comPortMax);
                         ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
 
-                        void Execute(ConcurrentProcessorStorage storage, string searchPath) => Parallel.ForEach(Directory.EnumerateFiles(searchPath, $"*.{ExtImg}", SearchOption.AllDirectories), (fullPath, state) => SafetyExecute(() =>
+                        void Execute(ConcurrentProcessorStorage storage, string searchPath) => SafetyExecute(() => Parallel.ForEach(Directory.EnumerateFiles(searchPath, $"*.{ExtImg}", SearchOption.AllDirectories), (fullPath, state) =>
                         {
                             try
                             {
@@ -747,7 +752,7 @@ namespace DynamicMosaicExample
             try
             {
                 logstr = $@"{DateTime.Now:dd.MM.yyyy HH:mm:ss} {logstr}";
-                string path = Path.Combine(SearchImagesPath, "DynamicMosaicExampleLog.log");
+                string path = Path.Combine(Application.StartupPath, "DynamicMosaicExampleLog.log");
                 lock (LogLockerObject)
                     using (FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write,
                         FileShare.ReadWrite | FileShare.Delete))

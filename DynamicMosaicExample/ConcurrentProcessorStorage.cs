@@ -88,6 +88,20 @@ namespace DynamicMosaicExample
             }
         }
 
+        public bool IsWorkingPath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentException($@"{nameof(IsWorkingPath)}: Необходимо указать путь для проверки.", nameof(path));
+
+            string p = ImagesPath;
+
+            char c = p[p.Length - 1];
+            if (c != '\\' && c != '/')
+                p += Path.DirectorySeparatorChar;
+
+            return path.StartsWith(p, StringComparison.OrdinalIgnoreCase);
+        }
+
         /// <summary>
         ///     Получает количество карт, содержащихся в коллекции <see cref="ConcurrentProcessorStorage" />.
         /// </summary>

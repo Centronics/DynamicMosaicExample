@@ -39,7 +39,9 @@ namespace DynamicMosaicExample
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
         internal override string SaveToFile(Processor processor, string folderName)
         {
-            if (!string.IsNullOrEmpty(folderName))
+            bool rewrite = folderName == "rewrite";
+
+            if (!string.IsNullOrEmpty(folderName) && !rewrite)
                 throw new InvalidOperationException($@"{nameof(SaveToFile)}: В классе {nameof(RecognizeProcessorStorage)} аргумент {nameof(folderName)} не может быть задан.");
 
             if (processor == null)
@@ -47,9 +49,10 @@ namespace DynamicMosaicExample
 
             lock (_syncObject)
             {
-                (Processor proc, string _, string alias) = AddTagToSet(NamesToSave, new ProcPath(processor, GetImagePath(ImagesPath, processor.Tag + ImageRect.TagSeparatorChar)), processor.Tag, null);
-                SaveToFile(ImageRect.GetBitmap(proc), alias);
-                return alias;
+                (Processor proc, string path, string alias) = AddTagToSet(NamesToSave, new ProcPath(processor, GetImagePath(ImagesPath, processor.Tag + ImageRect.TagSeparatorChar)), processor.Tag, null);
+                string result = rewrite ? path : alias;
+                SaveToFile(ImageRect.GetBitmap(proc), result);
+                return result;
             }
         }
 
@@ -76,8 +79,9 @@ namespace DynamicMosaicExample
             {
                 unchecked
                 {
-                    for (int k = _minWidth; k <= _maxWidth; k += _widthStep)
+                    for (int k = _minWidth; k < _maxWidth; k += _widthStep)
                         yield return k;
+                    yield return _maxWidth;
                 }
             }
         }
@@ -104,14 +108,16 @@ namespace DynamicMosaicExample
 
             if (WidthSizes.All(s => s != btm.Width))
             {
+                int w = btm.Width;
                 btm.Dispose();
-                throw new Exception($@"Загружаемое изображение не подходит по ширине: {btm.Width}. Она выходит за рамки допустимого. Попробуйте создать изображение и сохранить его заново. Путь: {fullPath}.");
+                throw new Exception($@"Загружаемое изображение не подходит по ширине: {w}. Она выходит за рамки допустимого. Попробуйте создать изображение и сохранить его заново. Путь: {fullPath}.");
             }
 
             if (btm.Height != _height)
             {
+                int h = btm.Height;
                 btm.Dispose();
-                throw new Exception($@"Загружаемое изображение не подходит по высоте: {btm.Height}; необходимо: {_height}. Путь: {fullPath}.");
+                throw new Exception($@"Загружаемое изображение не подходит по высоте: {h}; необходимо: {_height}. Путь: {fullPath}.");
             }
 
             btm.SetPixel(0, 0, btm.GetPixel(0, 0)); //Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.

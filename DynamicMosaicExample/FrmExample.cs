@@ -34,11 +34,9 @@ namespace DynamicMosaicExample
                 pbSuccess.Image = Resources.Unk_128;
             }
 
-            Bitmap btm;
-
             if (string.IsNullOrEmpty(btmPath))
             {
-                btm = new Bitmap(pbDraw.Width, pbDraw.Height);
+                Bitmap btm = new Bitmap(pbDraw.Width, pbDraw.Height);
                 if (_btmFront != null)
                 {
                     CopyBitmapByWidth(_btmFront, btm, _defaultColor);
@@ -54,14 +52,18 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            string tag;
-
             try
             {
                 Processor addingProcessor = _recognizeProcessorStorage.GetAddingProcessor(btmPath);
-                btm = ImageRect.GetBitmap(addingProcessor);
-                tag = addingProcessor.Tag;
-                _recognizeProcessorStorage.SaveToFile(addingProcessor, string.Empty);
+                if (!_recognizeProcessorStorage.IsWorkingPath(btmPath))
+                    _recognizeProcessorStorage.SaveToFile(addingProcessor, string.Empty);
+
+                _btmFront?.Dispose();
+
+                _btmFront = ImageRect.GetBitmap(addingProcessor);
+                _savedCopy = RecognizeBitmapCopy;
+                _savedQuery = addingProcessor.Tag;
+                _savedPath = btmPath;
             }
             catch (Exception ex)
             {
@@ -69,19 +71,12 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            pbDraw.Width = btm.Width;
+            pbDraw.Width = _btmFront.Width;
             btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
             btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
             btnDeleteImage.Enabled = true;
             btnSaveImage.Enabled = false;
-            txtWord.Text = tag;
-
-            _btmFront?.Dispose();
-
-            _btmFront = btm;
-            _savedCopy = btm;
-            _savedQuery = tag;
-            _savedPath = btmPath;
+            txtWord.Text = _savedQuery;
 
             CommonMethod();
         }
@@ -98,8 +93,12 @@ namespace DynamicMosaicExample
 
                 for (int x = 0; x < _btmFront.Width; x++)
                     for (int y = 0; y < _btmFront.Height; y++)
-                        if (_btmFront.GetPixel(x, y) != _savedCopy.GetPixel(x, y))
+                    {
+                        Color i1 = _btmFront.GetPixel(x, y);
+                        Color i2 = _savedCopy.GetPixel(x, y);
+                        if (i1 != i2)
                             return true;
+                    }
 
                 return false;
             }
@@ -321,10 +320,10 @@ namespace DynamicMosaicExample
 
             UpdateImagesCount(imageCount);
 
-            btnImageDelete.Enabled = btnImageCreate.Enabled && imageCount > 0;
-            txtImagesCount.Enabled = imageCount > 0;
+            btnImageUpToQueries.Enabled = btnImageDelete.Enabled = EnableButtons && imageCount > 0;
             btnImageNext.Enabled = imageCount > 1;
             btnImagePrev.Enabled = imageCount > 1;
+            txtImagesCount.Enabled = imageCount > 0;
             txtSymbolPath.Enabled = imageCount > 0;
             pbBrowse.Enabled = imageCount > 0;
 
@@ -621,12 +620,12 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void PbDraw_MouseLeave(object sender, EventArgs e) => DrawStop();
 
-        void DrawStop()
+        void DrawStop() => SafetyExecute(() =>
         {
             _draw = false;
             btnClearImage.Enabled = IsPainting;
             btnSaveImage.Enabled = IsQueryChanged;
-        }
+        });
 
         /// <summary>
         ///     Отвечает за отрисовку рисунка, создаваемого пользователем.
@@ -991,7 +990,11 @@ namespace DynamicMosaicExample
         {
             try
             {
-                BtnClearImage_Click(btnClearImage, EventArgs.Empty);
+                _grFront.Clear(_defaultColor);
+                ImageActualize();
+                _savedCopy = RecognizeBitmapCopy;
+                _savedQuery = txtWord.Text;
+                pbDraw.Refresh();
                 _fileThread.Start();
                 _workWaitThread.Start();
             }
@@ -1042,6 +1045,9 @@ namespace DynamicMosaicExample
 
         void LstResults_DrawItem(object sender, DrawItemEventArgs e) => SafetyExecute(() =>
         {
+            if (e.Index < 0)
+                return;
+
             TextRenderer.DrawText(e.Graphics, lstResults.Items[e.Index].ToString(), e.Font,
                 e.Bounds, e.ForeColor, e.BackColor, TextFormatFlags.HorizontalCenter);
         });
