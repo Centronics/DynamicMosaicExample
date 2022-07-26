@@ -234,6 +234,8 @@ namespace DynamicMosaicExample
 
         int _currentRecognizeProcIndex;
 
+        bool _needInitRecognizeImage = true;
+
         /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
         ///     Значение <see langword="true" /> - вывод разрешён, в противном случае - <see langword="false" />.
@@ -293,7 +295,7 @@ namespace DynamicMosaicExample
                 btnNarrow.Click += _currentState.CriticalChange;
                 btnWide.Click += _currentState.CriticalChange;
                 btnClearImage.Click += _currentState.CriticalChange;
-                btnLoadImage.Click += _currentState.CriticalChange;
+                btnLoadRecognizeImage.Click += _currentState.CriticalChange;
                 txtWord.TextChanged += _currentState.WordChange;
                 fswRecognizeChanged.Path = RecognizeImagesPath;
                 fswRecognizeChanged.IncludeSubdirectories = true;
@@ -322,7 +324,7 @@ namespace DynamicMosaicExample
                             throw new ArgumentException($@"Неизвестное значение {nameof(SourceChanged)}: {source}", nameof(source));
                     }
 
-                    foreach ((Processor _, string path, string _) in storage.Elements)
+                    foreach ((Processor _, string path) in storage.Elements)
                         if (path.StartsWith(fullPath, StringComparison.OrdinalIgnoreCase))
                             _concurrentFileTasks.Enqueue(new FileTask(WatcherChangeTypes.Deleted, path, string.Empty, false, false, source));
                 }
@@ -477,8 +479,11 @@ namespace DynamicMosaicExample
                     btnImageNext.Enabled = value;
                     txtImagesCount.Enabled = value;
                     txtWord.ReadOnly = !value;
-                    btnLoadImage.Enabled = value;
-                    btnSaveImage.Enabled = btnClearImage.Enabled = value && IsPainting;
+                    btnLoadRecognizeImage.Enabled = value;
+                    btnSaveRecognizeImage.Enabled = btnClearImage.Enabled = value && IsPainting;
+                    btnPrevRecogImage.Enabled = value;
+                    btnNextRecogImage.Enabled = value;
+                    btnDeleteRecognizeImage.Enabled = value;
 
                     if (value)
                     {
@@ -548,26 +553,31 @@ namespace DynamicMosaicExample
         /// </returns>
         bool StopRecognize()
         {
+            if (!IsRecognizing && !IsPreparingActivity)
+                return false;
+
             try
             {
-                if (!IsRecognizing)
-                    return false;
                 _recognizerThread.Abort();
+
                 if (!_recognizerThread.Join(15000))
                     MessageBox.Show(this,
                         @"Во время остановки распознавания произошла ошибка: поток, отвечающий за распознавание, завис. Рекомендуется перезапустить программу.",
                         @"Ошибка",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
-                _recognizerThread = null;
-                return true;
             }
             catch (Exception ex)
             {
                 MessageBox.Show(this,
                     $@"Во время остановки распознавания произошла ошибка:{Environment.NewLine}{ex.Message}", @"Ошибка",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return true;
             }
+            finally
+            {
+                _recognizerThread = null;
+            }
+
+            return true;
         }
 
         /// <summary>

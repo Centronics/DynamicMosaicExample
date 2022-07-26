@@ -39,20 +39,13 @@ namespace DynamicMosaicExample
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
         internal override string SaveToFile(Processor processor, string folderName)
         {
-            bool rewrite = folderName == "rewrite";
-
-            if (!string.IsNullOrEmpty(folderName) && !rewrite)
-                throw new InvalidOperationException($@"{nameof(SaveToFile)}: В классе {nameof(RecognizeProcessorStorage)} аргумент {nameof(folderName)} не может быть задан.");
-
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
-
             lock (_syncObject)
             {
-                (Processor proc, string path, string alias) = AddTagToSet(NamesToSave, new ProcPath(processor, GetImagePath(ImagesPath, processor.Tag + ImageRect.TagSeparatorChar)), processor.Tag, null);
-                string result = rewrite ? path : alias;
-                SaveToFile(ImageRect.GetBitmap(proc), result);
-                return result;
+                (Processor p, string path) = AddTagToSet(NamesToSave, processor, processor.Tag, null, folderName);
+                SaveToFile(ImageRect.GetBitmap(p), path);
+                return path;
             }
         }
 
@@ -125,14 +118,14 @@ namespace DynamicMosaicExample
             return btm;
         }
 
-        internal override IEnumerable<(Processor processor, string path, string alias)> Elements
+        internal override IEnumerable<(Processor processor, string alias)> Elements
         {
             get
             {
                 lock (_syncObject)
                 {
                     foreach (ProcPath p in _dictionaryByPath.Values)
-                        yield return (p.CurrentProcessor, p.CurrentPath, string.Empty);
+                        yield return (p.CurrentProcessor, p.CurrentPath);
                 }
             }
         }

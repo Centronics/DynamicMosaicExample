@@ -73,9 +73,9 @@ namespace DynamicMosaicExample
         internal static (ulong? number, string strPart) NameParser(string tag)
         {
             for (int k = tag.Length - 1; k >= 0; k--)
-                if (k == 0 || tag[k] == TagSeparatorChar || char.IsDigit(tag[k]))
-                    return k > 0 && tag.Length > k + 1 && ulong.TryParse(tag.Substring(k + 1), out ulong number)
-                        ? (number, tag.Substring(0, k))
+                if (k == 0 || tag[k] == TagSeparatorChar || !char.IsDigit(tag[k]))
+                    return k > 0 && ulong.TryParse(tag.Substring(k + 1), out ulong number)
+                        ? (number, tag[k] == TagSeparatorChar ? tag.Substring(0, k) : tag.Substring(0, k + 1))
                         : ((ulong?)null, tag);
 
             throw new ArgumentException($@"{nameof(NameParser)}: Имя файла пустое.", nameof(tag));

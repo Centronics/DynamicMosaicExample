@@ -49,11 +49,11 @@
             this.grpSourceImage = new System.Windows.Forms.GroupBox();
             this.btnPrevRecogImage = new System.Windows.Forms.Button();
             this.btnNextRecogImage = new System.Windows.Forms.Button();
-            this.btnDeleteImage = new System.Windows.Forms.Button();
+            this.btnDeleteRecognizeImage = new System.Windows.Forms.Button();
             this.btnWide = new System.Windows.Forms.Button();
             this.btnNarrow = new System.Windows.Forms.Button();
-            this.btnLoadImage = new System.Windows.Forms.Button();
-            this.btnSaveImage = new System.Windows.Forms.Button();
+            this.btnLoadRecognizeImage = new System.Windows.Forms.Button();
+            this.btnSaveRecognizeImage = new System.Windows.Forms.Button();
             this.pbDraw = new System.Windows.Forms.PictureBox();
             this.btnClearImage = new System.Windows.Forms.Button();
             this.grpWords = new System.Windows.Forms.GroupBox();
@@ -270,11 +270,11 @@
             // 
             this.grpSourceImage.Controls.Add(this.btnPrevRecogImage);
             this.grpSourceImage.Controls.Add(this.btnNextRecogImage);
-            this.grpSourceImage.Controls.Add(this.btnDeleteImage);
+            this.grpSourceImage.Controls.Add(this.btnDeleteRecognizeImage);
             this.grpSourceImage.Controls.Add(this.btnWide);
             this.grpSourceImage.Controls.Add(this.btnNarrow);
-            this.grpSourceImage.Controls.Add(this.btnLoadImage);
-            this.grpSourceImage.Controls.Add(this.btnSaveImage);
+            this.grpSourceImage.Controls.Add(this.btnLoadRecognizeImage);
+            this.grpSourceImage.Controls.Add(this.btnSaveRecognizeImage);
             this.grpSourceImage.Controls.Add(this.pbDraw);
             this.grpSourceImage.Controls.Add(this.label2);
             this.grpSourceImage.Controls.Add(this.lblElapsedTime);
@@ -307,15 +307,15 @@
             this.btnNextRecogImage.UseVisualStyleBackColor = true;
             this.btnNextRecogImage.Click += new System.EventHandler(this.BtnNextRecogImage_Click);
             // 
-            // btnDeleteImage
+            // btnDeleteRecognizeImage
             // 
-            this.btnDeleteImage.Image = global::DynamicMosaicExample.Resources.DeleteFile;
-            this.btnDeleteImage.Location = new System.Drawing.Point(52, 113);
-            this.btnDeleteImage.Name = "btnDeleteImage";
-            this.btnDeleteImage.Size = new System.Drawing.Size(50, 23);
-            this.btnDeleteImage.TabIndex = 2;
-            this.btnDeleteImage.UseVisualStyleBackColor = true;
-            this.btnDeleteImage.Click += new System.EventHandler(this.BtnDeleteImage_Click);
+            this.btnDeleteRecognizeImage.Image = global::DynamicMosaicExample.Resources.DeleteFile;
+            this.btnDeleteRecognizeImage.Location = new System.Drawing.Point(52, 113);
+            this.btnDeleteRecognizeImage.Name = "btnDeleteRecognizeImage";
+            this.btnDeleteRecognizeImage.Size = new System.Drawing.Size(50, 23);
+            this.btnDeleteRecognizeImage.TabIndex = 2;
+            this.btnDeleteRecognizeImage.UseVisualStyleBackColor = true;
+            this.btnDeleteRecognizeImage.Click += new System.EventHandler(this.BtnDeleteRecognizeImage_Click);
             // 
             // btnWide
             // 
@@ -340,25 +340,25 @@
             this.btnNarrow.UseVisualStyleBackColor = true;
             this.btnNarrow.Click += new System.EventHandler(this.BtnNarrow_Click);
             // 
-            // btnLoadImage
+            // btnLoadRecognizeImage
             // 
-            this.btnLoadImage.Image = global::DynamicMosaicExample.Resources.OpenFile;
-            this.btnLoadImage.Location = new System.Drawing.Point(144, 113);
-            this.btnLoadImage.Name = "btnLoadImage";
-            this.btnLoadImage.Size = new System.Drawing.Size(36, 23);
-            this.btnLoadImage.TabIndex = 6;
-            this.btnLoadImage.UseVisualStyleBackColor = true;
-            this.btnLoadImage.Click += new System.EventHandler(this.BtnLoadImage_Click);
+            this.btnLoadRecognizeImage.Image = global::DynamicMosaicExample.Resources.OpenFile;
+            this.btnLoadRecognizeImage.Location = new System.Drawing.Point(144, 113);
+            this.btnLoadRecognizeImage.Name = "btnLoadRecognizeImage";
+            this.btnLoadRecognizeImage.Size = new System.Drawing.Size(36, 23);
+            this.btnLoadRecognizeImage.TabIndex = 6;
+            this.btnLoadRecognizeImage.UseVisualStyleBackColor = true;
+            this.btnLoadRecognizeImage.Click += new System.EventHandler(this.BtnLoadRecognizeImage_Click);
             // 
-            // btnSaveImage
+            // btnSaveRecognizeImage
             // 
-            this.btnSaveImage.Image = global::DynamicMosaicExample.Resources.SaveFile;
-            this.btnSaveImage.Location = new System.Drawing.Point(106, 113);
-            this.btnSaveImage.Name = "btnSaveImage";
-            this.btnSaveImage.Size = new System.Drawing.Size(36, 23);
-            this.btnSaveImage.TabIndex = 5;
-            this.btnSaveImage.UseVisualStyleBackColor = true;
-            this.btnSaveImage.Click += new System.EventHandler(this.BtnSaveImage_Click);
+            this.btnSaveRecognizeImage.Image = global::DynamicMosaicExample.Resources.SaveFile;
+            this.btnSaveRecognizeImage.Location = new System.Drawing.Point(106, 113);
+            this.btnSaveRecognizeImage.Name = "btnSaveRecognizeImage";
+            this.btnSaveRecognizeImage.Size = new System.Drawing.Size(36, 23);
+            this.btnSaveRecognizeImage.TabIndex = 5;
+            this.btnSaveRecognizeImage.UseVisualStyleBackColor = true;
+            this.btnSaveRecognizeImage.Click += new System.EventHandler(this.BtnSaveRecognizeImage_Click);
             // 
             // pbDraw
             // 
@@ -565,8 +565,8 @@
         private System.Windows.Forms.GroupBox grpSourceImage;
         private System.Windows.Forms.GroupBox grpWords;
         private System.Windows.Forms.TextBox txtImagesCount;
-        private System.Windows.Forms.Button btnLoadImage;
-        private System.Windows.Forms.Button btnSaveImage;
+        private System.Windows.Forms.Button btnLoadRecognizeImage;
+        private System.Windows.Forms.Button btnSaveRecognizeImage;
         private System.Windows.Forms.OpenFileDialog dlgOpenImage;
         private System.Windows.Forms.Button btnWide;
         private System.Windows.Forms.Button btnNarrow;
@@ -581,7 +581,7 @@
         private System.Windows.Forms.Button btnConSaveImage;
         private System.Windows.Forms.Button btnConSaveAllImages;
         private System.IO.FileSystemWatcher fswImageChanged;
-        private System.Windows.Forms.Button btnDeleteImage;
+        private System.Windows.Forms.Button btnDeleteRecognizeImage;
         private System.Windows.Forms.Button btnPrevRecogImage;
         private System.Windows.Forms.Button btnNextRecogImage;
         private System.IO.FileSystemWatcher fswRecognizeChanged;

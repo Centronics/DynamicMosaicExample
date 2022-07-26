@@ -26,25 +26,21 @@ namespace DynamicMosaicExample
 
         internal abstract string SaveToFile(Processor processor, string folderName);
 
-        protected static (Processor processor, string path, string alias) AddTagToSet(ISet<string> tagSet, ProcPath p, string tag, ulong? number)
+        protected (Processor processor, string path) AddTagToSet(ISet<string> tagSet, Processor p, string tag, ulong? number, string savedPath)
         {
             unchecked
             {
-                string sourcePath = Path.GetDirectoryName(p.CurrentPath);
                 ulong k = number ?? 0, mk = k;
-
-                if (tagSet.Add(tag))
-                    return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, tag), p.CurrentPath, GetImagePath(sourcePath, tag));
 
                 do
                 {
                     string t = $@"{tag}{ImageRect.TagSeparatorChar}{k}";
                     if (tagSet.Add(t))
-                        return (ProcessorHandler.ChangeProcessorTag(p.CurrentProcessor, t), p.CurrentPath, GetImagePath(sourcePath, t));
-                } while (unchecked(++k != mk));
+                        return (ProcessorHandler.ChangeProcessorTag(p, t), string.IsNullOrEmpty(savedPath) ? GetImagePath(ImagesPath, t) : savedPath);
+                } while (++k != mk);
 
                 string n = number == null ? "<пусто>" : number.ToString();
-                throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.CurrentProcessor.Tag} по пути {p.CurrentPath}, изначальное имя карты {tag}, номер {n}.");
+                throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.Tag} по пути {ImagesPath}, изначальное имя карты {tag}, номер {n}.");
             }
         }
 
@@ -67,7 +63,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
-        internal abstract IEnumerable<(Processor processor, string path, string alias)> Elements { get; }
+        internal abstract IEnumerable<(Processor processor, string alias)> Elements { get; }
 
         protected HashSet<string> NamesToSave
         {
@@ -79,8 +75,8 @@ namespace DynamicMosaicExample
 
                     foreach (ProcPath p in _dictionaryByPath.Values)
                     {
-                        (ulong? number, string strPart) = ImageRect.NameParser(p.CurrentProcessor.Tag);
-                        AddTagToSet(tagSet, p, strPart, number);
+                        (ulong? number, string strPart) = ImageRect.NameParser(Path.GetFileNameWithoutExtension(p.CurrentPath));
+                        AddTagToSet(tagSet, p.CurrentProcessor, strPart, number, string.Empty);
                     }
 
                     return tagSet;

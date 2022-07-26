@@ -31,19 +31,17 @@ namespace DynamicMosaicExample
 
             lock (_syncObject)
             {
-                string savePath = ImagesPath;
-
                 if (!string.IsNullOrEmpty(folderName))
-                    Directory.CreateDirectory(savePath = Path.Combine(ImagesPath, folderName));
+                    Directory.CreateDirectory(Path.Combine(ImagesPath, folderName));
 
                 (uint? count, string name) = ImageRect.GetFileNumberByName(processor.Tag);
-                (Processor proc, string _, string alias) = AddTagToSet(NamesToSave, new ProcPath(processor, GetImagePath(savePath, name)), name, count);
+                (Processor proc, string alias) = AddTagToSet(NamesToSave, processor, name, count, string.Empty);
                 SaveToFile(ImageRect.GetBitmap(proc), alias);
                 return alias;
             }
         }
 
-        internal override IEnumerable<(Processor processor, string path, string alias)> Elements
+        internal override IEnumerable<(Processor processor, string alias)> Elements
         {
             get
             {
@@ -54,7 +52,7 @@ namespace DynamicMosaicExample
                     foreach (ProcPath p in _dictionaryByPath.Values)
                     {
                         (ulong? number, string strPart) = ImageRect.NameParser(p.CurrentProcessor.Tag);
-                        yield return AddTagToSet(tagSet, p, strPart, number);
+                        yield return AddTagToSet(tagSet, p.CurrentProcessor, strPart, number, string.Empty);
                     }
                 }
             }
