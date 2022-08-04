@@ -114,6 +114,7 @@
             this.txtWord.Size = new System.Drawing.Size(152, 20);
             this.txtWord.TabIndex = 9;
             this.txtWord.Tag = "";
+            this.txtWord.TextChanged += new System.EventHandler(this.TxtWord_TextChanged);
             this.txtWord.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TxtWord_KeyDown);
             this.txtWord.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TxtWord_KeyPress);
             this.txtWord.KeyUp += new System.Windows.Forms.KeyEventHandler(this.TxtWord_KeyUp);
@@ -283,7 +284,7 @@
             this.grpSourceImage.Location = new System.Drawing.Point(8, 7);
             this.grpSourceImage.Name = "grpSourceImage";
             this.grpSourceImage.Size = new System.Drawing.Size(267, 143);
-            this.grpSourceImage.TabIndex = 25;
+            this.grpSourceImage.TabIndex = 24;
             this.grpSourceImage.TabStop = false;
             this.grpSourceImage.Text = "Изображение (ЛКМ - рисовать / ПКМ - стереть)";
             // 
@@ -309,6 +310,7 @@
             // 
             // btnDeleteRecognizeImage
             // 
+            this.btnDeleteRecognizeImage.Enabled = false;
             this.btnDeleteRecognizeImage.Image = global::DynamicMosaicExample.Resources.DeleteFile;
             this.btnDeleteRecognizeImage.Location = new System.Drawing.Point(52, 113);
             this.btnDeleteRecognizeImage.Name = "btnDeleteRecognizeImage";
@@ -352,6 +354,7 @@
             // 
             // btnSaveRecognizeImage
             // 
+            this.btnSaveRecognizeImage.Enabled = false;
             this.btnSaveRecognizeImage.Image = global::DynamicMosaicExample.Resources.SaveFile;
             this.btnSaveRecognizeImage.Location = new System.Drawing.Point(106, 113);
             this.btnSaveRecognizeImage.Name = "btnSaveRecognizeImage";
@@ -396,7 +399,7 @@
             this.grpWords.Location = new System.Drawing.Point(281, 7);
             this.grpWords.Name = "grpWords";
             this.grpWords.Size = new System.Drawing.Size(265, 143);
-            this.grpWords.TabIndex = 24;
+            this.grpWords.TabIndex = 25;
             this.grpWords.TabStop = false;
             this.grpWords.Text = "Искомое слово";
             // 

@@ -24,7 +24,7 @@ namespace DynamicMosaicExample
 
         protected static string GetImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(GetImagePath)}: Исходный путь образа не указан."), name)}.{FrmExample.ExtImg}";
 
-        internal abstract string SaveToFile(Processor processor, string folderName);
+        internal abstract (Bitmap, string) SaveToFile(Processor processor, string folderName);
 
         protected (Processor processor, string path) AddTagToSet(ISet<string> tagSet, Processor p, string tag, ulong? number, string savedPath)
         {

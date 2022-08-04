@@ -283,7 +283,7 @@ namespace DynamicMosaicExample
                 Directory.CreateDirectory(SearchImagesPath);
                 Directory.CreateDirectory(RecognizeImagesPath);
                 _whitePen = new Pen(_defaultColor, 2.0f);
-                ImageActualize();
+                //ImageActualize();
                 _prevSelectedIndex = lstResults.SelectedIndex;
                 _unknownSymbolName = txtSymbolPath.Text;
                 _unknownSystemName = txtConSymbol.Text;
@@ -480,7 +480,7 @@ namespace DynamicMosaicExample
                     txtImagesCount.Enabled = value;
                     txtWord.ReadOnly = !value;
                     btnLoadRecognizeImage.Enabled = value;
-                    btnSaveRecognizeImage.Enabled = btnClearImage.Enabled = value && IsPainting;
+                    btnClearImage.Enabled = value && IsPainting;
                     btnPrevRecogImage.Enabled = value;
                     btnNextRecogImage.Enabled = value;
                     btnDeleteRecognizeImage.Enabled = value;

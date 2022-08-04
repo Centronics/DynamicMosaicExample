@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using DynamicParser;
 
@@ -24,7 +25,7 @@ namespace DynamicMosaicExample
         ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
-        internal override string SaveToFile(Processor processor, string folderName)
+        internal override (Bitmap, string) SaveToFile(Processor processor, string folderName)
         {
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
@@ -36,8 +37,9 @@ namespace DynamicMosaicExample
 
                 (uint? count, string name) = ImageRect.GetFileNumberByName(processor.Tag);
                 (Processor proc, string alias) = AddTagToSet(NamesToSave, processor, name, count, string.Empty);
-                SaveToFile(ImageRect.GetBitmap(proc), alias);
-                return alias;
+                Bitmap saveBtm = ImageRect.GetBitmap(proc);
+                SaveToFile(saveBtm, alias);
+                return (saveBtm, alias);
             }
         }
 
