@@ -83,7 +83,7 @@ namespace DynamicMosaicExample
 
                 _btmFront = btmAddingProcessor;
                 _savedCopy = RecognizeBitmapCopy;
-                _savedPath = savedPath;
+                _savedRecognizePath = savedPath;
                 _savedQuery = addingProcessor.Tag;
             }
             catch (Exception ex)
@@ -311,6 +311,14 @@ namespace DynamicMosaicExample
         void UpdateImagesCount(int count) => txtImagesCount.Text =
             count > 0 ? $@"{unchecked(_currentImage + 1)} / {count}" : string.Empty;
 
+        void SavedPathInfoActualize(bool turnOff)
+        {
+            bool isExists = !turnOff && !string.IsNullOrEmpty(_savedRecognizePath) && new FileInfo(_savedRecognizePath).Exists;
+
+            btnDeleteRecognizeImage.Enabled = isExists;
+            btnSaveRecognizeImage.Enabled = !isExists || IsQueryChanged;
+        }
+
         /// <summary>
         ///     Выполняет подсчёт количества изображений для поиска.
         ///     Обновляет состояния кнопок, связанных с изображениями.
@@ -362,13 +370,25 @@ namespace DynamicMosaicExample
                 btnPrevRecogImage.Enabled = count > 1;
                 btnNextRecogImage.Enabled = count > 0;
 
+                SavedPathInfoActualize(count < 1);
+
+                UpdateRecognizeCount(count);
+
                 return;
             }
 
             int c = _recognizeProcessorStorage.Count;
+
+            SavedPathInfoActualize(c < 1);
+
+            UpdateRecognizeCount(c);
+
             btnPrevRecogImage.Enabled = c > 1;
             btnNextRecogImage.Enabled = c > 0;
         });
+
+        void UpdateRecognizeCount(int count) => grpWords.Text =
+            count > 0 ? $@"{_grpWordsDefaultValue} ({unchecked(_currentRecognizeProcIndex + 1)} / {count})" : _grpWordsDefaultValue;
 
         /// <summary>
         ///     Создаёт новый поток для отображения статуса фоновой операции, в случае, если поток (<see cref="_workWaitThread" />)
@@ -686,7 +706,7 @@ namespace DynamicMosaicExample
         void BtnClearImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             _grFront.Clear(_defaultColor);
-            btnClearImage.Enabled = false;
+            btnClearImage.Enabled = IsPainting;
             btnSaveRecognizeImage.Enabled = IsQueryChanged;
         }, () => pbDraw.Refresh());
 
@@ -709,12 +729,9 @@ namespace DynamicMosaicExample
 
         void SaveRecognizeImage(bool rewrite)
         {
-            (Bitmap b, string p) = _recognizeProcessorStorage.SaveToFile(new Processor(_btmFront, txtWord.Text), rewrite ? _savedPath : string.Empty);
-            _savedCopy = b;
-            _savedPath = p;
+            (Bitmap _, string p) = _recognizeProcessorStorage.SaveToFile(new Processor(_btmFront, txtWord.Text), rewrite ? _savedRecognizePath : string.Empty);
 
-            btnSaveRecognizeImage.Enabled = IsQueryChanged;
-            btnDeleteRecognizeImage.Enabled = true;
+            ImageActualize(p);
         }
 
         /// <summary>
@@ -1085,6 +1102,7 @@ namespace DynamicMosaicExample
         {
             _currentRecognizeProcIndex++;
             (Processor processor, string path, int count) = _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex);
+            UpdateRecognizeCount(count);
             if (processor == null || count < 1)
                 return;
 
@@ -1101,6 +1119,7 @@ namespace DynamicMosaicExample
         {
             _currentRecognizeProcIndex--;
             (Processor processor, string path, int count) = _recognizeProcessorStorage.GetLastProcessor(ref _currentRecognizeProcIndex);
+            UpdateRecognizeCount(count);
             if (processor == null || count < 1)
                 return;
 
@@ -1111,10 +1130,17 @@ namespace DynamicMosaicExample
 
         void BtnDeleteRecognizeImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            if (string.IsNullOrEmpty(_savedPath))
+            if (string.IsNullOrEmpty(_savedRecognizePath))
                 return;
 
-            File.Delete(_savedPath);
+            try
+            {
+                File.Delete(_savedRecognizePath);
+            }
+            catch (DirectoryNotFoundException ex)
+            {
+                WriteLogMessage(ex.Message);
+            }
 
             btnSaveRecognizeImage.Enabled = true;
             btnDeleteRecognizeImage.Enabled = false;

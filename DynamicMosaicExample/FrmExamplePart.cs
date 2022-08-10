@@ -218,7 +218,7 @@ namespace DynamicMosaicExample
 
         string _savedQuery = string.Empty;
 
-        string _savedPath = string.Empty;
+        string _savedRecognizePath = string.Empty;
 
         int _prevSelectedIndex = -1;
 
@@ -241,6 +241,8 @@ namespace DynamicMosaicExample
         ///     Значение <see langword="true" /> - вывод разрешён, в противном случае - <see langword="false" />.
         /// </summary>
         bool _draw;
+
+        readonly string _grpWordsDefaultValue;
 
         /// <summary>
         ///     Поверхность рисования в окне создания распознаваемого изображения.
@@ -283,12 +285,12 @@ namespace DynamicMosaicExample
                 Directory.CreateDirectory(SearchImagesPath);
                 Directory.CreateDirectory(RecognizeImagesPath);
                 _whitePen = new Pen(_defaultColor, 2.0f);
-                //ImageActualize();
                 _prevSelectedIndex = lstResults.SelectedIndex;
                 _unknownSymbolName = txtSymbolPath.Text;
                 _unknownSystemName = txtConSymbol.Text;
                 _strRecog = btnRecognizeImage.Text;
                 _strGrpResults = grpResults.Text;
+                _grpWordsDefaultValue = grpWords.Text;
                 ImageWidth = pbBrowse.Width;
                 ImageHeight = pbBrowse.Height;
                 _currentState = new CurrentState(this);
@@ -331,7 +333,7 @@ namespace DynamicMosaicExample
 
                 void NeedCreate(string fullPath, SourceChanged source)
                 {
-                    string[] paths = GetFiles(fullPath); // приходит неправильный путь
+                    string[] paths = GetFiles(fullPath);
                     if (paths == null || paths.Length < 1)
                         return;
                     foreach (string path in paths)
@@ -348,7 +350,7 @@ namespace DynamicMosaicExample
                         {
                             (WatcherChangeTypes type, string fullPath, SourceChanged src) = ((WatcherChangeTypes, string, SourceChanged))state;
 
-                            switch (type) // тестировать папки
+                            switch (type)
                             {
                                 case WatcherChangeTypes.Deleted:
                                     NeedDelete(fullPath, src);
