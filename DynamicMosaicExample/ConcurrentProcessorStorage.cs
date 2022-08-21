@@ -20,7 +20,7 @@ namespace DynamicMosaicExample
 
         public abstract string GetProcessorTag(string fullPath);
 
-        protected abstract string ImagesPath { get; }
+        public abstract string ImagesPath { get; }
 
         protected static string GetImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(GetImagePath)}: Исходный путь образа не указан."), name)}.{FrmExample.ExtImg}";
 
@@ -63,7 +63,17 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
-        internal abstract IEnumerable<(Processor processor, string alias)> Elements { get; }
+        internal IEnumerable<(Processor processor, string sourcePath)> Elements
+        {
+            get
+            {
+                lock (_syncObject)
+                {
+                    foreach (ProcPath p in _dictionaryByPath.Values)
+                        yield return (p.CurrentProcessor, p.CurrentPath);
+                }
+            }
+        }
 
         protected HashSet<string> NamesToSave
         {
@@ -84,18 +94,22 @@ namespace DynamicMosaicExample
             }
         }
 
-        public bool IsWorkingPath(string path)
+        public bool IsWorkingPath(string path, bool isEqual = false)
         {
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentException($@"{nameof(IsWorkingPath)}: Необходимо указать путь для проверки.", nameof(path));
 
-            string p = ImagesPath;
+            string p = path;
 
-            char c = p[p.Length - 1];
-            if (c != '\\' && c != '/')
+            if (p[p.Length - 1] != Path.DirectorySeparatorChar)
                 p += Path.DirectorySeparatorChar;
 
-            return path.StartsWith(p, StringComparison.OrdinalIgnoreCase);
+            string ip = ImagesPath;
+
+            if (ip[ip.Length - 1] != Path.DirectorySeparatorChar)
+                ip += Path.DirectorySeparatorChar;
+            
+            return isEqual ? string.Compare(p, ip, StringComparison.OrdinalIgnoreCase) == 0 : p.StartsWith(ip, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>

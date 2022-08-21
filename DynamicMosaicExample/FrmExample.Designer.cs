@@ -68,6 +68,7 @@
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
             this.fswImageChanged = new System.IO.FileSystemWatcher();
             this.fswRecognizeChanged = new System.IO.FileSystemWatcher();
+            this.fswWorkDirChanged = new System.IO.FileSystemWatcher();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
             this.grpResults.SuspendLayout();
@@ -79,6 +80,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.fswImageChanged)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.fswRecognizeChanged)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.fswWorkDirChanged)).BeginInit();
             this.SuspendLayout();
             // 
             // btnRecognizeImage
@@ -498,16 +500,20 @@
             // 
             // fswImageChanged
             // 
-            this.fswImageChanged.EnableRaisingEvents = true;
             this.fswImageChanged.IncludeSubdirectories = true;
             this.fswImageChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswImageChanged.SynchronizingObject = this;
             // 
             // fswRecognizeChanged
             // 
-            this.fswRecognizeChanged.EnableRaisingEvents = true;
+            this.fswRecognizeChanged.IncludeSubdirectories = true;
             this.fswRecognizeChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswRecognizeChanged.SynchronizingObject = this;
+            // 
+            // fswWorkDirChanged
+            // 
+            this.fswWorkDirChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
+            this.fswWorkDirChanged.SynchronizingObject = this;
             // 
             // FrmExample
             // 
@@ -544,6 +550,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.fswImageChanged)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.fswRecognizeChanged)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.fswWorkDirChanged)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -589,6 +596,7 @@
         private System.Windows.Forms.Button btnNextRecogImage;
         private System.IO.FileSystemWatcher fswRecognizeChanged;
         private System.Windows.Forms.Button btnImageUpToQueries;
+        private System.IO.FileSystemWatcher fswWorkDirChanged;
     }
 }
 

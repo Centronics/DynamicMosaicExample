@@ -16,75 +16,124 @@ namespace DynamicMosaicExample
     /// </summary>
     internal sealed partial class FrmExample
     {
+        enum ImageActualizeAction
+        {
+            NEXT,
+            PREV,
+            LOAD,
+            REFRESH
+        }
+
         /// <summary>
         ///     Предназначен для инициализации структур, отвечающих за вывод создаваемого изображения на экран.
         ///     Если предыдущее изображение присутствовало, то оно переносится на вновь созданное.
         ///     Если путь к файлу исходного изображения отсутствует, создаётся новое изображение.
         /// </summary>
         /// <param name="btmPath">Путь к файлу исходного изображения.</param>
-        void ImageActualize(string btmPath = null)
+        void ImageActualize(ImageActualizeAction action, string btmPath = null)
         {
             void CommonMethod()
             {
                 _grFront?.Dispose();
-                _grFront = Graphics.FromImage(_btmFront);
+                _grFront = Graphics.FromImage(_btmRecognizeImage);
 
-                pbDraw.Image = _btmFront;
+                pbDraw.Image = _btmRecognizeImage;
                 pbSuccess.Image = Resources.Unk_128;
             }
 
-            if (string.IsNullOrEmpty(btmPath))
+            string savedRecognizePath = string.Empty;
+            Bitmap btmAddingProcessor;
+            Processor addingProcessor;
+
+            switch (action)
             {
-                Bitmap btm = new Bitmap(pbDraw.Width, pbDraw.Height);
+                case ImageActualizeAction.NEXT:
+                    {
+                        _currentRecognizeProcIndex++;
+                        (Processor processor, string _, int count) =
+                            _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex);
+                        UpdateRecognizeCount(count);
+                        if (processor == null || count < 1)
+                            return;
 
-                bool needReset = false;
+                        if (count == 1)
+                        {
+                            btnNextRecogImage.Enabled = false;
+                            txtWord.Select();
+                        }
 
-                if (_btmFront != null)
-                {
-                    CopyBitmapByWidth(_btmFront, btm, _defaultColor);
-                    _btmFront.Dispose();
-                }
-                else
-                    needReset = true;
+                        addingProcessor = processor;
+                        btmAddingProcessor = ImageRect.GetBitmap(addingProcessor);
+                    }
+                    break;
+                case ImageActualizeAction.PREV:
+                    {
+                        _currentRecognizeProcIndex--;
+                        (Processor processor, string _, int count) =
+                            _recognizeProcessorStorage.GetLastProcessor(ref _currentRecognizeProcIndex);
+                        UpdateRecognizeCount(count);
+                        if (processor == null || count < 1)
+                            return;
 
-                _btmFront = btm;
+                        addingProcessor = processor;
+                        btmAddingProcessor = ImageRect.GetBitmap(addingProcessor);
+                    }
+                    break;
+                case ImageActualizeAction.LOAD:
+                    {
+                        addingProcessor = _recognizeProcessorStorage.GetAddingProcessor(btmPath);
 
-                CommonMethod();
+                        if (_recognizeProcessorStorage.IsWorkingPath(btmPath))
+                        {
+                            btmAddingProcessor = ImageRect.GetBitmap(addingProcessor);
+                            savedRecognizePath = btmPath;
+                        }
+                        else
+                        {
+                            (Bitmap b, string p) = _recognizeProcessorStorage.SaveToFile(addingProcessor, string.Empty);
 
-                if (needReset)
-                    _grFront.Clear(_defaultColor);
+                            btmAddingProcessor = b;
+                            savedRecognizePath = p;
+                        }
+                    }
+                    break;
+                case ImageActualizeAction.REFRESH:
+                    {
+                        Bitmap btm = new Bitmap(pbDraw.Width, pbDraw.Height);
 
-                btnSaveRecognizeImage.Enabled = IsQueryChanged;
-                btnClearImage.Enabled = IsPainting;
+                        bool needReset = false;
 
-                return;
+                        if (_btmRecognizeImage != null)
+                        {
+                            CopyBitmapByWidth(_btmRecognizeImage, btm, _defaultColor);
+                            _btmRecognizeImage.Dispose();
+                        }
+                        else
+                            needReset = true;
+
+                        _btmRecognizeImage = btm;
+
+                        CommonMethod();
+
+                        if (needReset)
+                            _grFront.Clear(_defaultColor);
+
+                        btnSaveRecognizeImage.Enabled = IsQueryChanged;
+                        btnClearImage.Enabled = IsPainting;
+                    }
+                    return;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(action), action, @"Указано некорректное действие при загрузке изображения.");
             }
 
             try
             {
-                string savedPath;
-                Bitmap btmAddingProcessor;
-                Processor addingProcessor = _recognizeProcessorStorage.GetAddingProcessor(btmPath);
+                _btmRecognizeImage?.Dispose();
 
-                if (!_recognizeProcessorStorage.IsWorkingPath(btmPath))
-                {
-                    (Bitmap b, string p) = _recognizeProcessorStorage.SaveToFile(addingProcessor, string.Empty);
-
-                    btmAddingProcessor = b;
-                    savedPath = p;
-                }
-                else
-                {
-                    btmAddingProcessor = ImageRect.GetBitmap(addingProcessor);
-                    savedPath = btmPath;
-                }
-
-                _btmFront?.Dispose();
-
-                _btmFront = btmAddingProcessor;
-                _savedCopy = RecognizeBitmapCopy;
-                _savedRecognizePath = savedPath;
-                _savedQuery = addingProcessor.Tag;
+                _btmRecognizeImage = btmAddingProcessor;
+                _btmSavedRecognizeCopy = RecognizeBitmapCopy;
+                _savedRecognizePath = savedRecognizePath;// не везде заполняется
+                _savedRecognizeQuery = addingProcessor.Tag;
             }
             catch (Exception ex)
             {
@@ -92,12 +141,12 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            pbDraw.Width = _btmFront.Width;
+            pbDraw.Width = _btmRecognizeImage.Width;
             btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
             btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
             btnDeleteRecognizeImage.Enabled = true;
             btnClearImage.Enabled = IsPainting;
-            txtWord.Text = _savedQuery;
+            txtWord.Text = _savedRecognizeQuery;
 
             btnSaveRecognizeImage.Enabled = IsQueryChanged;
 
@@ -111,18 +160,21 @@ namespace DynamicMosaicExample
         {
             get
             {
-                if (_savedCopy == null)
+                if (_btmSavedRecognizeCopy == null)
                     return false;
 
-                if (txtWord.Text != _savedQuery)
+                if (txtWord.Text != _savedRecognizeQuery)
                     return true;
 
-                if (_btmFront.Width != _savedCopy.Width || _btmFront.Height != _savedCopy.Height)
+                if (_btmRecognizeImage.Width != _btmSavedRecognizeCopy.Width || _btmRecognizeImage.Height != _btmSavedRecognizeCopy.Height)
                     return true;
 
-                for (int x = 0; x < _btmFront.Width; x++)
-                    for (int y = 0; y < _btmFront.Height; y++)
-                        if (_btmFront.GetPixel(x, y) != _savedCopy.GetPixel(x, y))
+                if (ReferenceEquals(_btmRecognizeImage, _btmSavedRecognizeCopy))
+                    throw new InvalidOperationException("Ссылки на проверяемые изображения совпадают.");
+
+                for (int x = 0; x < _btmRecognizeImage.Width; x++)
+                    for (int y = 0; y < _btmRecognizeImage.Height; y++)
+                        if (_btmRecognizeImage.GetPixel(x, y) != _btmSavedRecognizeCopy.GetPixel(x, y))
                             return true;
 
                 return false;
@@ -192,7 +244,7 @@ namespace DynamicMosaicExample
             pbDraw.Width += WidthStep;
             btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
             btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
-            ImageActualize();
+            ImageActualize(ImageActualizeAction.REFRESH);
         }, () => btnClearImage.Enabled = IsPainting);
 
         /// <summary>
@@ -206,7 +258,7 @@ namespace DynamicMosaicExample
             pbDraw.Width -= WidthStep;
             btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
             btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
-            ImageActualize();
+            ImageActualize(ImageActualizeAction.REFRESH);
         }, () => btnClearImage.Enabled = IsPainting);
 
         /// <summary>
@@ -289,7 +341,7 @@ namespace DynamicMosaicExample
             if (_imagesProcessorStorage.Count < 1)
                 return;
 
-            File.Delete(txtSymbolPath.Text);
+            DeleteFile(txtSymbolPath.Text);
             BtnImagePrev_Click(null, null);
         });
 
@@ -365,7 +417,7 @@ namespace DynamicMosaicExample
                 _needInitRecognizeImage = false;
                 (Processor processor, string path, int count) = _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex);
                 if (processor != null && count > 0)
-                    ImageActualize(path);
+                    ImageActualize(ImageActualizeAction.LOAD, path);
 
                 btnPrevRecogImage.Enabled = count > 1;
                 btnNextRecogImage.Enabled = count > 0;
@@ -488,10 +540,10 @@ namespace DynamicMosaicExample
         {
             get
             {
-                Bitmap btm = new Bitmap(_btmFront.Width, _btmFront.Height);
-                for (int y = 0; y < _btmFront.Height; y++)
-                    for (int x = 0; x < _btmFront.Width; x++)
-                        btm.SetPixel(x, y, _btmFront.GetPixel(x, y));
+                Bitmap btm = new Bitmap(_btmRecognizeImage.Width, _btmRecognizeImage.Height);
+                for (int y = 0; y < _btmRecognizeImage.Height; y++)
+                    for (int x = 0; x < _btmRecognizeImage.Width; x++)
+                        btm.SetPixel(x, y, _btmRecognizeImage.GetPixel(x, y));
                 return btm;
             }
         }
@@ -729,9 +781,9 @@ namespace DynamicMosaicExample
 
         void SaveRecognizeImage(bool rewrite)
         {
-            (Bitmap _, string p) = _recognizeProcessorStorage.SaveToFile(new Processor(_btmFront, txtWord.Text), rewrite ? _savedRecognizePath : string.Empty);
+            (Bitmap _, string p) = _recognizeProcessorStorage.SaveToFile(new Processor(_btmRecognizeImage, txtWord.Text), rewrite ? _savedRecognizePath : string.Empty);
 
-            ImageActualize(p);
+            ImageActualize(ImageActualizeAction.LOAD, p);
         }
 
         /// <summary>
@@ -742,7 +794,7 @@ namespace DynamicMosaicExample
         void BtnLoadRecognizeImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             if (dlgOpenImage.ShowDialog(this) == DialogResult.OK)
-                ImageActualize(dlgOpenImage.FileName);
+                ImageActualize(ImageActualizeAction.LOAD, dlgOpenImage.FileName);
         });
 
         /// <summary>
@@ -1036,9 +1088,9 @@ namespace DynamicMosaicExample
         {
             try
             {
-                _savedQuery = txtWord.Text;
-                ImageActualize();
-                _savedCopy = RecognizeBitmapCopy;
+                _savedRecognizeQuery = txtWord.Text;
+                ImageActualize(ImageActualizeAction.REFRESH);
+                _btmSavedRecognizeCopy = RecognizeBitmapCopy;
                 _grFront.Clear(_defaultColor);
                 pbDraw.Refresh();
                 _fileThread.Start();
@@ -1098,53 +1150,34 @@ namespace DynamicMosaicExample
                 e.Bounds, e.ForeColor, e.BackColor, TextFormatFlags.HorizontalCenter);
         });
 
-        void BtnNextRecogImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
-        {
-            _currentRecognizeProcIndex++;
-            (Processor processor, string path, int count) = _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex);
-            UpdateRecognizeCount(count);
-            if (processor == null || count < 1)
-                return;
+        void BtnNextRecogImage_Click(object sender, EventArgs e) => SafetyExecute(() => ImageActualize(ImageActualizeAction.NEXT));
 
-            if (count == 1)
-            {
-                btnNextRecogImage.Enabled = false;
-                txtWord.Select();
-            }
+        void BtnPrevRecogImage_Click(object sender, EventArgs e) => SafetyExecute(() => ImageActualize(ImageActualizeAction.PREV));
 
-            ImageActualize(path);
-        });
-
-        void BtnPrevRecogImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
-        {
-            _currentRecognizeProcIndex--;
-            (Processor processor, string path, int count) = _recognizeProcessorStorage.GetLastProcessor(ref _currentRecognizeProcIndex);
-            UpdateRecognizeCount(count);
-            if (processor == null || count < 1)
-                return;
-
-            ImageActualize(path);
-        });
-
-        void BtnImageUpToQueries_Click(object sender, EventArgs e) => SafetyExecute(() => ImageActualize(txtSymbolPath.Text));
+        void BtnImageUpToQueries_Click(object sender, EventArgs e) => SafetyExecute(() => ImageActualize(ImageActualizeAction.LOAD, txtSymbolPath.Text));
 
         void BtnDeleteRecognizeImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             if (string.IsNullOrEmpty(_savedRecognizePath))
                 return;
 
+            DeleteFile(_savedRecognizePath);
+
+            btnSaveRecognizeImage.Enabled = true;
+            btnDeleteRecognizeImage.Enabled = false;
+        });
+
+        void DeleteFile(string path)
+        {
             try
             {
-                File.Delete(_savedRecognizePath);
+                File.Delete(path);
             }
             catch (DirectoryNotFoundException ex)
             {
                 WriteLogMessage(ex.Message);
             }
-
-            btnSaveRecognizeImage.Enabled = true;
-            btnDeleteRecognizeImage.Enabled = false;
-        });
+        }
 
         void TxtWord_TextChanged(object sender, EventArgs e) => SafetyExecute(() => btnSaveRecognizeImage.Enabled = IsQueryChanged);
     }

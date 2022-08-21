@@ -30,7 +30,7 @@ namespace DynamicMosaicExample
 
         public override string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(fullPath)}";
 
-        protected override string ImagesPath => FrmExample.RecognizeImagesPath;
+        public override string ImagesPath => FrmExample.RecognizeImagesPath;
 
         /// <summary>
         ///     Сохраняет указанную карту <see cref="Processor" /> на жёсткий диск в формате BMP.
@@ -117,18 +117,6 @@ namespace DynamicMosaicExample
             btm.SetPixel(0, 0, btm.GetPixel(0, 0)); //Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
 
             return btm;
-        }
-
-        internal override IEnumerable<(Processor processor, string alias)> Elements
-        {
-            get
-            {
-                lock (_syncObject)
-                {
-                    foreach (ProcPath p in _dictionaryByPath.Values)
-                        yield return (p.CurrentProcessor, p.CurrentPath);
-                }
-            }
         }
     }
 }

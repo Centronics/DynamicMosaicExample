@@ -18,7 +18,7 @@ namespace DynamicMosaicExample
         /// <returns>Возвращает строку, содержащую имя и количество символов '0' в конце названия карты <see cref="Processor" />.</returns>
         public override string GetProcessorTag(string fullPath) => Path.GetFileNameWithoutExtension(fullPath);
 
-        protected override string ImagesPath => FrmExample.SearchImagesPath;
+        public override string ImagesPath => FrmExample.SearchImagesPath;
 
         /// <summary>
         ///     Сохраняет указанную карту <see cref="Processor" /> на жёсткий диск в формате BMP.
@@ -40,23 +40,6 @@ namespace DynamicMosaicExample
                 Bitmap saveBtm = ImageRect.GetBitmap(proc);
                 SaveToFile(saveBtm, alias);
                 return (saveBtm, alias);
-            }
-        }
-
-        internal override IEnumerable<(Processor processor, string alias)> Elements
-        {
-            get
-            {
-                lock (_syncObject)
-                {
-                    HashSet<string> tagSet = new HashSet<string>();
-
-                    foreach (ProcPath p in _dictionaryByPath.Values)
-                    {
-                        (ulong? number, string strPart) = ImageRect.NameParser(p.CurrentProcessor.Tag);
-                        yield return AddTagToSet(tagSet, p.CurrentProcessor, strPart, number, string.Empty);
-                    }
-                }
             }
         }
     }
