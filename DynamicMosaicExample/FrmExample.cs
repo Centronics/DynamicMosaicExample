@@ -41,7 +41,7 @@ namespace DynamicMosaicExample
                 pbSuccess.Image = Resources.Unk_128;
             }
 
-            string savedRecognizePath = string.Empty;
+            string savedRecognizePath;
             Bitmap btmAddingProcessor;
             Processor addingProcessor;
 
@@ -50,7 +50,7 @@ namespace DynamicMosaicExample
                 case ImageActualizeAction.NEXT:
                     {
                         _currentRecognizeProcIndex++;
-                        (Processor processor, string _, int count) =
+                        (Processor processor, string path, int count) =
                             _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex);
                         UpdateRecognizeCount(count);
                         if (processor == null || count < 1)
@@ -64,12 +64,13 @@ namespace DynamicMosaicExample
 
                         addingProcessor = processor;
                         btmAddingProcessor = ImageRect.GetBitmap(addingProcessor);
+                        savedRecognizePath = path;
                     }
                     break;
                 case ImageActualizeAction.PREV:
                     {
                         _currentRecognizeProcIndex--;
-                        (Processor processor, string _, int count) =
+                        (Processor processor, string path, int count) =
                             _recognizeProcessorStorage.GetLastProcessor(ref _currentRecognizeProcIndex);
                         UpdateRecognizeCount(count);
                         if (processor == null || count < 1)
@@ -77,6 +78,7 @@ namespace DynamicMosaicExample
 
                         addingProcessor = processor;
                         btmAddingProcessor = ImageRect.GetBitmap(addingProcessor);
+                        savedRecognizePath = path;
                     }
                     break;
                 case ImageActualizeAction.LOAD:
@@ -87,14 +89,13 @@ namespace DynamicMosaicExample
                         {
                             btmAddingProcessor = ImageRect.GetBitmap(addingProcessor);
                             savedRecognizePath = btmPath;
+                            break;
                         }
-                        else
-                        {
-                            (Bitmap b, string p) = _recognizeProcessorStorage.SaveToFile(addingProcessor, string.Empty);
 
-                            btmAddingProcessor = b;
-                            savedRecognizePath = p;
-                        }
+                        (Bitmap b, string p) = _recognizeProcessorStorage.SaveToFile(addingProcessor, string.Empty);
+
+                        btmAddingProcessor = b;
+                        savedRecognizePath = p;
                     }
                     break;
                 case ImageActualizeAction.REFRESH:
@@ -132,7 +133,7 @@ namespace DynamicMosaicExample
 
                 _btmRecognizeImage = btmAddingProcessor;
                 _btmSavedRecognizeCopy = RecognizeBitmapCopy;
-                _savedRecognizePath = savedRecognizePath;// не везде заполняется
+                _savedRecognizePath = savedRecognizePath;
                 _savedRecognizeQuery = addingProcessor.Tag;
             }
             catch (Exception ex)
@@ -1116,7 +1117,7 @@ namespace DynamicMosaicExample
             int pos = txtSymbolPath.Text.Length - 3;
             txtSymbolPath.Select(pos, 0);
             for (int k = pos; k > -1; k--)
-                if (txtSymbolPath.Text[k] == '\\' || txtSymbolPath.Text[k] == '/')
+                if (ConcurrentProcessorStorage.IsDirectorySeparatorSymbol(txtSymbolPath.Text[k]))
                 {
                     if (k < pos)
                         txtSymbolPath.Select(k + 1, 0);

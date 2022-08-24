@@ -327,22 +327,23 @@ namespace DynamicMosaicExample
                             if (_imagesProcessorStorage.IsWorkingPath(fullPath, true))
                                 return _imagesProcessorStorage;
 
-                            if (_recognizeProcessorStorage.IsWorkingPath(fullPath, true))
-                                return _recognizeProcessorStorage;
-
-                            return null;
+                            return _recognizeProcessorStorage.IsWorkingPath(fullPath, true)
+                                ? _recognizeProcessorStorage
+                                : null;
                     }
 
                     throw new ArgumentException($@"Неизвестно, в каком хранилище требуется произвести изменение {nameof(SourceChanged)}: {source}", nameof(source));
                 }
 
-                void NeedDelete(string fullPath, ConcurrentProcessorStorage storage)
+                void NeedRemove(string fullPath, ConcurrentProcessorStorage storage)
                 {
                     if (storage == null)
                         return;
 
+                    string p = ConcurrentProcessorStorage.AddEndingSlash(fullPath);
+
                     foreach ((Processor _, string path) in storage.Elements)
-                        if (path.StartsWith(fullPath, StringComparison.OrdinalIgnoreCase))
+                        if (path.StartsWith(p, StringComparison.OrdinalIgnoreCase))
                             _concurrentFileTasks.Enqueue(new FileTask(WatcherChangeTypes.Deleted, path, string.Empty, false, false, storage));
                 }
 
@@ -378,7 +379,7 @@ namespace DynamicMosaicExample
                             switch (type)
                             {
                                 case WatcherChangeTypes.Deleted:
-                                    NeedDelete(fullPath, stg);
+                                    NeedRemove(fullPath, stg);
                                     _needRefreshEvent.Set();
                                     return;
                                 case WatcherChangeTypes.Created:
@@ -405,7 +406,7 @@ namespace DynamicMosaicExample
                         ThreadPool.QueueUserWorkItem(state => SafetyExecute(() =>
                         {
                             (string oldFullPath, string newFullPath, SourceChanged src) = ((string, string, SourceChanged))state;
-                            NeedDelete(oldFullPath, GetStorage(src, oldFullPath));
+                            NeedRemove(oldFullPath, GetStorage(src, oldFullPath));
                             NeedCreate(newFullPath, GetStorage(src, newFullPath));
                             _needRefreshEvent.Set();
                         }), (e.OldFullPath, e.FullPath, source));

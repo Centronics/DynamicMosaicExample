@@ -99,17 +99,22 @@ namespace DynamicMosaicExample
             if (string.IsNullOrEmpty(path))
                 throw new ArgumentException($@"{nameof(IsWorkingPath)}: Необходимо указать путь для проверки.", nameof(path));
 
-            string p = path;
+            string p = AddEndingSlash(path), ip = AddEndingSlash(ImagesPath);
 
-            if (p[p.Length - 1] != Path.DirectorySeparatorChar)
-                p += Path.DirectorySeparatorChar;
-
-            string ip = ImagesPath;
-
-            if (ip[ip.Length - 1] != Path.DirectorySeparatorChar)
-                ip += Path.DirectorySeparatorChar;
-            
             return isEqual ? string.Compare(p, ip, StringComparison.OrdinalIgnoreCase) == 0 : p.StartsWith(ip, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static bool IsDirectorySeparatorSymbol(char c) => c == Path.DirectorySeparatorChar || c == Path.AltDirectorySeparatorChar;
+
+        public static string AddEndingSlash(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return string.Empty;
+
+            if (!IsDirectorySeparatorSymbol(path[path.Length - 1]))
+                path += Path.DirectorySeparatorChar;
+
+            return path;
         }
 
         /// <summary>
