@@ -43,7 +43,7 @@ namespace DynamicMosaicExample
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
             lock (_syncObject)
             {
-                (Processor p, string path) = AddTagToSet(NamesToSave, processor, processor.Tag, null, folderName);
+                (Processor p, string path) = AddTagToSet(NamesToSave, processor, processor.Tag, null, GetWorkingPath(folderName));
                 Bitmap saveBtm = ImageRect.GetBitmap(p);
                 SaveToFile(saveBtm, path);
                 return (saveBtm, path);

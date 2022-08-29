@@ -32,14 +32,11 @@ namespace DynamicMosaicExample
 
             lock (_syncObject)
             {
-                if (!string.IsNullOrEmpty(folderName))
-                    Directory.CreateDirectory(Path.Combine(ImagesPath, folderName));
-
                 (uint? count, string name) = ImageRect.GetFileNumberByName(processor.Tag);
-                (Processor proc, string alias) = AddTagToSet(NamesToSave, processor, name, count, string.Empty);
+                (Processor proc, string resultPath) = AddTagToSet(NamesToSave, processor, name, count, GetWorkingPath(folderName));
                 Bitmap saveBtm = ImageRect.GetBitmap(proc);
-                SaveToFile(saveBtm, alias);
-                return (saveBtm, alias);
+                SaveToFile(saveBtm, resultPath);
+                return (saveBtm, resultPath);
             }
         }
     }

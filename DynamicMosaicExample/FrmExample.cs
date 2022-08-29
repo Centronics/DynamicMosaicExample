@@ -1040,7 +1040,11 @@ namespace DynamicMosaicExample
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
-            _imagesProcessorStorage.SaveToFile(SelectedResult.processors[SelectedResult.reflexMapIndex], SelectedResult.systemName));
+        {
+            //Directory.CreateDirectory(path);
+            _imagesProcessorStorage.SaveToFile(SelectedResult.processors[SelectedResult.reflexMapIndex],
+                    SelectedResult.systemName);
+        });
 
         /// <summary>
         ///     Сохраняет все карты <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.
@@ -1049,6 +1053,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
+            //Directory.CreateDirectory(path);
             foreach (Processor p in SelectedResult.processors)
                 _imagesProcessorStorage.SaveToFile(p, SelectedResult.systemName);
         });
@@ -1174,7 +1179,7 @@ namespace DynamicMosaicExample
             {
                 File.Delete(path);
             }
-            catch (DirectoryNotFoundException ex)
+            catch (DirectoryNotFoundException ex)// точно только об этом исключении сообщать?
             {
                 WriteLogMessage(ex.Message);
             }

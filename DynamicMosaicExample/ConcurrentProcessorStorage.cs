@@ -26,7 +26,7 @@ namespace DynamicMosaicExample
 
         internal abstract (Bitmap, string) SaveToFile(Processor processor, string folderName);
 
-        protected (Processor processor, string path) AddTagToSet(ISet<string> tagSet, Processor p, string tag, ulong? number, string savedPath)
+        protected (Processor processor, string path) AddTagToSet(ISet<string> tagSet, Processor p, string tag, ulong? number, string pathToSave)
         {
             unchecked
             {
@@ -35,8 +35,28 @@ namespace DynamicMosaicExample
                 do
                 {
                     string t = $@"{tag}{ImageRect.TagSeparatorChar}{k}";
-                    if (tagSet.Add(t))
-                        return (ProcessorHandler.ChangeProcessorTag(p, t), string.IsNullOrEmpty(savedPath) ? GetImagePath(ImagesPath, t) : savedPath);
+
+                    if (!tagSet.Add(t))
+                        continue;
+
+                    string path;
+
+
+                    if (string.IsNullOrEmpty(pathToSave))
+                    {
+                        path = GetImagePath(ImagesPath, t);
+                    }
+                    else
+                    {
+                        if (IsDirectorySeparatorSymbol(pathToSave[pathToSave.Length - 1]))
+                        {
+                            path = GetImagePath(pathToSave, t);
+                        }
+                        else
+                            path = pathToSave;
+                    }
+
+                    return (ProcessorHandler.ChangeProcessorTag(p, t), path);
                 } while (++k != mk);
 
                 string n = number == null ? "<пусто>" : number.ToString();
@@ -59,6 +79,8 @@ namespace DynamicMosaicExample
         ///     конструкции <see langword="lock" />.
         /// </summary>
         protected readonly object _syncObject = new object();
+
+        string _savedRecognizePath = string.Empty;
 
         /// <summary>
         ///     Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage" />.
@@ -115,6 +137,25 @@ namespace DynamicMosaicExample
                 path += Path.DirectorySeparatorChar;
 
             return path;
+        }
+
+        public string GetWorkingPath(string folderName)
+        {
+            if (string.IsNullOrEmpty(folderName))
+                return string.Empty;
+
+            if (!IsWorkingPath(folderName))
+                throw new ArgumentException($@"Необходимо нахождение пути в рабочем каталоге ({ImagesPath})", nameof(folderName));
+
+            string ext = Path.GetExtension(folderName);
+
+            if (string.IsNullOrEmpty(ext))
+                return AddEndingSlash(folderName);
+
+            if (string.Compare(ext, $".{FrmExample.ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
+                throw new ArgumentException($@"Необходимо, чтобы путь вёл к файлу с требуемым расширением ({FrmExample.ExtImg})", nameof(folderName));
+
+            return folderName;
         }
 
         /// <summary>
@@ -273,6 +314,9 @@ namespace DynamicMosaicExample
                 if (index < 0 || index >= count)
                     index = count - 1;
                 (Processor processor, string path, _) = this[index];
+
+                _savedRecognizePath = path;
+
                 return (processor, path, count);
             }
         }
@@ -303,7 +347,23 @@ namespace DynamicMosaicExample
                 if (index < 0 || index >= count)
                     index = 0;
                 (Processor processor, string path, _) = this[index];
+
+                _savedRecognizePath = path;
+
                 return (processor, path, count);
+            }
+        }
+
+        internal void RemoveProcessor()
+        {
+            lock (_syncObject)
+            {
+                if (string.IsNullOrEmpty(_savedRecognizePath))
+                    return;
+
+                RemoveProcessor(this[_savedRecognizePath.ToLower()].processor);
+
+                _savedRecognizePath = string.Empty;
             }
         }
 
