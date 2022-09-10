@@ -1085,32 +1085,6 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        ///     Вызывается во время первого отображения формы.
-        ///     Производит инициализацию.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void FrmExample_Load(object sender, EventArgs e)
-        {
-            try
-            {
-                _savedRecognizeQuery = txtWord.Text;
-                ImageActualize(ImageActualizeAction.REFRESH);
-                _btmSavedRecognizeCopy = RecognizeBitmapCopy;
-                _grFront.Clear(_defaultColor);
-                pbDraw.Refresh();
-                _fileThread.Start();
-                _workWaitThread.Start();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($@"{ex.Message}{Environment.NewLine}Программа будет завершена.", @"Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Process.GetCurrentProcess().Kill();
-            }
-        }
-
-        /// <summary>
         ///     Служит для отображения имени файла карты при изменении выбранной карты.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
@@ -1179,12 +1153,41 @@ namespace DynamicMosaicExample
             {
                 File.Delete(path);
             }
-            catch (DirectoryNotFoundException ex)// точно только об этом исключении сообщать?
+            catch (DirectoryNotFoundException ex)
             {
                 WriteLogMessage(ex.Message);
             }
         }
 
         void TxtWord_TextChanged(object sender, EventArgs e) => SafetyExecute(() => btnSaveRecognizeImage.Enabled = IsQueryChanged);
+
+        /// <summary>
+        ///     Вызывается во время первого отображения формы.
+        ///     Производит инициализацию.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void FrmExample_Shown(object sender, EventArgs e)
+        {
+            try
+            {
+                _savedRecognizeQuery = txtWord.Text;
+                ImageActualize(ImageActualizeAction.REFRESH);
+                _btmSavedRecognizeCopy = RecognizeBitmapCopy;
+                _grFront.Clear(_defaultColor);
+                pbDraw.Refresh();
+                _fileThread.Start();
+                _workWaitThread.Start();
+                fswRecognizeChanged.EnableRaisingEvents = true;
+                fswImageChanged.EnableRaisingEvents = true;
+                fswWorkDirChanged.EnableRaisingEvents = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($@"{ex.Message}{Environment.NewLine}Программа будет завершена.", @"Ошибка",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Process.GetCurrentProcess().Kill();
+            }
+        }
     }
 }

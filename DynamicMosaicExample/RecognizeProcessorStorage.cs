@@ -31,6 +31,7 @@ namespace DynamicMosaicExample
         public override string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(fullPath)}";
 
         public override string ImagesPath => FrmExample.RecognizeImagesPath;
+        public override ProcessorStorageType StorageType => ProcessorStorageType.RECOGNIZE;
 
         /// <summary>
         ///     Сохраняет указанную карту <see cref="Processor" /> на жёсткий диск в формате BMP.
@@ -43,7 +44,7 @@ namespace DynamicMosaicExample
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
             lock (_syncObject)
             {
-                (Processor p, string path) = AddTagToSet(NamesToSave, processor, processor.Tag, null, GetWorkingPath(folderName));
+                (Processor p, string path) = AddTagToSet(NamesToSave, processor, (processor.Tag, null), GetWorkingPath(folderName));
                 Bitmap saveBtm = ImageRect.GetBitmap(p);
                 SaveToFile(saveBtm, path);
                 return (saveBtm, path);

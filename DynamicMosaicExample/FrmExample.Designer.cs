@@ -500,18 +500,21 @@
             // 
             // fswImageChanged
             // 
+            this.fswImageChanged.EnableRaisingEvents = true;
             this.fswImageChanged.IncludeSubdirectories = true;
             this.fswImageChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswImageChanged.SynchronizingObject = this;
             // 
             // fswRecognizeChanged
             // 
+            this.fswRecognizeChanged.EnableRaisingEvents = true;
             this.fswRecognizeChanged.IncludeSubdirectories = true;
             this.fswRecognizeChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswRecognizeChanged.SynchronizingObject = this;
             // 
             // fswWorkDirChanged
             // 
+            this.fswWorkDirChanged.EnableRaisingEvents = true;
             this.fswWorkDirChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
             this.fswWorkDirChanged.SynchronizingObject = this;
             // 
@@ -533,7 +536,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Демонстрационный стенд";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmExample_FormClosing);
-            this.Load += new System.EventHandler(this.FrmExample_Load);
+            this.Shown += new System.EventHandler(this.FrmExample_Shown);
             this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.FrmExample_KeyUp);
             this.grpImages.ResumeLayout(false);
             this.grpImages.PerformLayout();

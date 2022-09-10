@@ -16,25 +16,33 @@ namespace DynamicMosaicExample
     /// </summary>
     internal abstract class ConcurrentProcessorStorage
     {
+        public enum ProcessorStorageType
+        {
+            IMAGE,
+            RECOGNIZE
+        }
+
         public abstract Processor GetAddingProcessor(string fullPath);
 
         public abstract string GetProcessorTag(string fullPath);
 
         public abstract string ImagesPath { get; }
 
+        public abstract ProcessorStorageType StorageType { get; }
+
         protected static string GetImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(GetImagePath)}: Исходный путь образа не указан."), name)}.{FrmExample.ExtImg}";
 
         internal abstract (Bitmap, string) SaveToFile(Processor processor, string folderName);
 
-        protected (Processor processor, string path) AddTagToSet(ISet<string> tagSet, Processor p, string tag, ulong? number, string pathToSave)
+        protected (Processor processor, string path) AddTagToSet(ISet<string> tagSet, Processor p, (string tag, ulong? number) tn, string pathToSave)
         {
             unchecked
             {
-                ulong k = number ?? 0, mk = k;
+                ulong k = tn.number ?? 0, mk = k;
 
                 do
                 {
-                    string t = $@"{tag}{ImageRect.TagSeparatorChar}{k}";
+                    string t = $@"{tn.tag}{ImageRect.TagSeparatorChar}{k}";
 
                     if (!tagSet.Add(t))
                         continue;
@@ -59,8 +67,8 @@ namespace DynamicMosaicExample
                     return (ProcessorHandler.ChangeProcessorTag(p, t), path);
                 } while (++k != mk);
 
-                string n = number == null ? "<пусто>" : number.ToString();
-                throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.Tag} по пути {ImagesPath}, изначальное имя карты {tag}, номер {n}.");
+                string n = tn.number == null ? "<пусто>" : tn.number.ToString();
+                throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.Tag} по пути {ImagesPath}, изначальное имя карты {tn.tag}, номер {n}.");
             }
         }
 
@@ -108,7 +116,7 @@ namespace DynamicMosaicExample
                     foreach (ProcPath p in _dictionaryByPath.Values)
                     {
                         (ulong? number, string strPart) = ImageRect.NameParser(Path.GetFileNameWithoutExtension(p.CurrentPath));
-                        AddTagToSet(tagSet, p.CurrentProcessor, strPart, number, string.Empty);
+                        AddTagToSet(tagSet, p.CurrentProcessor, (strPart, number), string.Empty);
                     }
 
                     return tagSet;
@@ -404,6 +412,16 @@ namespace DynamicMosaicExample
 
                 if (!ph.Elements.Any())
                     _dictionary.Remove(hash);
+            }
+        }
+
+        public void Clear()
+        {
+            lock (_syncObject)
+            {
+                _dictionaryByPath.Clear();
+                _dictionary.Clear();
+                _savedRecognizePath = string.Empty;
             }
         }
 

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using DynamicParser;
@@ -19,6 +18,7 @@ namespace DynamicMosaicExample
         public override string GetProcessorTag(string fullPath) => Path.GetFileNameWithoutExtension(fullPath);
 
         public override string ImagesPath => FrmExample.SearchImagesPath;
+        public override ProcessorStorageType StorageType => ProcessorStorageType.IMAGE;
 
         /// <summary>
         ///     Сохраняет указанную карту <see cref="Processor" /> на жёсткий диск в формате BMP.
@@ -33,7 +33,7 @@ namespace DynamicMosaicExample
             lock (_syncObject)
             {
                 (uint? count, string name) = ImageRect.GetFileNumberByName(processor.Tag);
-                (Processor proc, string resultPath) = AddTagToSet(NamesToSave, processor, name, count, GetWorkingPath(folderName));
+                (Processor proc, string resultPath) = AddTagToSet(NamesToSave, processor, (name, count), GetWorkingPath(folderName));
                 Bitmap saveBtm = ImageRect.GetBitmap(proc);
                 SaveToFile(saveBtm, resultPath);
                 return (saveBtm, resultPath);
