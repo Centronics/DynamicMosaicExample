@@ -14,7 +14,7 @@ namespace DynamicMosaicExample
     /// <summary>
     ///     Класс основной формы приложения.
     /// </summary>
-    internal sealed partial class FrmExample
+    internal sealed partial class FrmExample : Form
     {
         enum ImageActualizeAction
         {
@@ -1068,6 +1068,9 @@ namespace DynamicMosaicExample
         {
             try
             {
+                DisposeWorkDirWatcher();
+                DisposeImageWatcher();
+                DisposeRecognizeWatcher();
                 StopRecognize();
                 _stopBackgroundThreadEventFlag.Set();
                 _needRefreshEvent.Set();
@@ -1178,9 +1181,9 @@ namespace DynamicMosaicExample
                 pbDraw.Refresh();
                 _fileThread.Start();
                 _workWaitThread.Start();
-                fswRecognizeChanged.EnableRaisingEvents = true;
-                fswImageChanged.EnableRaisingEvents = true;
-                fswWorkDirChanged.EnableRaisingEvents = true;
+                CreateImageWatcher();
+                CreateRecognizeWatcher();
+                CreateWorkDirWatcher();
             }
             catch (Exception ex)
             {

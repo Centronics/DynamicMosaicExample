@@ -80,7 +80,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ImageProcessorStorage.cs" />
-    <Compile Include="FrmExamplePart.cs">
+    <Compile Include="FrmExampleTechnical.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="ImageRect.cs" />
@@ -104,6 +104,9 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="FrmExampleStorageManager.cs">
+      <SubType>Form</SubType>
     </Compile>
     <EmbeddedResource Include="FrmExample.resx">
       <DependentUpon>FrmExample.cs</DependentUpon>

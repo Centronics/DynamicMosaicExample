@@ -67,7 +67,7 @@ namespace DynamicMosaicExample
                     return (ProcessorHandler.ChangeProcessorTag(p, t), path);
                 } while (++k != mk);
 
-                string n = tn.number == null ? "<пусто>" : tn.number.ToString();
+                string n = tn.number is null ? "<пусто>" : tn.number.ToString();
                 throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.Tag} по пути {ImagesPath}, изначальное имя карты {tn.tag}, номер {n}.");
             }
         }
@@ -75,12 +75,12 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Коллекция карт, идентифицируемых по хешу.
         /// </summary>
-        readonly Dictionary<int, ProcHash> _dictionary = new Dictionary<int, ProcHash>();
+        readonly Dictionary<int, ProcHash> _dictionaryByHash = new Dictionary<int, ProcHash>();
 
         /// <summary>
         ///     Коллекция карт, идентифицируемых по путям.
         /// </summary>
-        protected readonly Dictionary<string, ProcPath> _dictionaryByPath = new Dictionary<string, ProcPath>();
+        protected readonly Dictionary<string, ProcPath> _dictionaryByKey = new Dictionary<string, ProcPath>();
 
         /// <summary>
         ///     Объект для синхронизации доступа к экземпляру класса <see cref="ConcurrentProcessorStorage" />, с использованием
@@ -99,7 +99,7 @@ namespace DynamicMosaicExample
             {
                 lock (_syncObject)
                 {
-                    foreach (ProcPath p in _dictionaryByPath.Values)
+                    foreach (ProcPath p in _dictionaryByKey.Values)
                         yield return (p.CurrentProcessor, p.CurrentPath);
                 }
             }
@@ -113,7 +113,7 @@ namespace DynamicMosaicExample
                 {
                     HashSet<string> tagSet = new HashSet<string>();
 
-                    foreach (ProcPath p in _dictionaryByPath.Values)
+                    foreach (ProcPath p in _dictionaryByKey.Values)
                     {
                         (ulong? number, string strPart) = ImageRect.NameParser(Path.GetFileNameWithoutExtension(p.CurrentPath));
                         AddTagToSet(tagSet, p.CurrentProcessor, (strPart, number), string.Empty);
@@ -174,7 +174,7 @@ namespace DynamicMosaicExample
             get
             {
                 lock (_syncObject)
-                    return _dictionaryByPath.Count;
+                    return _dictionaryByKey.Count;
             }
         }
 
@@ -194,7 +194,7 @@ namespace DynamicMosaicExample
                     if (index < 0 || index >= Count)
                         return (null, string.Empty, Count);
 
-                    ProcPath pp = _dictionaryByPath.Values.ElementAt(index);
+                    ProcPath pp = _dictionaryByKey.Values.ElementAt(index);
                     return (pp.CurrentProcessor, pp.CurrentPath, Count);
                 }
             }
@@ -215,9 +215,8 @@ namespace DynamicMosaicExample
                     return (null, string.Empty, Count);
                 lock (_syncObject)
                 {
-                    _dictionaryByPath.TryGetValue(fullPath.ToLower(), out ProcPath p);
-                    return (p.CurrentProcessor, string.IsNullOrEmpty(p.CurrentPath) ? string.Empty : p.CurrentPath,
-                        Count);
+                    _dictionaryByKey.TryGetValue(GetStringKey(fullPath), out ProcPath p);
+                    return (p.CurrentProcessor, p.CurrentPath, Count);
                 }
             }
         }
@@ -243,7 +242,7 @@ namespace DynamicMosaicExample
                 throw;
             }
 
-            int hashCode = CRCIntCalc.GetHash(addingProcessor);
+            int hashCode = GetHashKey(addingProcessor);
             lock (_syncObject)
                 AddElement(hashCode, fullPath, addingProcessor);
         }
@@ -285,15 +284,15 @@ namespace DynamicMosaicExample
         /// <param name="processor">Добавляемая карта <see cref="Processor" />.</param>
         void AddElement(int hashCode, string fullPath, Processor processor)
         {
-            string fPath = fullPath.ToLower();
-            if (_dictionaryByPath.ContainsKey(fPath))
+            string key = GetStringKey(fullPath);
+            if (_dictionaryByKey.ContainsKey(key))
                 RemoveProcessor(fullPath);
 
-            _dictionaryByPath.Add(fPath, new ProcPath(processor, fullPath));
-            if (_dictionary.TryGetValue(hashCode, out ProcHash ph))
+            _dictionaryByKey.Add(key, new ProcPath(processor, fullPath));
+            if (_dictionaryByHash.TryGetValue(hashCode, out ProcHash ph))
                 ph.AddProcessor(new ProcPath(processor, fullPath));
             else
-                _dictionary.Add(hashCode, new ProcHash(new ProcPath(processor, fullPath)));
+                _dictionaryByHash.Add(hashCode, new ProcHash(new ProcPath(processor, fullPath)));
         }
 
         /// <summary>
@@ -369,9 +368,7 @@ namespace DynamicMosaicExample
                 if (string.IsNullOrEmpty(_savedRecognizePath))
                     return;
 
-                RemoveProcessor(this[_savedRecognizePath.ToLower()].processor);
-
-                _savedRecognizePath = string.Empty;
+                RemoveProcessor(this[GetStringKey(_savedRecognizePath)].processor);
             }
         }
 
@@ -382,8 +379,27 @@ namespace DynamicMosaicExample
         /// <param name="fullPath">Полный путь к карте <see cref="Processor" />, которую необходимо удалить из коллекции.</param>
         internal void RemoveProcessor(string fullPath)
         {
+            if (string.IsNullOrEmpty(fullPath))
+                return;
+
             lock (_syncObject)
-                RemoveProcessor(this[fullPath?.ToLower()].processor);
+                RemoveProcessor(this[GetStringKey(fullPath)].processor);
+        }
+
+        static string GetStringKey(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                throw new ArgumentException(@"Для получения ключа карты необходимо указать путь к ней.", nameof(path));
+
+            return path.ToLower();
+        }
+
+        static int GetHashKey(Processor processor)
+        {
+            if (processor is null)
+                throw new ArgumentNullException(nameof(processor), @"Для получения хеша карты необходимо её указать.");
+
+            return CRCIntCalc.GetHash(processor);
         }
 
         /// <summary>
@@ -394,24 +410,27 @@ namespace DynamicMosaicExample
         {
             if (processor is null)
                 return;
-            int hash = CRCIntCalc.GetHash(processor);
+            int hashCode = GetHashKey(processor);
             lock (_syncObject)
             {
-                if (!_dictionary.TryGetValue(hash, out ProcHash ph))
+                if (!_dictionaryByHash.TryGetValue(hashCode, out ProcHash ph))
                     return;
                 int index = 0;
                 foreach (ProcPath px in ph.Elements)
                     if (ReferenceEquals(processor, px.CurrentProcessor))
                     {
-                        _dictionaryByPath.Remove(ph[index].CurrentPath.ToLower());
+                        string path = ph[index].CurrentPath;
+                        _dictionaryByKey.Remove(GetStringKey(path));
                         ph.RemoveProcessor(index);
+                        if (string.Compare(path, _savedRecognizePath, StringComparison.OrdinalIgnoreCase) == 0)
+                            _savedRecognizePath = string.Empty;
                         break;
                     }
                     else
                         index++;
 
                 if (!ph.Elements.Any())
-                    _dictionary.Remove(hash);
+                    _dictionaryByHash.Remove(hashCode);
             }
         }
 
@@ -419,8 +438,8 @@ namespace DynamicMosaicExample
         {
             lock (_syncObject)
             {
-                _dictionaryByPath.Clear();
-                _dictionary.Clear();
+                _dictionaryByKey.Clear();
+                _dictionaryByHash.Clear();
                 _savedRecognizePath = string.Empty;
             }
         }

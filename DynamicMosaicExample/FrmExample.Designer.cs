@@ -66,9 +66,6 @@
             this.btnConNext = new System.Windows.Forms.Button();
             this.pbConSymbol = new System.Windows.Forms.PictureBox();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
-            this.fswImageChanged = new System.IO.FileSystemWatcher();
-            this.fswRecognizeChanged = new System.IO.FileSystemWatcher();
-            this.fswWorkDirChanged = new System.IO.FileSystemWatcher();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
             this.grpResults.SuspendLayout();
@@ -78,9 +75,6 @@
             ((System.ComponentModel.ISupportInitialize)(this.pbSuccess)).BeginInit();
             this.grpContains.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.fswImageChanged)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.fswRecognizeChanged)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.fswWorkDirChanged)).BeginInit();
             this.SuspendLayout();
             // 
             // btnRecognizeImage
@@ -498,26 +492,6 @@
             // 
             this.dlgOpenImage.Filter = "BMP|*.bmp";
             // 
-            // fswImageChanged
-            // 
-            this.fswImageChanged.EnableRaisingEvents = true;
-            this.fswImageChanged.IncludeSubdirectories = true;
-            this.fswImageChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
-            this.fswImageChanged.SynchronizingObject = this;
-            // 
-            // fswRecognizeChanged
-            // 
-            this.fswRecognizeChanged.EnableRaisingEvents = true;
-            this.fswRecognizeChanged.IncludeSubdirectories = true;
-            this.fswRecognizeChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
-            this.fswRecognizeChanged.SynchronizingObject = this;
-            // 
-            // fswWorkDirChanged
-            // 
-            this.fswWorkDirChanged.EnableRaisingEvents = true;
-            this.fswWorkDirChanged.NotifyFilter = System.IO.NotifyFilters.FileName;
-            this.fswWorkDirChanged.SynchronizingObject = this;
-            // 
             // FrmExample
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -551,9 +525,6 @@
             this.grpContains.ResumeLayout(false);
             this.grpContains.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.fswImageChanged)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.fswRecognizeChanged)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.fswWorkDirChanged)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -593,13 +564,10 @@
         private System.Windows.Forms.TextBox txtConSymbol;
         private System.Windows.Forms.Button btnConSaveImage;
         private System.Windows.Forms.Button btnConSaveAllImages;
-        private System.IO.FileSystemWatcher fswImageChanged;
         private System.Windows.Forms.Button btnDeleteRecognizeImage;
         private System.Windows.Forms.Button btnPrevRecogImage;
         private System.Windows.Forms.Button btnNextRecogImage;
-        private System.IO.FileSystemWatcher fswRecognizeChanged;
         private System.Windows.Forms.Button btnImageUpToQueries;
-        private System.IO.FileSystemWatcher fswWorkDirChanged;
     }
 }
 
