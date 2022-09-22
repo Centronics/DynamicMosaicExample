@@ -32,12 +32,14 @@ namespace DynamicMosaicExample
 
         protected static string GetImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(GetImagePath)}: Исходный путь образа не указан."), name)}.{FrmExample.ExtImg}";
 
-        internal abstract (Bitmap, string) SaveToFile(Processor processor, string folderName);
+        internal abstract (Bitmap, string) SaveToFile(Processor processor, string relativeFolderPath);
 
         protected (Processor processor, string path) AddTagToSet(ISet<string> tagSet, Processor p, (string tag, ulong? number) tn, string pathToSave)
         {
             unchecked
             {
+                bool isDirectory = CreateWorkingPath(ref pathToSave);
+
                 ulong k = tn.number ?? 0, mk = k;
 
                 do
@@ -49,20 +51,10 @@ namespace DynamicMosaicExample
 
                     string path;
 
-
                     if (string.IsNullOrEmpty(pathToSave))
-                    {
                         path = GetImagePath(ImagesPath, t);
-                    }
                     else
-                    {
-                        if (IsDirectorySeparatorSymbol(pathToSave[pathToSave.Length - 1]))
-                        {
-                            path = GetImagePath(pathToSave, t);
-                        }
-                        else
-                            path = pathToSave;
-                    }
+                        path = isDirectory ? GetImagePath(pathToSave, t) : pathToSave;
 
                     return (ProcessorHandler.ChangeProcessorTag(p, t), path);
                 } while (++k != mk);
@@ -70,6 +62,18 @@ namespace DynamicMosaicExample
                 string n = tn.number is null ? "<пусто>" : tn.number.ToString();
                 throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.Tag} по пути {ImagesPath}, изначальное имя карты {tn.tag}, номер {n}.");
             }
+        }
+
+        public string CombinePaths(string folderName, string fileName) => Path.Combine(ImagesPath, ReplaceInvalidPathChars(folderName), ReplaceInvalidPathChars(fileName));
+
+        static string ReplaceInvalidPathChars(string path)
+        {
+            HashSet<char> lstChars = new HashSet<char>(Path.GetInvalidFileNameChars());
+
+            foreach (char c in Path.GetInvalidPathChars())
+                lstChars.Add(c);
+
+            return lstChars.Aggregate(path, (current, c) => current.Replace(c, '_'));
         }
 
         /// <summary>
@@ -147,23 +151,29 @@ namespace DynamicMosaicExample
             return path;
         }
 
-        public string GetWorkingPath(string folderName)
+        public bool CreateWorkingPath(ref string relativeFolderPath)
         {
-            if (string.IsNullOrEmpty(folderName))
-                return string.Empty;
+            if (string.IsNullOrEmpty(relativeFolderPath))
+            {
+                relativeFolderPath = string.Empty;
+                return false;
+            }
 
-            if (!IsWorkingPath(folderName))
-                throw new ArgumentException($@"Необходимо нахождение пути в рабочем каталоге ({ImagesPath})", nameof(folderName));
+            if (!IsWorkingPath(relativeFolderPath))
+                throw new ArgumentException($@"Необходимо нахождение пути в рабочем каталоге ({ImagesPath})", nameof(relativeFolderPath));
 
-            string ext = Path.GetExtension(folderName);
+            string ext = Path.GetExtension(relativeFolderPath);
 
             if (string.IsNullOrEmpty(ext))
-                return AddEndingSlash(folderName);
+            {
+                Directory.CreateDirectory(relativeFolderPath = AddEndingSlash(relativeFolderPath));
+                return true;
+            }
 
             if (string.Compare(ext, $".{FrmExample.ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
-                throw new ArgumentException($@"Необходимо, чтобы путь вёл к файлу с требуемым расширением ({FrmExample.ExtImg})", nameof(folderName));
+                throw new ArgumentException($@"Необходимо, чтобы путь вёл к файлу с требуемым расширением ({FrmExample.ExtImg})", nameof(relativeFolderPath));
 
-            return folderName;
+            return false;
         }
 
         /// <summary>

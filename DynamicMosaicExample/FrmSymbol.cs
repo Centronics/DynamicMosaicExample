@@ -46,14 +46,14 @@ namespace DynamicMosaicExample
         ///     Хранит загруженные карты, которые требуется искать на основной карте.
         ///     Предназначена для использования несколькими потоками одновременно.
         /// </summary>
-        readonly ConcurrentProcessorStorage _imagesProcessorStorage;
+        readonly ImageProcessorStorage _imageProcessorStorage;
 
         /// <summary>
         ///     Конструктор формы ввода нового искомого символа.
         /// </summary>
-        internal FrmSymbol(ConcurrentProcessorStorage imagesProcessorStorage)
+        internal FrmSymbol(ImageProcessorStorage imageProcessorStorage)
         {
-            _imagesProcessorStorage = imagesProcessorStorage ?? throw new ArgumentNullException(nameof(imagesProcessorStorage), @"Хранилище карт должно быть указано.");
+            _imageProcessorStorage = imageProcessorStorage ?? throw new ArgumentNullException(nameof(imageProcessorStorage), @"Хранилище карт должно быть указано.");
             InitializeComponent();
             _btmFront = new Bitmap(pbBox.Width, pbBox.Height);
             _grFront = Graphics.FromImage(_btmFront);
@@ -123,7 +123,7 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            _imagesProcessorStorage.SaveToFile(new Processor(_btmFront, txtSymbol.Text[0].ToString()), string.Empty);
+            _imageProcessorStorage.SaveToFile(new Processor(_btmFront, txtSymbol.Text[0].ToString()));
             DialogResult = DialogResult.OK;
         });
 

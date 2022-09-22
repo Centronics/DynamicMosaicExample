@@ -116,6 +116,54 @@ namespace DynamicMosaicExample
             }));
         }
 
+        void RenamedThreadFunction(string oldFullPath, string newFullPath, SourceChanged source, ConcurrentProcessorStorage oldStorage)
+        {
+            ConcurrentProcessorStorage newStor = GetStorage(source, newFullPath);
+
+            if (source == SourceChanged.WORKDIR)
+            {
+                RestartStorages(oldStorage, false);
+                NeedRemoveStorage(oldStorage);
+
+                RestartStorages(newStor, true);
+                NeedCreate(newFullPath, newStor);
+            }
+            else
+            {
+                NeedRemove(oldFullPath, oldStorage);
+                NeedCreate(newFullPath, newStor);
+            }
+
+            _needRefreshEvent.Set();
+        }
+
+        void ChangedThreadFunction(WatcherChangeTypes type, string fullPath, ConcurrentProcessorStorage storage, SourceChanged source)
+        {
+            switch (type)
+            {
+                case WatcherChangeTypes.Deleted:
+                    if (source == SourceChanged.WORKDIR)
+                        RestartStorages(storage, false);
+                    else
+                        NeedRemove(fullPath, storage);
+                    _needRefreshEvent.Set();
+                    return;
+                case WatcherChangeTypes.Created:
+                    if (source == SourceChanged.WORKDIR)
+                        RestartStorages(storage, true);
+                    else
+                        NeedCreate(fullPath, storage);
+                    _needRefreshEvent.Set();
+                    return;
+                case WatcherChangeTypes.Changed:
+                case WatcherChangeTypes.Renamed:
+                case WatcherChangeTypes.All:
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(type), type, $@"{nameof(ChangedThreadFunction)}: Неизвестный тип изменения.");
+            }
+        }
+
         void OnChanged(FileSystemEventArgs e, SourceChanged source) => SafetyExecute(() =>
         {
             if (string.IsNullOrWhiteSpace(e.FullPath))
@@ -123,30 +171,12 @@ namespace DynamicMosaicExample
 
             ConcurrentProcessorStorage storage = GetStorage(source, e.FullPath);
 
+            if (storage == null)
+                return;
+
             if (string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
             {
-                ThreadPool.QueueUserWorkItem(state => SafetyExecute(() =>
-                {
-                    (WatcherChangeTypes type, string fullPath, ConcurrentProcessorStorage stg) = ((WatcherChangeTypes, string, ConcurrentProcessorStorage))state;
-
-                    switch (type)
-                    {
-                        case WatcherChangeTypes.Deleted:
-                            if (source == SourceChanged.WORKDIR)
-                                RestartStorages(storage, false);
-                            else
-                                NeedRemove(fullPath, stg);
-                            _needRefreshEvent.Set();
-                            return;
-                        case WatcherChangeTypes.Created:
-                            if (source == SourceChanged.WORKDIR)
-                                RestartStorages(storage, true);
-                            else
-                                NeedCreate(fullPath, stg);
-                            _needRefreshEvent.Set();
-                            return;
-                    }
-                }), (e.ChangeType, e.FullPath, storage));
+                ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => ChangedThreadFunction(e.ChangeType, e.FullPath, storage, source)));
                 return;
             }
 
@@ -166,34 +196,7 @@ namespace DynamicMosaicExample
 
             if (!renamedTo && !renamedFrom)
             {
-                ThreadPool.QueueUserWorkItem(state => SafetyExecute(() =>
-                {
-                    (string oldFullPath, string newFullPath, SourceChanged src, bool isWorkDir, ConcurrentProcessorStorage oldStor) = ((string, string, SourceChanged, bool, ConcurrentProcessorStorage))state;
-
-                    ConcurrentProcessorStorage newStor = GetStorage(src, newFullPath);
-
-                    if (isWorkDir)
-                    {
-                        if (oldStor != null)
-                        {
-                            RestartStorages(oldStor, false);
-                            NeedRemoveStorage(oldStor);
-                        }
-
-                        if (newStor != null)
-                        {
-                            RestartStorages(newStor, true);
-                            NeedCreate(newFullPath, newStor);
-                        }
-                    }
-                    else
-                    {
-                        NeedRemove(oldFullPath, oldStor);
-                        NeedCreate(newFullPath, newStor);
-                    }
-
-                    _needRefreshEvent.Set();
-                }), (e.OldFullPath, e.FullPath, source, source == SourceChanged.WORKDIR, oldStorage));
+                ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => RenamedThreadFunction(e.OldFullPath, e.FullPath, source, oldStorage)));
                 return;
             }
 

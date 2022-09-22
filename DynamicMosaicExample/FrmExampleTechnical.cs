@@ -162,7 +162,7 @@ namespace DynamicMosaicExample
         ///     Хранит загруженные карты, которые требуется искать на основной карте.
         ///     Предназначена для использования несколькими потоками одновременно.
         /// </summary>
-        readonly ConcurrentProcessorStorage _imagesProcessorStorage = new ImageProcessorStorage();
+        readonly ImageProcessorStorage _imagesProcessorStorage = new ImageProcessorStorage();
 
 
         readonly RecognizeProcessorStorage _recognizeProcessorStorage;

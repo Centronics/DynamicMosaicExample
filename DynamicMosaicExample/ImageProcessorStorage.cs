@@ -25,7 +25,7 @@ namespace DynamicMosaicExample
         ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
-        internal override (Bitmap, string) SaveToFile(Processor processor, string folderName)
+        internal override (Bitmap, string) SaveToFile(Processor processor, string relativeFolderPath)
         {
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
@@ -33,11 +33,15 @@ namespace DynamicMosaicExample
             lock (_syncObject)
             {
                 (uint? count, string name) = ImageRect.GetFileNumberByName(processor.Tag);
-                (Processor proc, string resultPath) = AddTagToSet(NamesToSave, processor, (name, count), GetWorkingPath(folderName));
+                (Processor proc, string resultPath) = AddTagToSet(NamesToSave, processor, (name, count), relativeFolderPath);
                 Bitmap saveBtm = ImageRect.GetBitmap(proc);
                 SaveToFile(saveBtm, resultPath);
                 return (saveBtm, resultPath);
             }
         }
+
+        internal void SaveToFile(Processor processor, string folderName, string fileName) => SaveToFile(processor, CombinePaths(folderName, fileName));
+
+        internal void SaveToFile(Processor processor) => SaveToFile(processor, string.Empty);
     }
 }

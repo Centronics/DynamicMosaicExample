@@ -1040,11 +1040,7 @@ namespace DynamicMosaicExample
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
-        {
-            //Directory.CreateDirectory(path);
-            _imagesProcessorStorage.SaveToFile(SelectedResult.processors[SelectedResult.reflexMapIndex],
-                    SelectedResult.systemName);
-        });
+            _imagesProcessorStorage.SaveToFile(SelectedResult.processors[SelectedResult.reflexMapIndex], SelectedResult.systemName, SelectedResult.reflexMapIndex.ToString()));
 
         /// <summary>
         ///     Сохраняет все карты <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.
@@ -1053,9 +1049,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            //Directory.CreateDirectory(path);
-            foreach (Processor p in SelectedResult.processors)
-                _imagesProcessorStorage.SaveToFile(p, SelectedResult.systemName);
+            for (int k = 0; k < SelectedResult.processors.Length; k++)
+                _imagesProcessorStorage.SaveToFile(SelectedResult.processors[k], SelectedResult.systemName, k.ToString());
         });
 
         /// <summary>
