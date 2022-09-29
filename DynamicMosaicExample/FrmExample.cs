@@ -34,8 +34,8 @@ namespace DynamicMosaicExample
         {
             void CommonMethod()
             {
-                _grFront?.Dispose();
-                _grFront = Graphics.FromImage(_btmRecognizeImage);
+                _grRecognizeImage?.Dispose();
+                _grRecognizeImage = Graphics.FromImage(_btmRecognizeImage);
 
                 pbDraw.Image = _btmRecognizeImage;
                 pbSuccess.Image = Resources.Unk_128;
@@ -117,7 +117,7 @@ namespace DynamicMosaicExample
                         CommonMethod();
 
                         if (needReset)
-                            _grFront.Clear(_defaultColor);
+                            _grRecognizeImage.Clear(_defaultColor);
 
                         btnSaveRecognizeImage.Enabled = IsQueryChanged;
                         btnClearImage.Enabled = IsPainting;
@@ -413,129 +413,176 @@ namespace DynamicMosaicExample
             txtSymbolPath.Enabled = imageCount > 0;
             pbBrowse.Enabled = imageCount > 0;
 
-            if (_needInitRecognizeImage)
-            {
-                _needInitRecognizeImage = false;
-                (Processor processor, string path, int count) = _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex);
-                if (processor != null && count > 0)
-                    ImageActualize(ImageActualizeAction.LOAD, path);
+            (Processor processor, string path, int count) = _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex);
 
-                btnPrevRecogImage.Enabled = count > 1;
-                btnNextRecogImage.Enabled = count > 0;
+            try
+            {
+                if (_needInitRecognizeImage && count > 0 && !IsQueryChanged)
+                {
+                    if (processor != null)
+                        ImageActualize(ImageActualizeAction.LOAD, path);
+
+                    btnPrevRecogImage.Enabled = count > 1;
+                    btnNextRecogImage.Enabled = true;
+
+                    SavedPathInfoActualize(false);
+
+                    UpdateRecognizeCount(count);
+
+                    return;
+                }
+
+                if (!_needInitRecognizeImage && count <= 0 && !IsQueryChanged)
+                {
+                    _savedRecognizeQuery = string.Empty;
+                    txtWord.Text = string.Empty;
+
+                    _currentState.CriticalChange(null, null);
+                    ImageActualize(ImageActualizeAction.REFRESH);
+                    _grRecognizeImage.Clear(_defaultColor);
+                    pbDraw.Refresh();
+                    _btmSavedRecognizeCopy = RecognizeBitmapCopy;
+                }
 
                 SavedPathInfoActualize(count < 1);
 
                 UpdateRecognizeCount(count);
 
-                return;
+                btnPrevRecogImage.Enabled = count > 1;
+                btnNextRecogImage.Enabled = count > 0;
             }
-
-            int c = _recognizeProcessorStorage.Count;
-
-            SavedPathInfoActualize(c < 1);
-
-            UpdateRecognizeCount(c);
-
-            btnPrevRecogImage.Enabled = c > 1;
-            btnNextRecogImage.Enabled = c > 0;
+            finally
+            {
+                _needInitRecognizeImage = count <= 0;
+            }
         });
 
         void UpdateRecognizeCount(int count) => grpWords.Text =
             count > 0 ? $@"{_grpWordsDefaultValue} ({unchecked(_currentRecognizeProcIndex + 1)} / {count})" : _grpWordsDefaultValue;
 
         /// <summary>
-        ///     Создаёт новый поток для отображения статуса фоновой операции, в случае, если поток (<see cref="_workWaitThread" />)
-        ///     не выполняется.
-        ///     Созданный поток находится в состояниях <see cref="ThreadState.Unstarted" /> и
-        ///     <see cref="ThreadState.Background" />.
-        ///     Возвращает экземпляр созданного потока или <see langword="null" />, в случае, если этот поток выполняется.
+        ///     Создаёт новый поток для отображения статуса фоновых операций, в случае, если поток (<see cref="_userInterfaceThread" />)
+        ///     не существует.
+        ///     Созданный поток находится в состояниях <see cref="ThreadState.Running" /> и <see cref="ThreadState.Background" />.
+        ///     Возвращает экземпляр созданного потока или исключение <see cref="InvalidOperationException"/>, в случае, если этот поток уже был создан.
         /// </summary>
-        /// <returns>Возвращает экземпляр созданного потока или <see langword="null" />, в случае, если этот поток выполняется.</returns>
-        Thread CreateWaitThread() => new Thread(() => SafetyExecute(() =>
+        /// <returns>Возвращает экземпляр созданного потока или исключение <see cref="InvalidOperationException"/>, в случае, если этот поток уже был создан.</returns>
+        void InitializeUserInterface()
         {
-            WaitHandle[] waitHandles = { _fileActivity, _recognizerActivity, _preparingActivity };
-            Stopwatch stwRenew = new Stopwatch();
-            for (int k = 0; k < 4; k++)
+            if (_userInterfaceThread != null)
+                throw new InvalidOperationException($@"Попытка вызвать метод {nameof(InitializeUserInterface)} в то время, когда поток {nameof(_userInterfaceThread)} уже существует.");
+
+            Thread thread = new Thread(() => SafetyExecute(() =>
             {
-                if (WaitHandle.WaitAny(waitHandles, 0) == WaitHandle.WaitTimeout)
+                WaitHandle[] waitHandles = { _fileActivity, _recognizerActivity, _preparingActivity };
+                Stopwatch stwRenew = new Stopwatch();
+                bool initializeUserInterface = false;
+                for (int k = 0; k < 4; k++)
                 {
-                    stwRenew.Reset();
-                    InvokeAction(() =>
+                    if (WaitHandle.WaitAny(waitHandles, 0) == WaitHandle.WaitTimeout)
                     {
-                        btnRecognizeImage.Text = _strRecog;
+                        stwRenew.Reset();
+                        InvokeAction(() =>
+                        {
+                            btnRecognizeImage.Text = _strRecog;
+                            EnableButtons = true;
+                            RefreshImagesCount();
+                            txtWord.Select();
+
+                            if (initializeUserInterface)
+                                return;
+
+                            initializeUserInterface = true;
+
+                            CreateFileRefreshThread();
+
+                            CreateImageWatcher();
+                            CreateRecognizeWatcher();
+                            CreateWorkDirWatcher();
+                        });
+
+                        WaitHandle.WaitAny(waitHandles);
+                    }
+
+                    if (NeedStopBackground)
+                        return;
+
+                    if (!IsRecognizing)
                         EnableButtons = true;
+
+                    stwRenew.Start();
+                    if (stwRenew.ElapsedMilliseconds >= 2000 && IsFileActivity)
+                    {
                         RefreshImagesCount();
-                        txtWord.Select();
-                    });
-                    WaitHandle.WaitAny(waitHandles);
+                        stwRenew.Restart();
+                    }
+
+                    switch (k)
+                    {
+                        case 0:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text =
+                                    IsRecognizing ? StrRecognize :
+                                    IsPreparingActivity ? StrPreparing :
+                                    IsFileActivity ? StrLoading : _strRecog;
+                                TimeSpan ts = _stwRecognize.Elapsed;
+                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+                            });
+                            Thread.Sleep(100);
+                            break;
+                        case 1:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text =
+                                    IsRecognizing ? StrRecognize1 :
+                                    IsPreparingActivity ? StrPreparing1 :
+                                    IsFileActivity ? StrLoading1 : _strRecog;
+                                TimeSpan ts = _stwRecognize.Elapsed;
+                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+                            });
+                            Thread.Sleep(100);
+                            break;
+                        case 2:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text =
+                                    IsRecognizing ? StrRecognize2 :
+                                    IsPreparingActivity ? StrPreparing2 :
+                                    IsFileActivity ? StrLoading2 : _strRecog;
+                                TimeSpan ts = _stwRecognize.Elapsed;
+                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+                            });
+                            Thread.Sleep(100);
+                            break;
+                        case 3:
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Text =
+                                    IsRecognizing ? StrRecognize3 :
+                                    IsPreparingActivity ? StrPreparing3 :
+                                    IsFileActivity ? StrLoading3 : _strRecog;
+                                TimeSpan ts = _stwRecognize.Elapsed;
+                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+                            });
+                            Thread.Sleep(100);
+                            k = -1;
+                            break;
+                        default:
+                            k = -1;
+                            break;
+                    }
                 }
+            }))
+            {
+                IsBackground = true,
+                Name = "WaitThread"
+            };
 
-                if (NeedStopBackground)
-                    return;
+            thread.Start();
 
-                if (!IsRecognizing)
-                    EnableButtons = true;
-
-                stwRenew.Start();
-                if (stwRenew.ElapsedMilliseconds >= 2000 && IsFileActivity)
-                {
-                    RefreshImagesCount();
-                    stwRenew.Restart();
-                }
-
-                switch (k)
-                {
-                    case 0:
-                        InvokeAction(() =>
-                        {
-                            btnRecognizeImage.Text =
-                                IsRecognizing ? StrRecognize : IsPreparingActivity ? StrPreparing : IsFileActivity ? StrLoading : _strRecog;
-                            TimeSpan ts = _stwRecognize.Elapsed;
-                            lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
-                        });
-                        Thread.Sleep(100);
-                        break;
-                    case 1:
-                        InvokeAction(() =>
-                        {
-                            btnRecognizeImage.Text =
-                                IsRecognizing ? StrRecognize1 : IsPreparingActivity ? StrPreparing1 : IsFileActivity ? StrLoading1 : _strRecog;
-                            TimeSpan ts = _stwRecognize.Elapsed;
-                            lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
-                        });
-                        Thread.Sleep(100);
-                        break;
-                    case 2:
-                        InvokeAction(() =>
-                        {
-                            btnRecognizeImage.Text =
-                                IsRecognizing ? StrRecognize2 : IsPreparingActivity ? StrPreparing2 : IsFileActivity ? StrLoading2 : _strRecog;
-                            TimeSpan ts = _stwRecognize.Elapsed;
-                            lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
-                        });
-                        Thread.Sleep(100);
-                        break;
-                    case 3:
-                        InvokeAction(() =>
-                        {
-                            btnRecognizeImage.Text =
-                                IsRecognizing ? StrRecognize3 : IsPreparingActivity ? StrPreparing3 : IsFileActivity ? StrLoading3 : _strRecog;
-                            TimeSpan ts = _stwRecognize.Elapsed;
-                            lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
-                        });
-                        Thread.Sleep(100);
-                        k = -1;
-                        break;
-                    default:
-                        k = -1;
-                        break;
-                }
-            }
-        }))
-        {
-            IsBackground = true,
-            Name = "WaitThread"
-        };
+            _userInterfaceThread = thread;
+        }
 
         Bitmap RecognizeBitmapCopy
         {
@@ -732,7 +779,7 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        ///     Рисует точку в указанном месте на <see cref="pbDraw" /> с применением <see cref="_grFront" />.
+        ///     Рисует точку в указанном месте на <see cref="pbDraw" /> с применением <see cref="_grRecognizeImage" />.
         /// </summary>
         /// <param name="x">Координата Х.</param>
         /// <param name="y">Координата Y.</param>
@@ -743,10 +790,10 @@ namespace DynamicMosaicExample
             switch (button)
             {
                 case MouseButtons.Left:
-                    _grFront.DrawRectangle(_blackPen, new Rectangle(x, y, 1, 1));
+                    _grRecognizeImage.DrawRectangle(_blackPen, new Rectangle(x, y, 1, 1));
                     break;
                 case MouseButtons.Right:
-                    _grFront.DrawRectangle(_whitePen, new Rectangle(x, y, 1, 1));
+                    _grRecognizeImage.DrawRectangle(_whitePen, new Rectangle(x, y, 1, 1));
                     break;
             }
         }, () => pbDraw.Refresh());
@@ -758,7 +805,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnClearImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            _grFront.Clear(_defaultColor);
+            _grRecognizeImage.Clear(_defaultColor);
             btnClearImage.Enabled = IsPainting;
             btnSaveRecognizeImage.Enabled = IsQueryChanged;
         }, () => pbDraw.Refresh());
@@ -1064,15 +1111,15 @@ namespace DynamicMosaicExample
             try
             {
                 DisposeWorkDirWatcher();
-                DisposeImageWatcher();
                 DisposeRecognizeWatcher();
+                DisposeImageWatcher();
                 StopRecognize();
                 _stopBackgroundThreadEventFlag.Set();
                 _needRefreshEvent.Set();
                 _fileActivity.Set();
                 _recognizerActivity.Set();
-                _fileThread?.Join();
-                _workWaitThread?.Join();
+                _fileRefreshThread?.Join();
+                _userInterfaceThread?.Join();
             }
             catch (Exception ex)
             {
@@ -1171,14 +1218,10 @@ namespace DynamicMosaicExample
             {
                 _savedRecognizeQuery = txtWord.Text;
                 ImageActualize(ImageActualizeAction.REFRESH);
-                _btmSavedRecognizeCopy = RecognizeBitmapCopy;
-                _grFront.Clear(_defaultColor);
                 pbDraw.Refresh();
-                _fileThread.Start();
-                _workWaitThread.Start();
-                CreateImageWatcher();
-                CreateRecognizeWatcher();
-                CreateWorkDirWatcher();
+                _btmSavedRecognizeCopy = RecognizeBitmapCopy;
+
+                InitializeUserInterface();
             }
             catch (Exception ex)
             {

@@ -143,7 +143,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Поток, отвечающий за актуализацию содержимого карт <see cref="Processor" />.
         /// </summary>
-        readonly Thread _fileThread;
+        Thread _fileRefreshThread;
 
         /// <summary>
         ///     Отражает статус работы потока, который служит для получения всех имеющихся на данный момент образов букв для
@@ -212,7 +212,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Поток, отвечающий за отображение процесса ожидания завершения операции.
         /// </summary>
-        readonly Thread _workWaitThread;
+        Thread _userInterfaceThread;
 
         /// <summary>
         ///     Изображение, которое выводится в окне создания распознаваемого изображения.
@@ -239,7 +239,7 @@ namespace DynamicMosaicExample
 
         int _currentRecognizeProcIndex;
 
-        bool _needInitRecognizeImage = true;
+        bool _needInitRecognizeImage;
 
         /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
@@ -252,7 +252,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Поверхность рисования в окне создания распознаваемого изображения.
         /// </summary>
-        Graphics _grFront;
+        Graphics _grRecognizeImage;
 
         /// <summary>
         ///     Сигнал остановки потокам, работающим на фоне.
@@ -298,8 +298,6 @@ namespace DynamicMosaicExample
                 btnClearImage.Click += _currentState.CriticalChange;
                 btnLoadRecognizeImage.Click += _currentState.CriticalChange;
                 txtWord.TextChanged += _currentState.WordChange;
-                _fileThread = CreateFileRefreshThread();
-                _workWaitThread = CreateWaitThread();
             }
             catch (Exception ex)
             {
@@ -489,7 +487,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Создаёт новый поток для обновления списка файлов изображений, в случае, если поток (<see cref="_fileThread" />) не
+        ///     Создаёт новый поток для обновления списка файлов изображений, в случае, если поток (<see cref="_fileRefreshThread" />) не
         ///     выполняется.
         ///     Созданный поток находится в состояниях <see cref="System.Threading.ThreadState.Unstarted" /> и <see cref="System.Threading.ThreadState.Background" />.
         ///     Поток служит для получения всех имеющихся на данный момент образов букв для распознавания, в том числе, для
@@ -497,12 +495,12 @@ namespace DynamicMosaicExample
         ///     Возвращает экземпляр созданного потока или <see langword="null" />, в случае, этот поток выполняется.
         /// </summary>
         /// <returns>Возвращает экземпляр созданного потока или <see langword="null" />, в случае, этот поток выполняется.</returns>
-        Thread CreateFileRefreshThread()
+        void CreateFileRefreshThread()
         {
-            if (IsFileActivity)
-                return null;
+            if (_fileRefreshThread != null)
+                throw new InvalidOperationException($@"Попытка вызвать метод {nameof(CreateFileRefreshThread)} в то время, когда поток {nameof(_fileRefreshThread)} уже существует.");
 
-            return new Thread(() => SafetyExecute(() =>
+            Thread thread = new Thread(() => SafetyExecute(() =>
             {
                 try
                 {
@@ -514,27 +512,30 @@ namespace DynamicMosaicExample
                         ThreadPool.GetMaxThreads(out _, out int comPortMax);
                         ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
 
-                        void Execute(ConcurrentProcessorStorage storage, string searchPath) => SafetyExecute(() => Parallel.ForEach(Directory.EnumerateFiles(searchPath, $"*.{ExtImg}", SearchOption.AllDirectories), (fullPath, state) =>
-                        {
-                            try
-                            {
-                                if (NeedStopBackground || state.IsStopped)
+                        void Execute(ConcurrentProcessorStorage storage, string searchPath) => SafetyExecute(() =>
+                            Parallel.ForEach(
+                                Directory.EnumerateFiles(searchPath, $"*.{ExtImg}", SearchOption.AllDirectories),
+                                (fullPath, state) =>
                                 {
-                                    state.Stop();
-                                    return;
-                                }
+                                    try
+                                    {
+                                        if (NeedStopBackground || state.IsStopped)
+                                        {
+                                            state.Stop();
+                                            return;
+                                        }
 
-                                if (!string.IsNullOrWhiteSpace(fullPath) &&
-                                    string.Compare(Path.GetExtension(fullPath), $".{ExtImg}",
-                                        StringComparison.OrdinalIgnoreCase) == 0)
-                                    ExceptionClause(() => storage.AddProcessor(fullPath),
-                                        $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> (addition) -> {fullPath}");
-                            }
-                            catch (Exception ex)
-                            {
-                                WriteLogMessage(ex.Message);
-                            }
-                        }));
+                                        if (!string.IsNullOrWhiteSpace(fullPath) &&
+                                            string.Compare(Path.GetExtension(fullPath), $".{ExtImg}",
+                                                StringComparison.OrdinalIgnoreCase) == 0)
+                                            ExceptionClause(() => storage.AddProcessor(fullPath),
+                                                $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> (addition) -> {fullPath}");
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        WriteLogMessage(ex.Message);
+                                    }
+                                }));
 
                         Execute(_imagesProcessorStorage, SearchImagesPath);
                         Execute(_recognizeProcessorStorage, RecognizeImagesPath);
@@ -557,42 +558,43 @@ namespace DynamicMosaicExample
                                     switch (task.Type)
                                     {
                                         case FileTaskAction.REMOVED:
-                                            {
-                                                Common c = (Common)task;
-                                                ExceptionClause(
-                                                    () => c.Storage.RemoveProcessor(c.Path),
-                                                    $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {c.Path}");
-                                                break;
-                                            }
+                                        {
+                                            Common c = (Common)task;
+                                            ExceptionClause(
+                                                () => c.Storage.RemoveProcessor(c.Path),
+                                                $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {c.Path}");
+                                            break;
+                                        }
                                         case FileTaskAction.CLEARED:
-                                            {
-                                                FileTask t = task;
-                                                ExceptionClause(() => t.Storage.Clear(),
-                                                    $"{nameof(ConcurrentProcessorStorage.Clear)} -> {task.Type}");
-                                                break;
-                                            }
+                                        {
+                                            FileTask t = task;
+                                            ExceptionClause(() => t.Storage.Clear(),
+                                                $"{nameof(ConcurrentProcessorStorage.Clear)} -> {task.Type}");
+                                            break;
+                                        }
                                         case FileTaskAction.RENAMED:
-                                            {
-                                                Renamed r = (Renamed)task;
-                                                if (r.RenamedFrom)
-                                                    ExceptionClause(
-                                                        () => r.Storage.RemoveProcessor(r.OldPath),
-                                                        $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {r.OldPath}");
-                                                if (r.RenamedTo)
-                                                    ExceptionClause(() => r.Storage.AddProcessor(r.Path),
-                                                        $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {r.Path}");
-                                                break;
-                                            }
+                                        {
+                                            Renamed r = (Renamed)task;
+                                            if (r.RenamedFrom)
+                                                ExceptionClause(
+                                                    () => r.Storage.RemoveProcessor(r.OldPath),
+                                                    $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {r.OldPath}");
+                                            if (r.RenamedTo)
+                                                ExceptionClause(() => r.Storage.AddProcessor(r.Path),
+                                                    $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {r.Path}");
+                                            break;
+                                        }
                                         case FileTaskAction.CREATED:
                                         case FileTaskAction.CHANGED:
-                                            {
-                                                Common c = (Common)task;
-                                                ExceptionClause(() => c.Storage.AddProcessor(c.Path),
-                                                    $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {c.Path}");
-                                                break;
-                                            }
+                                        {
+                                            Common c = (Common)task;
+                                            ExceptionClause(() => c.Storage.AddProcessor(c.Path),
+                                                $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {c.Path}");
+                                            break;
+                                        }
                                         default:
-                                            throw new ArgumentOutOfRangeException(nameof(task), task.Type, @"Неизвестный тип изменения файловой системы.");
+                                            throw new ArgumentOutOfRangeException(nameof(task), task.Type,
+                                                @"Неизвестный тип изменения файловой системы.");
                                     }
                                 }
                                 catch (Exception ex)
@@ -616,6 +618,10 @@ namespace DynamicMosaicExample
                 IsBackground = true,
                 Name = "FileRefreshThread"
             };
+
+            thread.Start();
+
+            _fileRefreshThread = thread;
         }
 
         /// <summary>
