@@ -13,7 +13,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Задаёт толщину и цвет выводимой линии.
         /// </summary>
-        readonly Pen _blackPen = new Pen(Color.Black, 2.0f);
+        public static Pen BlackPen => FrmExample.BlackPen;
 
         /// <summary>
         ///     Изображение создаваемого образа.
@@ -24,7 +24,7 @@ namespace DynamicMosaicExample
         ///     Цвет, который считается изначальным. Определяет изначальный цвет, отображаемый на поверхности для рисования.
         ///     Используется для стирания изображения.
         /// </summary>
-        readonly Color _defaultColor = Color.White;
+        public static Color DefaultColor => FrmExample.DefaultColor;
 
         /// <summary>
         ///     Поверхность для рисования образа.
@@ -84,7 +84,7 @@ namespace DynamicMosaicExample
             RunAction(() =>
             {
                 _draw = true;
-                _grFront.DrawRectangle(_blackPen, new Rectangle(e.X, e.Y, 1, 1));
+                _grFront.DrawRectangle(BlackPen, new Rectangle(e.X, e.Y, 1, 1));
                 btnClear.Enabled = true;
             });
             RunAction(() => pbBox.Refresh());
@@ -101,7 +101,7 @@ namespace DynamicMosaicExample
             {
                 if (!_draw)
                     return;
-                _grFront.DrawRectangle(_blackPen, new Rectangle(e.X, e.Y, 1, 1));
+                _grFront.DrawRectangle(BlackPen, new Rectangle(e.X, e.Y, 1, 1));
                 btnClear.Enabled = true;
             });
             RunAction(() => pbBox.Refresh());
@@ -136,7 +136,7 @@ namespace DynamicMosaicExample
         {
             RunAction(() =>
             {
-                _grFront.Clear(_defaultColor);
+                _grFront.Clear(DefaultColor);
                 btnClear.Enabled = false;
             });
             RunAction(() => pbBox.Refresh());

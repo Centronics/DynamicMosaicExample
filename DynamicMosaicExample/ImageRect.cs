@@ -27,7 +27,7 @@ namespace DynamicMosaicExample
                 throw new ArgumentException($@"Данное изображение не является образом распознающей карты, т.к. не подходит по ширине: {btm.Width}, необходимо {FrmExample.ImageWidth}.", nameof(btm));
             if (btm.Height != FrmExample.ImageHeight)
                 throw new ArgumentException($@"Данное изображение не является образом распознающей карты, т.к. не подходит по высоте: {btm.Height}, необходимо {FrmExample.ImageHeight}.", nameof(btm));
-            return new Processor(ImageMap(btm), tag);
+            return new Processor(ImageToMap(btm), tag);
         }
 
         /// <summary>
@@ -49,16 +49,16 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Преобразует указанное изображение в массив знаков объектов карты.
         /// </summary>
-        /// <param name="bitm">Изображение для конвертации.</param>
+        /// <param name="btm">Изображение для конвертации.</param>
         /// <returns>Возвращает текущее изображение в виде массива объектов карты.</returns>
-        static SignValue[,] ImageMap(Bitmap bitm)
+        static SignValue[,] ImageToMap(Bitmap btm)
         {
-            if (bitm == null)
-                throw new ArgumentNullException(nameof(bitm));
-            SignValue[,] mas = new SignValue[bitm.Width, bitm.Height];
-            for (int y = 0; y < bitm.Height; y++)
-                for (int x = 0; x < bitm.Width; x++)
-                    mas[x, y] = new SignValue(bitm.GetPixel(x, y));
+            if (btm == null)
+                throw new ArgumentNullException(nameof(btm));
+            SignValue[,] mas = new SignValue[btm.Width, btm.Height];
+            for (int y = 0; y < btm.Height; y++)
+                for (int x = 0; x < btm.Width; x++)
+                    mas[x, y] = new SignValue(btm.GetPixel(x, y));
             return mas;
         }
 

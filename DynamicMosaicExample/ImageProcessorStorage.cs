@@ -33,8 +33,8 @@ namespace DynamicMosaicExample
             lock (_syncObject)
             {
                 (uint? count, string name) = ImageRect.GetFileNumberByName(processor.Tag);
-                (Processor proc, string resultPath) = AddTagToSet(NamesToSave, processor, (name, count), relativeFolderPath);
-                Bitmap saveBtm = ImageRect.GetBitmap(proc);
+                (Processor p, string resultPath) = AddTagToSet(NamesToSave, processor, (name, count), relativeFolderPath);
+                Bitmap saveBtm = ImageRect.GetBitmap(p);
                 SaveToFile(saveBtm, resultPath);
                 return (saveBtm, resultPath);
             }

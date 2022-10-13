@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using DynamicParser;
@@ -90,16 +89,13 @@ namespace DynamicMosaicExample
             {
                 btm = LoadBitmap(fullPath);
             }
+            catch (FormatException fx)
+            {
+                throw new FormatException($@"{fx.Message} Путь: {fullPath}.");
+            }
             catch (Exception ex)
             {
                 throw new Exception($@"Ошибка при загрузке изображения по пути: {fullPath}{Environment.NewLine}Текст ошибки: {ex.Message}.", ex);
-            }
-
-            ImageFormat iformat = btm.RawFormat;
-            if (!iformat.Equals(ImageFormat.Bmp))
-            {
-                btm.Dispose();
-                throw new Exception($@"Загружаемое изображение не подходит по формату: {iformat}; необходимо: {ImageFormat.Bmp}. Путь: {fullPath}.");
             }
 
             if (WidthSizes.All(s => s != btm.Width))
@@ -115,8 +111,8 @@ namespace DynamicMosaicExample
                 btm.Dispose();
                 throw new Exception($@"Загружаемое изображение не подходит по высоте: {h}; необходимо: {_height}. Путь: {fullPath}.");
             }
-
-            btm.SetPixel(0, 0, btm.GetPixel(0, 0)); //Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
+            
+            btm.SetPixel(0, 0, btm.GetPixel(0, 0)); // Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
 
             return btm;
         }

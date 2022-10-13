@@ -257,6 +257,28 @@ namespace DynamicMosaicExample
                 AddElement(hashCode, fullPath, addingProcessor);
         }
 
+        static Bitmap CheckBitmapByAlphaColor(Bitmap btm)
+        {
+            if (btm == null)
+                throw new ArgumentNullException(nameof(btm), @"Изображение должно быть указано.");
+
+            for (int y = 0; y < btm.Height; y++)
+                for (int x = 0; x < btm.Width; x++)
+                    FrmExample.CheckAlphaColor(btm.GetPixel(x, y));
+
+            return btm;
+        }
+
+        static Bitmap CheckImageFormat(Bitmap btm)
+        {
+            ImageFormat iformat = btm.RawFormat;
+
+            if (!iformat.Equals(ImageFormat.Bmp))
+                throw new FormatException($@"Загружаемое изображение не подходит по формату: {iformat}; необходимо: {ImageFormat.Bmp}.");
+
+            return btm;
+        }
+
         protected static Bitmap LoadBitmap(string fullPath)
         {
             FileStream fs = null;
@@ -278,8 +300,23 @@ namespace DynamicMosaicExample
                 break;
             }
 
+            if (fs == null)
+                throw new InvalidOperationException($@"{nameof(LoadBitmap)}: {nameof(fs)} == null.");
+
             using (fs)
-                return new Bitmap(fs ?? throw new InvalidOperationException($@"{nameof(LoadBitmap)}: {nameof(fs)} == null."));
+            {
+                Bitmap btm = new Bitmap(fs);
+
+                try
+                {
+                    return CheckImageFormat(CheckBitmapByAlphaColor(btm));
+                }
+                catch
+                {
+                    btm.Dispose();
+                    throw;
+                }
+            }
         }
 
         /// <summary>

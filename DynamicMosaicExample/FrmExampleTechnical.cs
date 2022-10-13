@@ -122,7 +122,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Задаёт цвет и ширину для рисования в окне создания распознаваемого изображения.
         /// </summary>
-        readonly Pen _blackPen = new Pen(Color.Black, 2.0f);
+        public static Pen BlackPen = new Pen(CheckAlphaColor(Color.Black), 2.0f);
 
         /// <summary>
         ///     Предназначена для хранения задач, связанных с изменениями в файловой системе.
@@ -138,7 +138,7 @@ namespace DynamicMosaicExample
         ///     Цвет, который считается изначальным. Определяет изначальный цвет, отображаемый на поверхности для рисования.
         ///     Используется для стирания изображения.
         /// </summary>
-        readonly Color _defaultColor = Color.White;
+        public static Color DefaultColor = CheckAlphaColor(Color.White);
 
         /// <summary>
         ///     Поток, отвечающий за актуализацию содержимого карт <see cref="Processor" />.
@@ -196,7 +196,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Задаёт цвет и ширину для стирания в окне создания распознаваемого изображения.
         /// </summary>
-        readonly Pen _whitePen;
+        public static Pen WhitePen = new Pen(DefaultColor, 2.0f);
 
         /// <summary>
         ///     Коллекция задействованных элементов <see cref="DynamicReflex" />.
@@ -272,6 +272,30 @@ namespace DynamicMosaicExample
         /// </summary>
         Thread _recognizerThread;
 
+        bool _txtWordTextChecking;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void TxtWordTextCheck(object sender, EventArgs e)
+        {
+            if (_txtWordTextChecking)
+                return;
+
+            if (txtWord.Text.Length <= txtWord.MaxLength)
+                return;
+
+            _txtWordTextChecking = true;
+            _savedRecognizeQuery = txtWord.Text = txtWord.Text.Remove(txtWord.MaxLength);
+            _txtWordTextChecking = false;
+        }
+
+        public static byte DefaultOpacity => 0xFF;
+
+        internal static Color CheckAlphaColor(Color c) => c.A == DefaultOpacity ? c : throw new InvalidOperationException($@"Значение прозрачности не может быть задано 0x{c.A:X2}. Должно быть задано как 0x{DefaultOpacity:X2}.");
+
         /// <summary>
         ///     Конструктор основной формы приложения.
         /// </summary>
@@ -283,7 +307,6 @@ namespace DynamicMosaicExample
                 _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, WidthStep, pbDraw.Height);
                 Directory.CreateDirectory(SearchImagesPath);
                 Directory.CreateDirectory(RecognizeImagesPath);
-                _whitePen = new Pen(_defaultColor, 2.0f);
                 _prevSelectedIndex = lstResults.SelectedIndex;
                 _unknownSymbolName = txtSymbolPath.Text;
                 _unknownSystemName = txtConSymbol.Text;
@@ -298,6 +321,7 @@ namespace DynamicMosaicExample
                 btnClearImage.Click += _currentState.CriticalChange;
                 btnLoadRecognizeImage.Click += _currentState.CriticalChange;
                 txtWord.TextChanged += _currentState.WordChange;
+                txtWord.TextChanged += TxtWordTextCheck;
             }
             catch (Exception ex)
             {
@@ -387,6 +411,22 @@ namespace DynamicMosaicExample
             }
         }
 
+        internal static bool CompareBitmaps(Bitmap bitmap1, Bitmap bitmap2)
+        {
+            if (bitmap1.Width != bitmap2.Width || bitmap1.Height != bitmap2.Height)
+                return false;
+
+            if (ReferenceEquals(bitmap1, bitmap2))
+                throw new InvalidOperationException("Ссылки на проверяемые изображения совпадают.");
+
+            for (int x = 0; x < bitmap1.Width; x++)
+                for (int y = 0; y < bitmap1.Height; y++)
+                    if (bitmap1.GetPixel(x, y) != bitmap2.GetPixel(x, y))
+                        return false;
+
+            return true;
+        }
+
         /// <summary>
         ///     Возвращает значение <see langword="true" /> в случае, если пользователь нарисовал что-либо в окне создания
         ///     исходного изображения.
@@ -398,12 +438,8 @@ namespace DynamicMosaicExample
             {
                 for (int y = 0; y < _btmRecognizeImage.Height; y++)
                     for (int x = 0; x < _btmRecognizeImage.Width; x++)
-                    {
-                        Color c = _btmRecognizeImage.GetPixel(x, y);
-                        if (c.A != _defaultColor.A || c.R != _defaultColor.R || c.G != _defaultColor.G ||
-                            c.B != _defaultColor.B)
+                        if (_btmRecognizeImage.GetPixel(x, y) != DefaultColor)
                             return true;
-                    }
 
                 return false;
             }

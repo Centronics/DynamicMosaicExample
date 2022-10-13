@@ -106,7 +106,7 @@ namespace DynamicMosaicExample
 
                         if (_btmRecognizeImage != null)
                         {
-                            CopyBitmapByWidth(_btmRecognizeImage, btm, _defaultColor);
+                            CopyBitmapByWidth(_btmRecognizeImage, btm);
                             _btmRecognizeImage.Dispose();
                         }
                         else
@@ -117,7 +117,7 @@ namespace DynamicMosaicExample
                         CommonMethod();
 
                         if (needReset)
-                            _grRecognizeImage.Clear(_defaultColor);
+                            _grRecognizeImage.Clear(DefaultColor);
 
                         btnSaveRecognizeImage.Enabled = IsQueryChanged;
                         btnClearImage.Enabled = IsPainting;
@@ -149,7 +149,7 @@ namespace DynamicMosaicExample
             btnClearImage.Enabled = IsPainting;
             txtWord.Text = _savedRecognizeQuery;
 
-            btnSaveRecognizeImage.Enabled = IsQueryChanged;
+            NeedRedoRecogImage();
 
             if (!string.IsNullOrEmpty(txtWord.Text))
                 txtWord.Select(txtWord.Text.Length, 0);
@@ -164,21 +164,7 @@ namespace DynamicMosaicExample
                 if (_btmSavedRecognizeCopy == null)
                     return false;
 
-                if (txtWord.Text != _savedRecognizeQuery)
-                    return true;
-
-                if (_btmRecognizeImage.Width != _btmSavedRecognizeCopy.Width || _btmRecognizeImage.Height != _btmSavedRecognizeCopy.Height)
-                    return true;
-
-                if (ReferenceEquals(_btmRecognizeImage, _btmSavedRecognizeCopy))
-                    throw new InvalidOperationException("Ссылки на проверяемые изображения совпадают.");
-
-                for (int x = 0; x < _btmRecognizeImage.Width; x++)
-                    for (int y = 0; y < _btmRecognizeImage.Height; y++)
-                        if (_btmRecognizeImage.GetPixel(x, y) != _btmSavedRecognizeCopy.GetPixel(x, y))
-                            return true;
-
-                return false;
+                return txtWord.Text != _savedRecognizeQuery || !CompareBitmaps(_btmRecognizeImage, _btmSavedRecognizeCopy);
             }
         }
 
@@ -189,11 +175,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="from"><see cref="Bitmap" />, из которого необходимо скопировать содержимое.</param>
         /// <param name="to"><see cref="Bitmap" />, в который необходимо скопировать содержимое.</param>
-        /// <param name="color">
-        ///     Цвет, которым необходимо заполнить требуемую область перед копированием или <see langword="null" />,
-        ///     если заполнение не требуется.
-        /// </param>
-        static void CopyBitmapByWidth(Bitmap from, Bitmap to, Color? color)
+        void CopyBitmapByWidth(Bitmap from, Bitmap to)
         {
             if (from == null)
                 throw new ArgumentNullException(nameof(from), $@"{nameof(CopyBitmapByWidth)}: {nameof(from)} = null.");
@@ -204,9 +186,8 @@ namespace DynamicMosaicExample
                     $@"{nameof(CopyBitmapByWidth)}: Высота {nameof(from)} = ({
                             from.Height
                         }) должна быть равна той, куда осуществляется копирование {nameof(to)} = ({to.Height}).");
-            if (color != null)
-                using (Graphics gr = Graphics.FromImage(to))
-                    gr.Clear(color.Value);
+            using (Graphics gr = Graphics.FromImage(to))
+                gr.Clear(DefaultColor);
             for (int x = 0; x < from.Width && x < to.Width; x++)
                 for (int y = 0; y < from.Height; y++)
                     to.SetPixel(x, y, from.GetPixel(x, y));
@@ -417,13 +398,14 @@ namespace DynamicMosaicExample
 
             try
             {
-                if (_needInitRecognizeImage && count > 0 && !IsQueryChanged)
+                bool isQueryChanged = IsQueryChanged;
+
+                if (_needInitRecognizeImage && count > 0 && !isQueryChanged)
                 {
                     if (processor != null)
                         ImageActualize(ImageActualizeAction.LOAD, path);
 
-                    btnPrevRecogImage.Enabled = count > 1;
-                    btnNextRecogImage.Enabled = true;
+                    btnPrevRecogImage.Enabled = btnNextRecogImage.Enabled = count > 1;
 
                     SavedPathInfoActualize(false);
 
@@ -432,14 +414,14 @@ namespace DynamicMosaicExample
                     return;
                 }
 
-                if (!_needInitRecognizeImage && count <= 0 && !IsQueryChanged)
+                if (!_needInitRecognizeImage && count <= 0 && !isQueryChanged)
                 {
                     _savedRecognizeQuery = string.Empty;
                     txtWord.Text = string.Empty;
 
                     _currentState.CriticalChange(null, null);
                     ImageActualize(ImageActualizeAction.REFRESH);
-                    _grRecognizeImage.Clear(_defaultColor);
+                    _grRecognizeImage.Clear(DefaultColor);
                     pbDraw.Refresh();
                     _btmSavedRecognizeCopy = RecognizeBitmapCopy;
                 }
@@ -448,8 +430,11 @@ namespace DynamicMosaicExample
 
                 UpdateRecognizeCount(count);
 
-                btnPrevRecogImage.Enabled = count > 1;
-                btnNextRecogImage.Enabled = count > 0;
+                bool presence = count > 1;
+
+                btnPrevRecogImage.Enabled = presence;
+
+                btnNextRecogImage.Enabled = presence || isQueryChanged || txtWord.Text != _savedRecognizeQuery || (processor != null && !CompareBitmaps(_btmRecognizeImage, ImageRect.GetBitmap(processor)));
             }
             finally
             {
@@ -761,10 +746,22 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void PbDraw_MouseLeave(object sender, EventArgs e) => DrawStop();
 
+        void NeedRedoRecogImage()
+        {
+            bool changed = IsQueryChanged;
+
+            btnSaveRecognizeImage.Enabled = changed || !btnDeleteRecognizeImage.Enabled;
+
+            int count = _recognizeProcessorStorage.Count;
+
+            btnNextRecogImage.Enabled = (changed && count > 0) || count > 1;
+        }
+
         void DrawStop() => SafetyExecute(() =>
         {
             _draw = false;
-            btnSaveRecognizeImage.Enabled = !btnDeleteRecognizeImage.Enabled || IsQueryChanged;
+
+            NeedRedoRecogImage();
         });
 
         /// <summary>
@@ -790,10 +787,10 @@ namespace DynamicMosaicExample
             switch (button)
             {
                 case MouseButtons.Left:
-                    _grRecognizeImage.DrawRectangle(_blackPen, new Rectangle(x, y, 1, 1));
+                    _grRecognizeImage.DrawRectangle(BlackPen, new Rectangle(x, y, 1, 1));
                     break;
                 case MouseButtons.Right:
-                    _grRecognizeImage.DrawRectangle(_whitePen, new Rectangle(x, y, 1, 1));
+                    _grRecognizeImage.DrawRectangle(WhitePen, new Rectangle(x, y, 1, 1));
                     break;
             }
         }, () => pbDraw.Refresh());
@@ -805,7 +802,7 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnClearImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            _grRecognizeImage.Clear(_defaultColor);
+            _grRecognizeImage.Clear(DefaultColor);
             btnClearImage.Enabled = IsPainting;
             btnSaveRecognizeImage.Enabled = IsQueryChanged;
         }, () => pbDraw.Refresh());
@@ -1204,7 +1201,7 @@ namespace DynamicMosaicExample
             }
         }
 
-        void TxtWord_TextChanged(object sender, EventArgs e) => SafetyExecute(() => btnSaveRecognizeImage.Enabled = IsQueryChanged);
+        void TxtWord_TextChanged(object sender, EventArgs e) => SafetyExecute(NeedRedoRecogImage);
 
         /// <summary>
         ///     Вызывается во время первого отображения формы.
