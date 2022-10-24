@@ -235,7 +235,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Индекс <see cref="ImageRect" />, рассматриваемый в данный момент.
         /// </summary>
-        int _currentImage;
+        int _currentImageIndex;
 
         int _currentRecognizeProcIndex;
 

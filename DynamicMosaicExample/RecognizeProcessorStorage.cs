@@ -7,7 +7,7 @@ using DynamicParser;
 
 namespace DynamicMosaicExample
 {
-    internal sealed class RecognizeProcessorStorage : ConcurrentProcessorStorage
+    public sealed class RecognizeProcessorStorage : ConcurrentProcessorStorage
     {
         readonly int _minWidth;
 
@@ -37,7 +37,7 @@ namespace DynamicMosaicExample
         ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
-        internal override (Bitmap, string) SaveToFile(Processor processor, string relativeFolderPath)
+        public override (Bitmap, string) SaveToFile(Processor processor, string relativeFolderPath)
         {
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");

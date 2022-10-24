@@ -14,7 +14,7 @@ namespace DynamicMosaicExample
     ///     Потокобезопасное хранилище карт <see cref="Processor" /> с поддержкой поиска с использованием хеш-таблицы.
     ///     Поддерживаются повторяющиеся ключи.
     /// </summary>
-    internal abstract class ConcurrentProcessorStorage
+    public abstract class ConcurrentProcessorStorage
     {
         public enum ProcessorStorageType
         {
@@ -32,7 +32,7 @@ namespace DynamicMosaicExample
 
         protected static string GetImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(GetImagePath)}: Исходный путь образа не указан."), name)}.{FrmExample.ExtImg}";
 
-        internal abstract (Bitmap, string) SaveToFile(Processor processor, string relativeFolderPath);
+        public abstract (Bitmap, string) SaveToFile(Processor processor, string relativeFolderPath);
 
         protected (Processor processor, string path) AddTagToSet(ISet<string> tagSet, Processor p, (string tag, ulong? number) tn, string pathToSave)
         {
@@ -97,7 +97,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
-        internal IEnumerable<(Processor processor, string sourcePath)> Elements
+        public IEnumerable<(Processor processor, string sourcePath)> Elements
         {
             get
             {
@@ -179,7 +179,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает количество карт, содержащихся в коллекции <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
-        internal int Count
+        public int Count
         {
             get
             {
@@ -217,7 +217,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="fullPath">Полный путь к карте <see cref="Processor" />.</param>
         /// <returns>Возвращает карту <see cref="Processor" /> по указанному пути, путь к ней, и количество карт в коллекции.</returns>
-        internal (Processor processor, string path, int count) this[string fullPath]
+        public (Processor processor, string path, int count) this[string fullPath]
         {
             get
             {
@@ -238,7 +238,7 @@ namespace DynamicMosaicExample
         ///     Если карта уже присутствовала в коллекции, то она будет перезагружена в неё.
         /// </summary>
         /// <param name="fullPath">Полный путь к изображению, которое будет интерпретировано как карта <see cref="Processor" />.</param>
-        internal void AddProcessor(string fullPath)
+        public void AddProcessor(string fullPath)
         {
             fullPath = Path.GetFullPath(fullPath);
             Processor addingProcessor;
@@ -354,7 +354,7 @@ namespace DynamicMosaicExample
         ///     изначального значения, это значение остаётся прежним, иначе равняется индексу последней карты в коллекции.
         /// </param>
         /// <returns>Возвращает карту, путь к ней, и количество карт на момент её получения.</returns>
-        internal (Processor processor, string path, int count) GetLastProcessor(ref int index)
+        public (Processor processor, string path, int count) GetLastProcessor(ref int index)
         {
             lock (_syncObject)
             {
@@ -387,7 +387,7 @@ namespace DynamicMosaicExample
         ///     изначального значения, это значение остаётся прежним, иначе равняется индексу первой карты в коллекции.
         /// </param>
         /// <returns>Возвращает карту, путь к ней, и количество карт на момент её получения.</returns>
-        internal (Processor processor, string path, int count) GetFirstProcessor(ref int index)
+        public (Processor processor, string path, int count) GetFirstProcessor(ref int index)
         {
             lock (_syncObject)
             {
@@ -408,7 +408,7 @@ namespace DynamicMosaicExample
             }
         }
 
-        internal void RemoveProcessor()
+        public void RemoveProcessor()
         {
             lock (_syncObject)
             {
@@ -424,7 +424,7 @@ namespace DynamicMosaicExample
         ///     идентифицируя её по пути к ней.
         /// </summary>
         /// <param name="fullPath">Полный путь к карте <see cref="Processor" />, которую необходимо удалить из коллекции.</param>
-        internal void RemoveProcessor(string fullPath)
+        public void RemoveProcessor(string fullPath)
         {
             if (string.IsNullOrEmpty(fullPath))
                 return;
@@ -534,19 +534,19 @@ namespace DynamicMosaicExample
             /// <summary>
             ///     Хранимая карта.
             /// </summary>
-            internal Processor CurrentProcessor { get; }
+            public Processor CurrentProcessor { get; }
 
             /// <summary>
             ///     Путь к карте <see cref="Processor" />.
             /// </summary>
-            internal string CurrentPath { get; }
+            public string CurrentPath { get; }
 
             /// <summary>
             ///     Инициализирует хранимые объекты: <see cref="Processor" /> и <see cref="string" />.
             /// </summary>
             /// <param name="p">Хранимая карта.</param>
             /// <param name="path">Путь к карте <see cref="Processor" />.</param>
-            internal ProcPath(Processor p, string path)
+            public ProcPath(Processor p, string path)
             {
                 if (string.IsNullOrWhiteSpace(path))
                     throw new ArgumentException($@"Параметр {nameof(path)} не может быть пустым.");
@@ -571,7 +571,7 @@ namespace DynamicMosaicExample
             ///     Значение не может быть равно <see langword="null" />.
             /// </summary>
             /// <param name="p">Добавляемая карта.</param>
-            internal ProcHash(ProcPath p)
+            public ProcHash(ProcPath p)
             {
                 if (p.CurrentProcessor is null || string.IsNullOrWhiteSpace(p.CurrentPath))
                     throw new ArgumentNullException(nameof(p), $@"Функция (конструктор) {nameof(ProcHash)}.");
@@ -583,7 +583,7 @@ namespace DynamicMosaicExample
             ///     Значение не может быть равно <see langword="null" />.
             /// </summary>
             /// <param name="p">Добавляемая карта.</param>
-            internal void AddProcessor(ProcPath p)
+            public void AddProcessor(ProcPath p)
             {
                 if (p.CurrentProcessor is null || string.IsNullOrWhiteSpace(p.CurrentPath))
                     throw new ArgumentNullException(nameof(p), $@"Функция {nameof(AddProcessor)}.");
@@ -593,21 +593,21 @@ namespace DynamicMosaicExample
             /// <summary>
             ///     Получает все хранимые карты в текущем экземпляре <see cref="ProcHash" />.
             /// </summary>
-            internal IEnumerable<ProcPath> Elements => _lst;
+            public IEnumerable<ProcPath> Elements => _lst;
 
             /// <summary>
             ///     Получает <see cref="ProcHash" /> по указанному индексу.
             /// </summary>
             /// <param name="index">Индекс элемента <see cref="ProcHash" />, который требуется получиться.</param>
             /// <returns>Возвращает <see cref="ProcHash" /> по указанному индексу.</returns>
-            internal ProcPath this[int index] => _lst[index];
+            public ProcPath this[int index] => _lst[index];
 
             /// <summary>
             ///     Удаляет карту <see cref="Processor" />, с указанным индексом, из коллекции.
             ///     Недопустимые значения индекса игнорируются.
             /// </summary>
             /// <param name="index">Индекс удаляемой карты.</param>
-            internal void RemoveProcessor(int index)
+            public void RemoveProcessor(int index)
             {
                 if (index > -1 && index < _lst.Count)
                     _lst.RemoveAt(index);
@@ -652,7 +652,7 @@ namespace DynamicMosaicExample
             /// </summary>
             /// <param name="p">Карта, для которой необходимо вычислить значение хеша.</param>
             /// <returns>Возвращает хеш заданной карты.</returns>
-            internal static int GetHash(Processor p)
+            public static int GetHash(Processor p)
             {
                 if (p is null)
                     throw new ArgumentNullException(nameof(p), $@"Функция {nameof(GetHash)}.");

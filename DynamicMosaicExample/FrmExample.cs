@@ -253,7 +253,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Возвращает окно просмотра образов в исходное состояние.
         /// </summary>
-        void SymbolBrowseClear()
+        void ImageBrowseClear()
         {
             txtSymbolPath.Text = _unknownSymbolName;
             pbBrowse.Image = new Bitmap(pbBrowse.Width, pbBrowse.Height);
@@ -275,19 +275,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            _currentImage++;
-            (Processor processor, string path, int count) = _imagesProcessorStorage.GetFirstProcessor(ref _currentImage);
-            UpdateImagesCount(count);
-            if (processor == null || count < 1)
-            {
-                SymbolBrowseClear();
-                MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-                return;
-            }
-
-            pbBrowse.Image = ImageRect.GetBitmap(processor);
-            txtSymbolPath.Text = path;
+            _currentImageIndex++;
+            ShowCurrentImage(_imagesProcessorStorage.GetFirstProcessor(ref _currentImageIndex));
         });
 
         /// <summary>
@@ -297,19 +286,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImagePrev_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            _currentImage--;
-            (Processor processor, string path, int count) = _imagesProcessorStorage.GetLastProcessor(ref _currentImage);
-            UpdateImagesCount(count);
-            if (processor == null || count < 1)
-            {
-                SymbolBrowseClear();
-                MessageBox.Show(this, ImagesNoExists, @"Уведомление", MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-                return;
-            }
-
-            pbBrowse.Image = ImageRect.GetBitmap(processor);
-            txtSymbolPath.Text = path;
+            _currentImageIndex--;
+            ShowCurrentImage(_imagesProcessorStorage.GetLastProcessor(ref _currentImageIndex));
         });
 
         /// <summary>
@@ -324,7 +302,6 @@ namespace DynamicMosaicExample
                 return;
 
             DeleteFile(txtSymbolPath.Text);
-            BtnImagePrev_Click(null, null);
         });
 
         /// <summary>
@@ -343,7 +320,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="count">Количество карт в коллекции <see cref="ConcurrentProcessorStorage" />.</param>
         void UpdateImagesCount(int count) => txtImagesCount.Text =
-            count > 0 ? $@"{unchecked(_currentImage + 1)} / {count}" : string.Empty;
+            count > 0 ? $@"{unchecked(_currentImageIndex + 1)} / {count}" : string.Empty;
 
         void SavedPathInfoActualize(bool turnOff)
         {
@@ -353,39 +330,27 @@ namespace DynamicMosaicExample
             btnSaveRecognizeImage.Enabled = !isExists || IsQueryChanged;
         }
 
+        int ShowCurrentImage((Processor imageProcessor, string imagePath, int imageCount) t)
+        {
+            UpdateImagesCount(t.imageCount);
+            if (t.imageProcessor == null || t.imageCount < 1)
+                ImageBrowseClear();
+            else
+            {
+                pbBrowse.Image = ImageRect.GetBitmap(t.imageProcessor);
+                txtSymbolPath.Text = t.imagePath;
+            }
+
+            return t.imageCount;
+        }
+
         /// <summary>
         ///     Выполняет подсчёт количества изображений для поиска.
         ///     Обновляет состояния кнопок, связанных с изображениями.
         /// </summary>
         void RefreshImagesCount() => InvokeAction(() =>
         {
-            (Processor imageProcessor, string imagePath, int imageCount) = _imagesProcessorStorage[txtSymbolPath.Text];
-            if (imageCount > 0)
-            {
-                if (imageProcessor == null)
-                {
-                    (imageProcessor, imagePath, imageCount) = _imagesProcessorStorage.GetFirstProcessor(ref _currentImage);
-                    if (imageProcessor != null && imageCount > 0)
-                    {
-                        pbBrowse.Image = ImageRect.GetBitmap(imageProcessor);
-                        txtSymbolPath.Text = imagePath;
-                    }
-                    else
-                        SymbolBrowseClear();
-                }
-                else
-                {
-                    pbBrowse.Image = ImageRect.GetBitmap(imageProcessor);
-                    txtSymbolPath.Text = imagePath;
-                }
-            }
-            else
-            {
-                _currentImage = 0;
-                SymbolBrowseClear();
-            }
-
-            UpdateImagesCount(imageCount);
+            int imageCount = ShowCurrentImage(_imagesProcessorStorage.GetFirstProcessor(ref _currentImageIndex));
 
             btnImageUpToQueries.Enabled = btnImageDelete.Enabled = EnableButtons && imageCount > 0;
             btnImageNext.Enabled = imageCount > 1;
@@ -394,51 +359,48 @@ namespace DynamicMosaicExample
             txtSymbolPath.Enabled = imageCount > 0;
             pbBrowse.Enabled = imageCount > 0;
 
-            (Processor processor, string path, int count) = _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex);
+            (Processor recogProcessor, string recogPath, int recogCount) = _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex);
 
             try
             {
                 bool isQueryChanged = IsQueryChanged;
 
-                if (_needInitRecognizeImage && count > 0 && !isQueryChanged)
+                switch (_needInitRecognizeImage)
                 {
-                    if (processor != null)
-                        ImageActualize(ImageActualizeAction.LOAD, path);
+                    case true when recogCount > 0 && !isQueryChanged:
+                        if (recogProcessor != null)
+                            ImageActualize(ImageActualizeAction.LOAD, recogPath);
 
-                    btnPrevRecogImage.Enabled = btnNextRecogImage.Enabled = count > 1;
+                        btnPrevRecogImage.Enabled = btnNextRecogImage.Enabled = recogCount > 1;
+                        SavedPathInfoActualize(false);
+                        UpdateRecognizeCount(recogCount);
+                        return;
 
-                    SavedPathInfoActualize(false);
+                    case false when recogCount <= 0 && !isQueryChanged:
+                        _savedRecognizeQuery = string.Empty;
+                        txtWord.Text = string.Empty;
 
-                    UpdateRecognizeCount(count);
-
-                    return;
+                        _currentState.CriticalChange(null, null);
+                        ImageActualize(ImageActualizeAction.REFRESH);
+                        _grRecognizeImage.Clear(DefaultColor);
+                        pbDraw.Refresh();
+                        _btmSavedRecognizeCopy = RecognizeBitmapCopy;
+                        break;
                 }
 
-                if (!_needInitRecognizeImage && count <= 0 && !isQueryChanged)
-                {
-                    _savedRecognizeQuery = string.Empty;
-                    txtWord.Text = string.Empty;
+                SavedPathInfoActualize(recogCount < 1);
 
-                    _currentState.CriticalChange(null, null);
-                    ImageActualize(ImageActualizeAction.REFRESH);
-                    _grRecognizeImage.Clear(DefaultColor);
-                    pbDraw.Refresh();
-                    _btmSavedRecognizeCopy = RecognizeBitmapCopy;
-                }
+                UpdateRecognizeCount(recogCount);
 
-                SavedPathInfoActualize(count < 1);
-
-                UpdateRecognizeCount(count);
-
-                bool presence = count > 1;
+                bool presence = recogCount > 1;
 
                 btnPrevRecogImage.Enabled = presence;
 
-                btnNextRecogImage.Enabled = presence || isQueryChanged || txtWord.Text != _savedRecognizeQuery || (processor != null && !CompareBitmaps(_btmRecognizeImage, ImageRect.GetBitmap(processor)));
+                btnNextRecogImage.Enabled = presence || isQueryChanged || txtWord.Text != _savedRecognizeQuery || (recogProcessor != null && !CompareBitmaps(_btmRecognizeImage, ImageRect.GetBitmap(recogProcessor)));
             }
             finally
             {
-                _needInitRecognizeImage = count <= 0;
+                _needInitRecognizeImage = recogCount <= 0;
             }
         });
 

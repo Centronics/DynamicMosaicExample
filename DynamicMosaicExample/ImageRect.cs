@@ -8,16 +8,16 @@ namespace DynamicMosaicExample
     /// <summary>
     ///     Предназначен для работы с образами искомых букв.
     /// </summary>
-    internal static class ImageRect
+    public static class ImageRect
     {
-        internal const char TagSeparatorChar = '!';
+        public const char TagSeparatorChar = '!';
 
         /// <summary>
         ///     Инициализирует экземпляр образа буквы для распознавания.
         /// </summary>
         /// <param name="btm">Изображение буквы.</param>
         /// <param name="tag">Название буквы.</param>
-        internal static Processor GetProcessor(Bitmap btm, string tag)
+        public static Processor GetProcessor(Bitmap btm, string tag)
         {
             if (btm == null)
                 throw new ArgumentNullException(nameof(btm), $@"{nameof(ImageRect)}: {nameof(btm)} = null.");
@@ -35,7 +35,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="proc"><see cref="Processor" />, который требуется преобразовать.</param>
         /// <returns>Возвращает <see cref="Processor" />, преобразованный в <see cref="Bitmap" />.</returns>
-        internal static Bitmap GetBitmap(Processor proc)
+        public static Bitmap GetBitmap(Processor proc)
         {
             if (proc == null)
                 throw new ArgumentNullException(nameof(proc), $@"Параметр {nameof(proc)} не может быть null.");
@@ -70,7 +70,7 @@ namespace DynamicMosaicExample
         ///     Возвращает значение <see langword="true" /> в случае, если разбор имени файла прошёл успешно, в противном
         ///     случае - <see langword="false" />.
         /// </returns>
-        internal static (ulong? number, string strPart) NameParser(string tag)
+        public static (ulong? number, string strPart) NameParser(string tag)
         {
             for (int k = tag.Length - 1; k >= 0; k--)
                 if (k == 0 || tag[k] == TagSeparatorChar || !char.IsDigit(tag[k]))
@@ -90,7 +90,7 @@ namespace DynamicMosaicExample
         ///     Возвращает параметры, включающие имя и количество символов '0' в конце названия карты <see cref="Processor" />
         ///     .
         /// </returns>
-        internal static (uint? count, string name) GetFileNumberByName(string tag)
+        public static (uint? count, string name) GetFileNumberByName(string tag)
         {
             if (string.IsNullOrWhiteSpace(tag))
                 throw new ArgumentNullException(nameof(tag), nameof(GetFileNumberByName));
