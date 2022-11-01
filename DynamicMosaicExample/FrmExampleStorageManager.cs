@@ -273,7 +273,7 @@ namespace DynamicMosaicExample
             FileSystemWatcher wc = new FileSystemWatcher();
 
             wc.BeginInit();
-            wc.Path = Application.StartupPath;
+            wc.Path = WorkingDirectory;
             wc.IncludeSubdirectories = false;
             wc.NotifyFilter = NotifyFilters.DirectoryName;
             wc.Filter = "*.*";

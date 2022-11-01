@@ -27,7 +27,7 @@ namespace DynamicMosaicExample
 
         public override Processor GetAddingProcessor(string fullPath) => new Processor(LoadRecognizeBitmap(fullPath), GetProcessorTag(fullPath));
 
-        public override string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(fullPath)}";
+        public string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(fullPath)}";
 
         public override string ImagesPath => FrmExample.RecognizeImagesPath;
         public override ProcessorStorageType StorageType => ProcessorStorageType.RECOGNIZE;
@@ -37,14 +37,15 @@ namespace DynamicMosaicExample
         ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
+        /// <param name="relativeFolderPath"></param>
         public override (Bitmap, string) SaveToFile(Processor processor, string relativeFolderPath)
         {
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
 
-            lock (_syncObject)
+            lock (SyncObject)
             {
-                (Processor p, string path) = AddTagToSet(NamesToSave, processor, (processor.Tag, null), relativeFolderPath);
+                (Processor p, string path) = GetUniqueProcessor(NamesToSave, processor, (processor.Tag, null), relativeFolderPath);
                 Bitmap saveBtm = ImageRect.GetBitmap(p);
                 SaveToFile(saveBtm, path);
                 return (saveBtm, path);

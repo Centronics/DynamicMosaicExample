@@ -29,6 +29,7 @@ namespace DynamicMosaicExample
         ///     Если предыдущее изображение присутствовало, то оно переносится на вновь созданное.
         ///     Если путь к файлу исходного изображения отсутствует, создаётся новое изображение.
         /// </summary>
+        /// <param name="action"></param>
         /// <param name="btmPath">Путь к файлу исходного изображения.</param>
         void ImageActualize(ImageActualizeAction action, string btmPath = null)
         {
@@ -38,7 +39,7 @@ namespace DynamicMosaicExample
                 _grRecognizeImage = Graphics.FromImage(_btmRecognizeImage);
 
                 pbDraw.Image = _btmRecognizeImage;
-                pbSuccess.Image = Resources.Unk_128;
+                pbSuccess.Image = Resources.Result_Unknown;
             }
 
             string savedRecognizePath;
@@ -260,15 +261,6 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Возвращает окно просмотра <see cref="DynamicReflex" /> в исходное состояние.
-        /// </summary>
-        void ConSymbolBrowseClear()
-        {
-            txtConSymbol.Text = _unknownSystemName;
-            pbConSymbol.Image = new Bitmap(pbConSymbol.Width, pbConSymbol.Height);
-        }
-
-        /// <summary>
         ///     Вызывается по нажатию кнопки "Следующий" в искомых образах букв.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
@@ -421,7 +413,7 @@ namespace DynamicMosaicExample
 
             Thread thread = new Thread(() => SafetyExecute(() =>
             {
-                WaitHandle[] waitHandles = { _fileActivity, _recognizerActivity, _preparingActivity };
+                WaitHandle[] waitHandles = { _fileActivity, _recognizerActivity };
                 Stopwatch stwRenew = new Stopwatch();
                 bool initializeUserInterface = false;
                 for (int k = 0; k < 4; k++)
@@ -471,7 +463,6 @@ namespace DynamicMosaicExample
                             {
                                 btnRecognizeImage.Text =
                                     IsRecognizing ? StrRecognize :
-                                    IsPreparingActivity ? StrPreparing :
                                     IsFileActivity ? StrLoading : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
@@ -483,7 +474,6 @@ namespace DynamicMosaicExample
                             {
                                 btnRecognizeImage.Text =
                                     IsRecognizing ? StrRecognize1 :
-                                    IsPreparingActivity ? StrPreparing1 :
                                     IsFileActivity ? StrLoading1 : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
@@ -495,7 +485,6 @@ namespace DynamicMosaicExample
                             {
                                 btnRecognizeImage.Text =
                                     IsRecognizing ? StrRecognize2 :
-                                    IsPreparingActivity ? StrPreparing2 :
                                     IsFileActivity ? StrLoading2 : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
@@ -507,7 +496,6 @@ namespace DynamicMosaicExample
                             {
                                 btnRecognizeImage.Text =
                                     IsRecognizing ? StrRecognize3 :
-                                    IsPreparingActivity ? StrPreparing3 :
                                     IsFileActivity ? StrLoading3 : _strRecog;
                                 TimeSpan ts = _stwRecognize.Elapsed;
                                 lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
@@ -568,18 +556,13 @@ namespace DynamicMosaicExample
             EnableButtons = false;
             lstResults.SelectedIndex = -1;
 
+            ManualResetEvent preparingActivity = new ManualResetEvent(false);
+
             (_recognizerThread = new Thread(() => SafetyExecute(() =>
             {
                 try
                 {
-                    _preparingActivity.Set();
-
-                    //if (!IsPainting)
-                    //{
-                    //    ErrorMessageInOtherThread(
-                    //        @"Необходимо нарисовать какой-нибудь рисунок на рабочей поверхности.");
-                    //    return;
-                    //}
+                    preparingActivity.Set();
 
                     (Processor, string)[] query;
 
@@ -593,13 +576,29 @@ namespace DynamicMosaicExample
                         return;
                     }
 
+                    if (!query.Any())
+                    {
+                        ErrorMessageInOtherThread(@"Запросы для распознавания отсутствуют. Создайте хотя бы один.");
+                        return;
+                    }
+
                     _recognizerActivity.Set();
 
-                    Processor[] processors = _imagesProcessorStorage.Elements.Select(t => t.processor).ToArray();
+                    Processor[] processors;
+
+                    try
+                    {
+                        processors = _imagesProcessorStorage.UniqueElements.Select(t => t.processor).ToArray();
+                    }
+                    catch (Exception ex)
+                    {
+                        ErrorMessageInOtherThread(ex.Message);
+                        return;
+                    }
 
                     if (!processors.Any())
                     {
-                        ErrorMessageInOtherThread(@"Образы для распознавания отсутствуют. Создайте хотя бы один.");
+                        ErrorMessageInOtherThread(@"Образы для распознавания отсутствуют. Создайте хотя бы два.");
                         return;
                     }
 
@@ -618,39 +617,40 @@ namespace DynamicMosaicExample
                     finally
                     {
                         _stwRecognize.Stop();
-                        pbSuccess.Image = result ? Resources.OK_128 : Resources.Error_128;
+                        pbSuccess.Image = result ? Resources.Result_OK : Resources.Result_Error;
                         _currentState.State = result ? RecognizeState.SUCCESS : RecognizeState.ERROR;
                     }
+
+                    if (!result)
+                        return;
 
                     Processor[] ps = recognizer.Processors.ToArray();
 
                     InvokeAction(() =>
                     {
-                        if (result)
-                        {
-                            string systemName = $@"({ps.Length}) {DateTime.Now:HH:mm:ss}";
-                            _recognizeResults.Insert(0, (ps, 0, systemName));
-                            lstResults.Items.Insert(0, systemName);
-                            grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count})";
-                            lstResults.SelectedIndex = 0;
-                        }
-                        else
-                            ChangeSystemSelectedIndex();
+                        string systemName = $@"({ps.Length}) {DateTime.Now:HH:mm:ss}";
+                        _recognizeResults.Insert(0, (ps, 0, systemName));
+                        lstResults.Items.Insert(0, systemName);
+                        grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count})";
+                        lstResults.SelectedIndex = 0;
                     });
                 }
                 catch (Exception ex)
                 {
-                    ChangeSystemSelectedIndex();
-
                     if (ex is ThreadAbortException)
+                    {
                         Thread.ResetAbort();
+                        return;
+                    }
+
+                    ErrorMessageInOtherThread(ex.Message);
                 }
                 finally
                 {
                     if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)
                         Thread.ResetAbort();
 
-                    _preparingActivity.Reset();
+                    preparingActivity.Reset();
                     _recognizerActivity.Reset();
                 }
             }))
@@ -659,7 +659,8 @@ namespace DynamicMosaicExample
                 IsBackground = true,
                 Name = "Recognizer"
             }).Start();
-            _preparingActivity.WaitOne();
+
+            preparingActivity.WaitOne();
         });
 
         /// <summary>
@@ -921,81 +922,36 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void LstResults_SelectedIndexChanged(object sender, EventArgs e) => SafetyExecute(() => ChangeSystemSelectedIndex(lstResults.SelectedIndex));
+        void LstResults_SelectedIndexChanged(object sender, EventArgs e) => SafetyExecute(ChangeSystemSelectedIndex);
 
-        void ChangeSystemSelectedIndex(int? selectedIndex = null) => InvokeAction(() =>
+        void ChangeSystemSelectedIndex()
         {
-            if (selectedIndex.HasValue)
+            if (lstResults.SelectedIndex < 0)
             {
-                if (selectedIndex == _prevSelectedIndex)
-                    return;
+                txtConSymbol.Text = _unknownSystemName;
+                pbConSymbol.Image = new Bitmap(pbConSymbol.Width, pbConSymbol.Height);
 
-                if (selectedIndex > -1)
-                    _prevSelectedIndex = selectedIndex.Value;
-            }
-            else
-                selectedIndex = _prevSelectedIndex;
-
-            lstResults.SelectedIndex = selectedIndex.Value;
-
-            if (selectedIndex > -1)
-            {
-                (Processor[] processors, int reflexMapIndex, string _) = _recognizeResults[selectedIndex.Value];
-                Processor p = processors[reflexMapIndex];
-                pbConSymbol.Image = ImageRect.GetBitmap(p);
-                UpdateConSymbolName(p.Tag);
-                txtConSymbol.Enabled = true;
-                pbConSymbol.Enabled = true;
-
-                if (selectedIndex > 1)
-                {
-                    btnConNext.Enabled = true;
-                    btnConPrevious.Enabled = true;
-                }
-
-                btnReflexRemove.Enabled = true;
-                btnConSaveImage.Enabled = true;
-                btnConSaveAllImages.Enabled = true;
+                txtConSymbol.Enabled = false;
+                pbConSymbol.Enabled = false;
+                btnConNext.Enabled = false;
+                btnConPrevious.Enabled = false;
+                btnConSaveImage.Enabled = false;
+                btnConSaveAllImages.Enabled = false;
                 return;
             }
 
-            txtConSymbol.Enabled = false;
-            pbConSymbol.Enabled = false;
-            btnConNext.Enabled = false;
-            btnConPrevious.Enabled = false;
-            btnReflexRemove.Enabled = false;
-            btnConSaveImage.Enabled = false;
-            btnConSaveAllImages.Enabled = false;
-            ConSymbolBrowseClear();
-        });
+            (Processor[] processors, int reflexMapIndex, string _) = SelectedResult;
+            Processor p = processors[reflexMapIndex];
+            txtConSymbol.Text = $@"№ {reflexMapIndex + 1} {p.Tag}";
+            pbConSymbol.Image = ImageRect.GetBitmap(p);
 
-        /// <summary>
-        ///     Обрабатывает событие удаления системы из рассматриваемых.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void BtnReflexRemove_Click(object sender, EventArgs e) => SafetyExecute(() =>
-        {
-            if (lstResults.SelectedIndex < 1)
-                return;
-            if (lstResults.SelectedIndex == 1)
-                _currentState.CriticalChange(sender, e);
-            _recognizeResults.RemoveAt(lstResults.SelectedIndex);
-            lstResults.Items.RemoveAt(lstResults.SelectedIndex);
-            lstResults.SelectedIndex = 0;
-            int count = lstResults.Items.Count - 1;
-            grpResults.Text = count > 0 ? $@"{_strGrpResults} ({count})" : _strGrpResults;
-            ConSymbolBrowseClear();
-            if (lstResults.Items.Count > 1)
-                return;
-            txtConSymbol.Enabled = false;
-            pbConSymbol.Enabled = false;
-            btnConNext.Enabled = false;
-            btnConPrevious.Enabled = false;
-            btnReflexRemove.Enabled = false;
-            btnConSaveImage.Enabled = false;
-            btnConSaveAllImages.Enabled = false;
-        });
+            txtConSymbol.Enabled = true;
+            pbConSymbol.Enabled = true;
+            btnConNext.Enabled = true;
+            btnConPrevious.Enabled = true;
+            btnConSaveImage.Enabled = true;
+            btnConSaveAllImages.Enabled = true;
+        }
 
         /// <summary>
         ///     Обрабатывает событие выбора следующей карты, рассматриваемой в выбранной системе.
@@ -1005,14 +961,15 @@ namespace DynamicMosaicExample
         void BtnConNext_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             (Processor[] processors, int reflexMapIndex, string) q = SelectedResult;
+
             if (q.reflexMapIndex >= q.processors.Length - 1)
                 q.reflexMapIndex = 0;
             else
                 q.reflexMapIndex++;
+
             SelectedResult = q;
-            Processor p = q.processors[q.reflexMapIndex];
-            pbConSymbol.Image = ImageRect.GetBitmap(p);
-            UpdateConSymbolName(p.Tag);
+
+            ChangeSystemSelectedIndex();
         });
 
         /// <summary>
@@ -1023,22 +980,16 @@ namespace DynamicMosaicExample
         void BtnConPrevious_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
             (Processor[] processors, int reflexMapIndex, string) q = SelectedResult;
+
             if (q.reflexMapIndex < 1)
                 q.reflexMapIndex = q.processors.Length - 1;
             else
                 q.reflexMapIndex--;
-            SelectedResult = q;
-            Processor p = q.processors[q.reflexMapIndex];
-            pbConSymbol.Image = ImageRect.GetBitmap(p);
-            UpdateConSymbolName(p.Tag);
-        });
 
-        /// <summary>
-        ///     Актуализирует информацию о выбранной карте рассматриваемой в данный момент системы <see cref="DynamicReflex" />.
-        /// </summary>
-        /// <param name="tag">Значение свойства <see cref="Processor.Tag" />.</param>
-        void UpdateConSymbolName(string tag) => txtConSymbol.Text =
-            $@"№ {SelectedResult.reflexMapIndex + 1} {tag}";
+            SelectedResult = q;
+
+            ChangeSystemSelectedIndex();
+        });
 
         /// <summary>
         ///     Сохраняет выбранную карту <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.

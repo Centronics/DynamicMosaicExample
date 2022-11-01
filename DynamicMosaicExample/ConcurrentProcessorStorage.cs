@@ -24,8 +24,6 @@ namespace DynamicMosaicExample
 
         public abstract Processor GetAddingProcessor(string fullPath);
 
-        public abstract string GetProcessorTag(string fullPath);
-
         public abstract string ImagesPath { get; }
 
         public abstract ProcessorStorageType StorageType { get; }
@@ -34,7 +32,7 @@ namespace DynamicMosaicExample
 
         public abstract (Bitmap, string) SaveToFile(Processor processor, string relativeFolderPath);
 
-        protected (Processor processor, string path) AddTagToSet(ISet<string> tagSet, Processor p, (string tag, ulong? number) tn, string pathToSave)
+        protected (Processor processor, string path) GetUniqueProcessor(ISet<string> tagSet, Processor p, (string tag, ulong? number) tn, string pathToSave)
         {
             unchecked
             {
@@ -84,13 +82,13 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Коллекция карт, идентифицируемых по путям.
         /// </summary>
-        protected readonly Dictionary<string, ProcPath> _dictionaryByKey = new Dictionary<string, ProcPath>();
+        protected readonly Dictionary<string, ProcPath> DictionaryByKey = new Dictionary<string, ProcPath>();
 
         /// <summary>
         ///     Объект для синхронизации доступа к экземпляру класса <see cref="ConcurrentProcessorStorage" />, с использованием
         ///     конструкции <see langword="lock" />.
         /// </summary>
-        protected readonly object _syncObject = new object();
+        protected readonly object SyncObject = new object();
 
         string _savedRecognizePath = string.Empty;
 
@@ -101,10 +99,24 @@ namespace DynamicMosaicExample
         {
             get
             {
-                lock (_syncObject)
+                lock (SyncObject)
                 {
-                    foreach (ProcPath p in _dictionaryByKey.Values)
+                    foreach (ProcPath p in DictionaryByKey.Values)
                         yield return (p.CurrentProcessor, p.CurrentPath);
+                }
+            }
+        }
+
+        public IEnumerable<(Processor processor, string sourcePath)> UniqueElements
+        {
+            get
+            {
+                lock (SyncObject)
+                {
+                    HashSet<string> tagSet = new HashSet<string>();
+
+                    foreach ((Processor processor, string sourcePath) in Elements)
+                        yield return GetUniqueProcessor(tagSet, processor, sourcePath);
                 }
             }
         }
@@ -113,19 +125,22 @@ namespace DynamicMosaicExample
         {
             get
             {
-                lock (_syncObject)
+                lock (SyncObject)
                 {
                     HashSet<string> tagSet = new HashSet<string>();
 
-                    foreach (ProcPath p in _dictionaryByKey.Values)
-                    {
-                        (ulong? number, string strPart) = ImageRect.NameParser(Path.GetFileNameWithoutExtension(p.CurrentPath));
-                        AddTagToSet(tagSet, p.CurrentProcessor, (strPart, number), string.Empty);
-                    }
+                    foreach ((Processor processor, string sourcePath) in Elements)
+                        GetUniqueProcessor(tagSet, processor, sourcePath);
 
                     return tagSet;
                 }
             }
+        }
+
+        (Processor processor, string path) GetUniqueProcessor(ISet<string> tagSet, Processor processor, string sourcePath)
+        {
+            (ulong? number, string strPart) = ImageRect.NameParser(Path.GetFileNameWithoutExtension(sourcePath));
+            return GetUniqueProcessor(tagSet, processor, (strPart, number), string.Empty);
         }
 
         public bool IsWorkingPath(string path, bool isEqual = false)
@@ -183,8 +198,8 @@ namespace DynamicMosaicExample
         {
             get
             {
-                lock (_syncObject)
-                    return _dictionaryByKey.Count;
+                lock (SyncObject)
+                    return DictionaryByKey.Count;
             }
         }
 
@@ -199,12 +214,12 @@ namespace DynamicMosaicExample
         {
             get
             {
-                lock (_syncObject)
+                lock (SyncObject)
                 {
                     if (index < 0 || index >= Count)
                         return (null, string.Empty, Count);
 
-                    ProcPath pp = _dictionaryByKey.Values.ElementAt(index);
+                    ProcPath pp = DictionaryByKey.Values.ElementAt(index);
                     return (pp.CurrentProcessor, pp.CurrentPath, Count);
                 }
             }
@@ -223,9 +238,9 @@ namespace DynamicMosaicExample
             {
                 if (string.IsNullOrWhiteSpace(fullPath))
                     return (null, string.Empty, Count);
-                lock (_syncObject)
+                lock (SyncObject)
                 {
-                    _dictionaryByKey.TryGetValue(GetStringKey(fullPath), out ProcPath p);
+                    DictionaryByKey.TryGetValue(GetStringKey(fullPath), out ProcPath p);
                     return (p.CurrentProcessor, p.CurrentPath, Count);
                 }
             }
@@ -253,7 +268,7 @@ namespace DynamicMosaicExample
             }
 
             int hashCode = GetHashKey(addingProcessor);
-            lock (_syncObject)
+            lock (SyncObject)
                 AddElement(hashCode, fullPath, addingProcessor);
         }
 
@@ -332,10 +347,10 @@ namespace DynamicMosaicExample
         void AddElement(int hashCode, string fullPath, Processor processor)
         {
             string key = GetStringKey(fullPath);
-            if (_dictionaryByKey.ContainsKey(key))
+            if (DictionaryByKey.ContainsKey(key))
                 RemoveProcessor(fullPath);
 
-            _dictionaryByKey.Add(key, new ProcPath(processor, fullPath));
+            DictionaryByKey.Add(key, new ProcPath(processor, fullPath));
             if (_dictionaryByHash.TryGetValue(hashCode, out ProcHash ph))
                 ph.AddProcessor(new ProcPath(processor, fullPath));
             else
@@ -356,7 +371,7 @@ namespace DynamicMosaicExample
         /// <returns>Возвращает карту, путь к ней, и количество карт на момент её получения.</returns>
         public (Processor processor, string path, int count) GetLastProcessor(ref int index)
         {
-            lock (_syncObject)
+            lock (SyncObject)
             {
                 int count = Count;
                 if (count < 1)
@@ -389,7 +404,7 @@ namespace DynamicMosaicExample
         /// <returns>Возвращает карту, путь к ней, и количество карт на момент её получения.</returns>
         public (Processor processor, string path, int count) GetFirstProcessor(ref int index)
         {
-            lock (_syncObject)
+            lock (SyncObject)
             {
                 int count = Count;
                 if (count < 1)
@@ -410,7 +425,7 @@ namespace DynamicMosaicExample
 
         public void RemoveProcessor()
         {
-            lock (_syncObject)
+            lock (SyncObject)
             {
                 if (string.IsNullOrEmpty(_savedRecognizePath))
                     return;
@@ -429,7 +444,7 @@ namespace DynamicMosaicExample
             if (string.IsNullOrEmpty(fullPath))
                 return;
 
-            lock (_syncObject)
+            lock (SyncObject)
                 RemoveProcessor(this[GetStringKey(fullPath)].processor);
         }
 
@@ -458,7 +473,7 @@ namespace DynamicMosaicExample
             if (processor is null)
                 return;
             int hashCode = GetHashKey(processor);
-            lock (_syncObject)
+            lock (SyncObject)
             {
                 if (!_dictionaryByHash.TryGetValue(hashCode, out ProcHash ph))
                     return;
@@ -467,7 +482,7 @@ namespace DynamicMosaicExample
                     if (ReferenceEquals(processor, px.CurrentProcessor))
                     {
                         string path = ph[index].CurrentPath;
-                        _dictionaryByKey.Remove(GetStringKey(path));
+                        DictionaryByKey.Remove(GetStringKey(path));
                         ph.RemoveProcessor(index);
                         if (string.Compare(path, _savedRecognizePath, StringComparison.OrdinalIgnoreCase) == 0)
                             _savedRecognizePath = string.Empty;
@@ -483,9 +498,9 @@ namespace DynamicMosaicExample
 
         public void Clear()
         {
-            lock (_syncObject)
+            lock (SyncObject)
             {
-                _dictionaryByKey.Clear();
+                DictionaryByKey.Clear();
                 _dictionaryByHash.Clear();
                 _savedRecognizePath = string.Empty;
             }

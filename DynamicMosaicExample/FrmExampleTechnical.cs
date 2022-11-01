@@ -56,34 +56,6 @@ namespace DynamicMosaicExample
         /// </summary>
         const string StrLoading3 = "Загрузка...";
 
-
-
-
-
-        /// <summary>
-        ///     Надпись на кнопке "Распознать".
-        /// </summary>
-        const string StrPreparing = "Подготовка   ";
-
-        /// <summary>
-        ///     Надпись на кнопке "Распознать".
-        /// </summary>
-        const string StrPreparing1 = "Подготовка.  ";
-
-        /// <summary>
-        ///     Надпись на кнопке "Распознать".
-        /// </summary>
-        const string StrPreparing2 = "Подготовка.. ";
-
-        /// <summary>
-        ///     Надпись на кнопке "Распознать".
-        /// </summary>
-        const string StrPreparing3 = "Подготовка...";
-
-
-
-
-
         /// <summary>
         ///     Текст ошибки в случае, если отсутствуют образы для поиска (распознавания).
         /// </summary>
@@ -150,8 +122,6 @@ namespace DynamicMosaicExample
         ///     распознавания, в том числе, для актуализации их содержимого.
         /// </summary>
         readonly ManualResetEvent _fileActivity = new ManualResetEvent(false);
-
-        readonly ManualResetEvent _preparingActivity = new ManualResetEvent(false);
 
         /// <summary>
         ///     Уведомляет о необходимости запустить поток для обновления списка файлов изображений.
@@ -350,13 +320,15 @@ namespace DynamicMosaicExample
 
         internal static string RecognizeFolder => "Recognize";
 
+        public static string WorkingDirectory { get; } = Application.StartupPath;
+
         /// <summary>
         ///     Путь, по которому ищутся изображения, которые интерпретируются как карты <see cref="Processor" />, поиск которых
         ///     будет осуществляться на основной карте.
         /// </summary>
-        internal static string SearchImagesPath { get; } = Path.Combine(Application.StartupPath, ImagesFolder);
+        internal static string SearchImagesPath { get; } = Path.Combine(WorkingDirectory, ImagesFolder);
 
-        internal static string RecognizeImagesPath { get; } = Path.Combine(Application.StartupPath, RecognizeFolder);
+        internal static string RecognizeImagesPath { get; } = Path.Combine(WorkingDirectory, RecognizeFolder);
 
         /// <summary>
         ///     Расширение изображений, которые интерпретируются как карты <see cref="Processor" />.
@@ -367,8 +339,6 @@ namespace DynamicMosaicExample
         ///     Отражает статус процесса актуализации содержимого карт с жёсткого диска.
         /// </summary>
         bool IsFileActivity => _fileActivity.WaitOne(0);
-
-        bool IsPreparingActivity => _preparingActivity.WaitOne(0);
 
         /// <summary>
         ///     Отключает или включает доступность кнопок на время выполнения операции.
@@ -477,7 +447,7 @@ namespace DynamicMosaicExample
         /// </returns>
         bool StopRecognize()
         {
-            if (!IsRecognizing && !IsPreparingActivity)
+            if (!IsRecognizing)
                 return false;
 
             try
@@ -691,7 +661,7 @@ namespace DynamicMosaicExample
             try
             {
                 logstr = $@"{DateTime.Now:dd.MM.yyyy HH:mm:ss} {logstr}";
-                string path = Path.Combine(Application.StartupPath, "DynamicMosaicExampleLog.log");
+                string path = Path.Combine(WorkingDirectory, "DynamicMosaicExampleLog.log");
                 lock (LogLockerObject)
                     using (FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write,
                         FileShare.ReadWrite | FileShare.Delete))
@@ -788,11 +758,11 @@ namespace DynamicMosaicExample
                     switch (value)
                     {
                         case RecognizeState.ERROR:
-                            _curForm.pbSuccess.Image = Resources.Error_128;
+                            _curForm.pbSuccess.Image = Resources.Result_Error;
                             _state = RecognizeState.ERROR;
                             return;
                         case RecognizeState.SUCCESS:
-                            _curForm.pbSuccess.Image = Resources.OK_128;
+                            _curForm.pbSuccess.Image = Resources.Result_OK;
                             _state = RecognizeState.SUCCESS;
                             return;
                     }
@@ -806,7 +776,7 @@ namespace DynamicMosaicExample
             /// <param name="e">Данные о событии.</param>
             internal void CriticalChange(object sender, EventArgs e)
             {
-                _curForm.InvokeAction(() => _curForm.pbSuccess.Image = Resources.Unk_128);
+                _curForm.InvokeAction(() => _curForm.pbSuccess.Image = Resources.Result_Unknown);
                 _state = RecognizeState.UNKNOWN;
             }
 
@@ -823,14 +793,14 @@ namespace DynamicMosaicExample
                     case RecognizeState.SUCCESS:
                         if (string.Compare(CurWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) == 0)
                             return;
-                        _curForm.pbSuccess.Image = Resources.Unk_128;
+                        _curForm.pbSuccess.Image = Resources.Result_Unknown;
                         _state = _state == RecognizeState.ERROR ? RecognizeState.ERRORWORD : RecognizeState.SUCCESSWORD;
                         return;
                     case RecognizeState.ERRORWORD:
                     case RecognizeState.SUCCESSWORD:
                         if (string.Compare(CurWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) != 0)
                             return;
-                        _curForm.pbSuccess.Image = _state == RecognizeState.ERRORWORD ? Resources.Error_128 : Resources.OK_128;
+                        _curForm.pbSuccess.Image = _state == RecognizeState.ERRORWORD ? Resources.Result_Error : Resources.Result_OK;
                         _state = _state == RecognizeState.ERRORWORD ? RecognizeState.ERROR : RecognizeState.SUCCESS;
                         return;
                     case RecognizeState.UNKNOWN:
