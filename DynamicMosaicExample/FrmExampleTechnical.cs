@@ -17,50 +17,44 @@ namespace DynamicMosaicExample
     internal sealed partial class FrmExample
     {
         /// <summary>
-        ///     Надпись на кнопке "Распознать".
+        ///     Текст кнопки "Найти".
         /// </summary>
         const string StrRecognize = "Ждите   ";
 
         /// <summary>
-        ///     Надпись на кнопке "Распознать".
+        ///     Текст кнопки "Найти".
         /// </summary>
         const string StrRecognize1 = "Ждите.  ";
 
         /// <summary>
-        ///     Надпись на кнопке "Распознать".
+        ///     Текст кнопки "Найти".
         /// </summary>
         const string StrRecognize2 = "Ждите.. ";
 
         /// <summary>
-        ///     Надпись на кнопке "Распознать".
+        ///     Текст кнопки "Найти".
         /// </summary>
         const string StrRecognize3 = "Ждите...";
 
         /// <summary>
-        ///     Надпись на кнопке "Распознать".
+        ///     Текст кнопки "Найти".
         /// </summary>
         const string StrLoading = "Загрузка   ";
 
         /// <summary>
-        ///     Надпись на кнопке "Распознать".
+        ///     Текст кнопки "Найти".
         /// </summary>
         const string StrLoading1 = "Загрузка.  ";
 
         /// <summary>
-        ///     Надпись на кнопке "Распознать".
+        ///     Текст кнопки "Найти".
         /// </summary>
         const string StrLoading2 = "Загрузка.. ";
 
         /// <summary>
-        ///     Надпись на кнопке "Распознать".
+        ///     Текст кнопки "Найти".
         /// </summary>
         const string StrLoading3 = "Загрузка...";
-
-        /// <summary>
-        ///     Текст ошибки в случае, если отсутствуют образы для поиска (распознавания).
-        /// </summary>
-        const string ImagesNoExists =
-            @"Образы отсутствуют. Для их добавления и распознавания необходимо создать искомые образы, нажав кнопку 'Создать образ', затем добавить искомое слово, которое так или иначе можно составить из названий искомых образов. Затем необходимо нарисовать его в поле исходного изображения. Далее нажать кнопку 'Распознать'.";
 
         const string SaveImageQueryError = @"Необходимо написать какой-либо запрос, который будет использоваться в качестве имени файла изображения.";
 
@@ -119,7 +113,7 @@ namespace DynamicMosaicExample
 
         /// <summary>
         ///     Отражает статус работы потока, который служит для получения всех имеющихся на данный момент образов букв для
-        ///     распознавания, в том числе, для актуализации их содержимого.
+        ///     поиска их на распознаваемом изображении, в том числе, для актуализации их содержимого.
         /// </summary>
         readonly ManualResetEvent _fileActivity = new ManualResetEvent(false);
 
@@ -143,13 +137,13 @@ namespace DynamicMosaicExample
         readonly string _strGrpResults;
 
         /// <summary>
-        ///     Текст кнопки "Распознать". Сохраняет исходное значение свойства <see cref="Button.Text" /> кнопки
+        ///     Текст кнопки "Найти". Сохраняет исходное значение свойства <see cref="Button.Text" /> кнопки
         ///     <see cref="btnRecognizeImage" />.
         /// </summary>
         readonly string _strRecog;
 
         /// <summary>
-        ///     Таймер для измерения времени, затраченного на распознавание.
+        ///     Таймер для измерения времени, затраченного на поиск символов на распознаваемой карте.
         /// </summary>
         readonly Stopwatch _stwRecognize = new Stopwatch();
 
@@ -175,7 +169,7 @@ namespace DynamicMosaicExample
         readonly List<(Processor[] processors, int reflexMapIndex, string systemName)> _recognizeResults = new List<(Processor[] processors, int reflexMapIndex, string systemName)>();
 
         /// <summary>
-        ///     Отражает статус работы потока распознавания изображения.
+        ///     Отражает статус работы потока, отвечающего за поиск символов на распознаваемом изображении.
         /// </summary>
         readonly ManualResetEvent _recognizerActivity = new ManualResetEvent(false);
 
@@ -194,8 +188,6 @@ namespace DynamicMosaicExample
         string _savedRecognizeQuery = string.Empty;
 
         string _savedRecognizePath = string.Empty;
-
-        int _prevSelectedIndex = -1;
 
         /// <summary>
         ///     Отражает статус всех кнопок на данный момент.
@@ -238,7 +230,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Поток, отвечающий за выполнение процедуры распознавания.
+        ///     Поток, отвечающий за выполнение процедуры поиска символов на распознаваемом изображении.
         /// </summary>
         Thread _recognizerThread;
 
@@ -277,7 +269,6 @@ namespace DynamicMosaicExample
                 _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, WidthStep, pbDraw.Height);
                 Directory.CreateDirectory(SearchImagesPath);
                 Directory.CreateDirectory(RecognizeImagesPath);
-                _prevSelectedIndex = lstResults.SelectedIndex;
                 _unknownSymbolName = txtSymbolPath.Text;
                 _unknownSystemName = txtConSymbol.Text;
                 _strRecog = btnRecognizeImage.Text;
@@ -437,7 +428,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Останавливает процесс распознавания.
+        ///     Останавливает процесс поиска символов на распознаваемом изображении.
         ///     Возвращает значение <see langword="true" /> в случае успешной остановки процесса распознавания, в противном случае
         ///     возвращает значение <see langword="false" />, в том числе, если процесс распознавания не был запущен.
         /// </summary>
@@ -456,14 +447,14 @@ namespace DynamicMosaicExample
 
                 if (!_recognizerThread.Join(15000))
                     MessageBox.Show(this,
-                        @"Во время остановки распознавания произошла ошибка: поток, отвечающий за распознавание, завис. Рекомендуется перезапустить программу.",
+                        @"Во время остановки процесса поиска произошла ошибка: поток, отвечающий за поиск, завис. Рекомендуется перезапустить программу.",
                         @"Ошибка",
                         MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(this,
-                    $@"Во время остановки распознавания произошла ошибка:{Environment.NewLine}{ex.Message}", @"Ошибка",
+                    $@"Во время остановки процесса поиска произошла ошибка:{Environment.NewLine}{ex.Message}", @"Ошибка",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
@@ -496,7 +487,7 @@ namespace DynamicMosaicExample
         ///     Создаёт новый поток для обновления списка файлов изображений, в случае, если поток (<see cref="_fileRefreshThread" />) не
         ///     выполняется.
         ///     Созданный поток находится в состояниях <see cref="System.Threading.ThreadState.Unstarted" /> и <see cref="System.Threading.ThreadState.Background" />.
-        ///     Поток служит для получения всех имеющихся на данный момент образов букв для распознавания, в том числе, для
+        ///     Поток служит для получения всех имеющихся на данный момент образов букв для поиска, в том числе, для
         ///     актуализации их содержимого.
         ///     Возвращает экземпляр созданного потока или <see langword="null" />, в случае, этот поток выполняется.
         /// </summary>
@@ -676,20 +667,20 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Состояние программы после распознавания карты.
+        ///     Состояние программы после поиска символов на изображении.
         /// </summary>
         enum RecognizeState
         {
             /// <summary>
             ///     Неизвестно.
-            ///     Этот статус означает, что распознавание ещё не было запущено.
+            ///     Этот статус означает, что процесс поиска ещё не был запущен.
             /// </summary>
             UNKNOWN,
 
             /// <summary>
             ///     Ошибка, слово изменено.
             ///     Вернуться из этого статуса в статус <see cref="ERROR" /> можно путём возвращения слова в предыдущее состояние,
-            ///     какое оно было при выполнении процедуры распознавания.
+            ///     какое оно было при выполнении процедуры поиска.
             ///     Регистр не учитывается.
             /// </summary>
             ERRORWORD,
@@ -697,7 +688,7 @@ namespace DynamicMosaicExample
             /// <summary>
             ///     Успех, слово изменено.
             ///     Вернуться из этого статуса в статус <see cref="SUCCESS" /> можно путём возвращения слова в предыдущее состояние,
-            ///     какое оно было при выполнении процедуры распознавания.
+            ///     какое оно было при выполнении процедуры поиска.
             ///     Регистр не учитывается.
             /// </summary>
             SUCCESSWORD,
@@ -739,7 +730,7 @@ namespace DynamicMosaicExample
             }
 
             /// <summary>
-            ///     Искомое слово, написанное пользователем в момент запуска процедуры распознавания.
+            ///     Искомое слово, написанное пользователем в момент запуска процедуры поиска символов на распознаваемом изображении.
             /// </summary>
             internal string CurWord { get; private set; } = string.Empty;
 
@@ -770,7 +761,7 @@ namespace DynamicMosaicExample
             }
 
             /// <summary>
-            ///     Используется для подписи на событие изменения критических данных, относящихся к распознаванию.
+            ///     Используется для подписи на событие изменения критических данных, относящихся к поиску символов на распознаваемом изображении.
             /// </summary>
             /// <param name="sender">Вызывающий объект.</param>
             /// <param name="e">Данные о событии.</param>

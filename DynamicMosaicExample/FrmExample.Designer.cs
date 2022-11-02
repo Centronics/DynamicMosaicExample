@@ -33,22 +33,18 @@
             this.lstResults = new System.Windows.Forms.ListBox();
             this.txtWord = new System.Windows.Forms.TextBox();
             this.grpImages = new System.Windows.Forms.GroupBox();
+            this.btnImageUpToQueries = new System.Windows.Forms.Button();
             this.txtSymbolPath = new System.Windows.Forms.TextBox();
             this.txtImagesCount = new System.Windows.Forms.TextBox();
+            this.btnImageDelete = new System.Windows.Forms.Button();
+            this.btnImagePrev = new System.Windows.Forms.Button();
+            this.btnImageCreate = new System.Windows.Forms.Button();
+            this.btnImageNext = new System.Windows.Forms.Button();
+            this.pbBrowse = new System.Windows.Forms.PictureBox();
             this.grpResults = new System.Windows.Forms.GroupBox();
             this.label2 = new System.Windows.Forms.Label();
             this.lblElapsedTime = new System.Windows.Forms.Label();
             this.grpSourceImage = new System.Windows.Forms.GroupBox();
-            this.grpWords = new System.Windows.Forms.GroupBox();
-            this.grpContains = new System.Windows.Forms.GroupBox();
-            this.txtConSymbol = new System.Windows.Forms.TextBox();
-            this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
-            this.btnConSaveAllImages = new System.Windows.Forms.Button();
-            this.btnConSaveImage = new System.Windows.Forms.Button();
-            this.btnConPrevious = new System.Windows.Forms.Button();
-            this.btnConNext = new System.Windows.Forms.Button();
-            this.pbConSymbol = new System.Windows.Forms.PictureBox();
-            this.pbSuccess = new System.Windows.Forms.PictureBox();
             this.btnPrevRecogImage = new System.Windows.Forms.Button();
             this.btnNextRecogImage = new System.Windows.Forms.Button();
             this.btnDeleteRecognizeImage = new System.Windows.Forms.Button();
@@ -58,21 +54,23 @@
             this.btnSaveRecognizeImage = new System.Windows.Forms.Button();
             this.pbDraw = new System.Windows.Forms.PictureBox();
             this.btnClearImage = new System.Windows.Forms.Button();
-            this.btnImageUpToQueries = new System.Windows.Forms.Button();
-            this.btnImageDelete = new System.Windows.Forms.Button();
-            this.btnImagePrev = new System.Windows.Forms.Button();
-            this.btnImageCreate = new System.Windows.Forms.Button();
-            this.btnImageNext = new System.Windows.Forms.Button();
-            this.pbBrowse = new System.Windows.Forms.PictureBox();
+            this.grpWords = new System.Windows.Forms.GroupBox();
+            this.pbSuccess = new System.Windows.Forms.PictureBox();
+            this.btnConSaveAllImages = new System.Windows.Forms.Button();
+            this.btnConSaveImage = new System.Windows.Forms.Button();
+            this.txtConSymbol = new System.Windows.Forms.TextBox();
+            this.btnConPrevious = new System.Windows.Forms.Button();
+            this.btnConNext = new System.Windows.Forms.Button();
+            this.pbConSymbol = new System.Windows.Forms.PictureBox();
+            this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
             this.grpImages.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
             this.grpResults.SuspendLayout();
             this.grpSourceImage.SuspendLayout();
-            this.grpWords.SuspendLayout();
-            this.grpContains.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pbSuccess)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbDraw)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
+            this.grpWords.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbSuccess)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).BeginInit();
             this.SuspendLayout();
             // 
             // btnRecognizeImage
@@ -93,10 +91,10 @@
             this.lstResults.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.lstResults.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.lstResults.FormattingEnabled = true;
-            this.lstResults.Location = new System.Drawing.Point(2, 16);
+            this.lstResults.Location = new System.Drawing.Point(2, 12);
             this.lstResults.MultiColumn = true;
             this.lstResults.Name = "lstResults";
-            this.lstResults.Size = new System.Drawing.Size(124, 67);
+            this.lstResults.Size = new System.Drawing.Size(125, 93);
             this.lstResults.TabIndex = 17;
             this.lstResults.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.LstResults_DrawItem);
             this.lstResults.SelectedIndexChanged += new System.EventHandler(this.LstResults_SelectedIndexChanged);
@@ -104,13 +102,12 @@
             // txtWord
             // 
             this.txtWord.Font = new System.Drawing.Font("Verdana", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.txtWord.Location = new System.Drawing.Point(2, 13);
+            this.txtWord.Location = new System.Drawing.Point(2, 12);
             this.txtWord.MaxLength = 6;
             this.txtWord.Name = "txtWord";
             this.txtWord.Size = new System.Drawing.Size(95, 23);
             this.txtWord.TabIndex = 9;
             this.txtWord.Tag = "";
-            this.txtWord.Text = "WWWWWW";
             this.txtWord.TextChanged += new System.EventHandler(this.TxtWord_TextChanged);
             this.txtWord.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TxtWord_KeyDown);
             this.txtWord.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TxtWord_KeyPress);
@@ -134,6 +131,17 @@
             this.grpImages.TabStop = false;
             this.grpImages.Text = "Образы искомых букв";
             // 
+            // btnImageUpToQueries
+            // 
+            this.btnImageUpToQueries.Enabled = false;
+            this.btnImageUpToQueries.Image = global::DynamicMosaicExample.Resources.UpToQueries;
+            this.btnImageUpToQueries.Location = new System.Drawing.Point(128, 35);
+            this.btnImageUpToQueries.Name = "btnImageUpToQueries";
+            this.btnImageUpToQueries.Size = new System.Drawing.Size(50, 52);
+            this.btnImageUpToQueries.TabIndex = 14;
+            this.btnImageUpToQueries.UseVisualStyleBackColor = true;
+            this.btnImageUpToQueries.Click += new System.EventHandler(this.BtnImageUpToQueries_Click);
+            // 
             // txtSymbolPath
             // 
             this.txtSymbolPath.Enabled = false;
@@ -153,13 +161,70 @@
             this.txtImagesCount.Size = new System.Drawing.Size(65, 20);
             this.txtImagesCount.TabIndex = 11;
             // 
+            // btnImageDelete
+            // 
+            this.btnImageDelete.Image = global::DynamicMosaicExample.Resources.DeleteFile;
+            this.btnImageDelete.Location = new System.Drawing.Point(221, 35);
+            this.btnImageDelete.Name = "btnImageDelete";
+            this.btnImageDelete.Size = new System.Drawing.Size(40, 52);
+            this.btnImageDelete.TabIndex = 16;
+            this.btnImageDelete.UseVisualStyleBackColor = true;
+            this.btnImageDelete.Click += new System.EventHandler(this.BtnImageDelete_Click);
+            // 
+            // btnImagePrev
+            // 
+            this.btnImagePrev.Enabled = false;
+            this.btnImagePrev.Image = global::DynamicMosaicExample.Resources.Previous;
+            this.btnImagePrev.Location = new System.Drawing.Point(45, 35);
+            this.btnImagePrev.Name = "btnImagePrev";
+            this.btnImagePrev.Size = new System.Drawing.Size(40, 52);
+            this.btnImagePrev.TabIndex = 12;
+            this.btnImagePrev.UseVisualStyleBackColor = true;
+            this.btnImagePrev.Click += new System.EventHandler(this.BtnImagePrev_Click);
+            // 
+            // btnImageCreate
+            // 
+            this.btnImageCreate.Image = global::DynamicMosaicExample.Resources.CreateImage;
+            this.btnImageCreate.Location = new System.Drawing.Point(182, 35);
+            this.btnImageCreate.Name = "btnImageCreate";
+            this.btnImageCreate.Size = new System.Drawing.Size(40, 52);
+            this.btnImageCreate.TabIndex = 15;
+            this.btnImageCreate.UseVisualStyleBackColor = true;
+            this.btnImageCreate.Click += new System.EventHandler(this.BtnImageCreate_Click);
+            // 
+            // btnImageNext
+            // 
+            this.btnImageNext.Enabled = false;
+            this.btnImageNext.Image = global::DynamicMosaicExample.Resources.Next;
+            this.btnImageNext.Location = new System.Drawing.Point(84, 35);
+            this.btnImageNext.Name = "btnImageNext";
+            this.btnImageNext.Size = new System.Drawing.Size(40, 52);
+            this.btnImageNext.TabIndex = 13;
+            this.btnImageNext.UseVisualStyleBackColor = true;
+            this.btnImageNext.Click += new System.EventHandler(this.BtnImageNext_Click);
+            // 
+            // pbBrowse
+            // 
+            this.pbBrowse.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pbBrowse.Enabled = false;
+            this.pbBrowse.Location = new System.Drawing.Point(2, 36);
+            this.pbBrowse.Name = "pbBrowse";
+            this.pbBrowse.Size = new System.Drawing.Size(43, 50);
+            this.pbBrowse.TabIndex = 0;
+            this.pbBrowse.TabStop = false;
+            // 
             // grpResults
             // 
+            this.grpResults.Controls.Add(this.btnConSaveAllImages);
             this.grpResults.Controls.Add(this.lstResults);
+            this.grpResults.Controls.Add(this.btnConSaveImage);
+            this.grpResults.Controls.Add(this.pbConSymbol);
+            this.grpResults.Controls.Add(this.btnConNext);
+            this.grpResults.Controls.Add(this.btnConPrevious);
             this.grpResults.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.grpResults.Location = new System.Drawing.Point(267, 37);
+            this.grpResults.Location = new System.Drawing.Point(267, 35);
             this.grpResults.Name = "grpResults";
-            this.grpResults.Size = new System.Drawing.Size(129, 88);
+            this.grpResults.Size = new System.Drawing.Size(129, 180);
             this.grpResults.TabIndex = 27;
             this.grpResults.TabStop = false;
             this.grpResults.Text = "История объекта";
@@ -203,113 +268,6 @@
             this.grpSourceImage.TabIndex = 24;
             this.grpSourceImage.TabStop = false;
             this.grpSourceImage.Text = "Рисование (ЛКМ / ПКМ)";
-            // 
-            // grpWords
-            // 
-            this.grpWords.Controls.Add(this.pbSuccess);
-            this.grpWords.Controls.Add(this.txtWord);
-            this.grpWords.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.grpWords.Location = new System.Drawing.Point(267, -1);
-            this.grpWords.Name = "grpWords";
-            this.grpWords.Size = new System.Drawing.Size(129, 40);
-            this.grpWords.TabIndex = 25;
-            this.grpWords.TabStop = false;
-            this.grpWords.Text = "Искомое слово";
-            // 
-            // grpContains
-            // 
-            this.grpContains.Controls.Add(this.btnConSaveAllImages);
-            this.grpContains.Controls.Add(this.btnConSaveImage);
-            this.grpContains.Controls.Add(this.txtConSymbol);
-            this.grpContains.Controls.Add(this.btnConPrevious);
-            this.grpContains.Controls.Add(this.btnConNext);
-            this.grpContains.Controls.Add(this.pbConSymbol);
-            this.grpContains.Location = new System.Drawing.Point(267, 124);
-            this.grpContains.Name = "grpContains";
-            this.grpContains.Size = new System.Drawing.Size(129, 91);
-            this.grpContains.TabIndex = 23;
-            this.grpContains.TabStop = false;
-            this.grpContains.Text = "Содержимое";
-            // 
-            // txtConSymbol
-            // 
-            this.txtConSymbol.Enabled = false;
-            this.txtConSymbol.Font = new System.Drawing.Font("Verdana", 9.75F, System.Drawing.FontStyle.Bold);
-            this.txtConSymbol.Location = new System.Drawing.Point(2, 14);
-            this.txtConSymbol.Name = "txtConSymbol";
-            this.txtConSymbol.ReadOnly = true;
-            this.txtConSymbol.Size = new System.Drawing.Size(124, 23);
-            this.txtConSymbol.TabIndex = 23;
-            this.txtConSymbol.Text = "W";
-            // 
-            // dlgOpenImage
-            // 
-            this.dlgOpenImage.Filter = "BMP|*.bmp";
-            // 
-            // btnConSaveAllImages
-            // 
-            this.btnConSaveAllImages.Enabled = false;
-            this.btnConSaveAllImages.Image = global::DynamicMosaicExample.Resources.SaveAllImages1;
-            this.btnConSaveAllImages.Location = new System.Drawing.Point(43, 39);
-            this.btnConSaveAllImages.Name = "btnConSaveAllImages";
-            this.btnConSaveAllImages.Size = new System.Drawing.Size(38, 24);
-            this.btnConSaveAllImages.TabIndex = 20;
-            this.btnConSaveAllImages.UseVisualStyleBackColor = true;
-            this.btnConSaveAllImages.Click += new System.EventHandler(this.BtnConSaveAllImages_Click);
-            // 
-            // btnConSaveImage
-            // 
-            this.btnConSaveImage.Enabled = false;
-            this.btnConSaveImage.Image = global::DynamicMosaicExample.Resources.SaveImage1;
-            this.btnConSaveImage.Location = new System.Drawing.Point(4, 39);
-            this.btnConSaveImage.Name = "btnConSaveImage";
-            this.btnConSaveImage.Size = new System.Drawing.Size(38, 24);
-            this.btnConSaveImage.TabIndex = 19;
-            this.btnConSaveImage.UseVisualStyleBackColor = true;
-            this.btnConSaveImage.Click += new System.EventHandler(this.BtnConSaveImage_Click);
-            // 
-            // btnConPrevious
-            // 
-            this.btnConPrevious.Enabled = false;
-            this.btnConPrevious.Image = global::DynamicMosaicExample.Resources.PreviousImage1;
-            this.btnConPrevious.Location = new System.Drawing.Point(4, 63);
-            this.btnConPrevious.Name = "btnConPrevious";
-            this.btnConPrevious.Size = new System.Drawing.Size(38, 24);
-            this.btnConPrevious.TabIndex = 21;
-            this.btnConPrevious.UseVisualStyleBackColor = true;
-            this.btnConPrevious.Click += new System.EventHandler(this.BtnConPrevious_Click);
-            // 
-            // btnConNext
-            // 
-            this.btnConNext.Enabled = false;
-            this.btnConNext.Image = global::DynamicMosaicExample.Resources.NextImage1;
-            this.btnConNext.Location = new System.Drawing.Point(43, 63);
-            this.btnConNext.Name = "btnConNext";
-            this.btnConNext.Size = new System.Drawing.Size(38, 24);
-            this.btnConNext.TabIndex = 22;
-            this.btnConNext.UseVisualStyleBackColor = true;
-            this.btnConNext.Click += new System.EventHandler(this.BtnConNext_Click);
-            // 
-            // pbConSymbol
-            // 
-            this.pbConSymbol.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pbConSymbol.Enabled = false;
-            this.pbConSymbol.Location = new System.Drawing.Point(83, 38);
-            this.pbConSymbol.Name = "pbConSymbol";
-            this.pbConSymbol.Size = new System.Drawing.Size(43, 50);
-            this.pbConSymbol.TabIndex = 19;
-            this.pbConSymbol.TabStop = false;
-            // 
-            // pbSuccess
-            // 
-            this.pbSuccess.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pbSuccess.Image = global::DynamicMosaicExample.Resources.Result_Unknown;
-            this.pbSuccess.Location = new System.Drawing.Point(97, 13);
-            this.pbSuccess.Name = "pbSuccess";
-            this.pbSuccess.Size = new System.Drawing.Size(29, 23);
-            this.pbSuccess.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
-            this.pbSuccess.TabIndex = 24;
-            this.pbSuccess.TabStop = false;
             // 
             // btnPrevRecogImage
             // 
@@ -413,76 +371,104 @@
             this.btnClearImage.UseVisualStyleBackColor = true;
             this.btnClearImage.Click += new System.EventHandler(this.BtnClearImage_Click);
             // 
-            // btnImageUpToQueries
+            // grpWords
             // 
-            this.btnImageUpToQueries.Enabled = false;
-            this.btnImageUpToQueries.Image = global::DynamicMosaicExample.Resources.UpToQueries;
-            this.btnImageUpToQueries.Location = new System.Drawing.Point(128, 35);
-            this.btnImageUpToQueries.Name = "btnImageUpToQueries";
-            this.btnImageUpToQueries.Size = new System.Drawing.Size(50, 51);
-            this.btnImageUpToQueries.TabIndex = 14;
-            this.btnImageUpToQueries.UseVisualStyleBackColor = true;
-            this.btnImageUpToQueries.Click += new System.EventHandler(this.BtnImageUpToQueries_Click);
+            this.grpWords.Controls.Add(this.pbSuccess);
+            this.grpWords.Controls.Add(this.txtWord);
+            this.grpWords.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.grpWords.Location = new System.Drawing.Point(267, -1);
+            this.grpWords.Name = "grpWords";
+            this.grpWords.Size = new System.Drawing.Size(129, 38);
+            this.grpWords.TabIndex = 25;
+            this.grpWords.TabStop = false;
+            this.grpWords.Text = "Искомое слово";
             // 
-            // btnImageDelete
+            // pbSuccess
             // 
-            this.btnImageDelete.Image = global::DynamicMosaicExample.Resources.DeleteFile;
-            this.btnImageDelete.Location = new System.Drawing.Point(221, 35);
-            this.btnImageDelete.Name = "btnImageDelete";
-            this.btnImageDelete.Size = new System.Drawing.Size(40, 52);
-            this.btnImageDelete.TabIndex = 16;
-            this.btnImageDelete.UseVisualStyleBackColor = true;
-            this.btnImageDelete.Click += new System.EventHandler(this.BtnImageDelete_Click);
+            this.pbSuccess.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pbSuccess.Image = global::DynamicMosaicExample.Resources.Result_Unknown;
+            this.pbSuccess.Location = new System.Drawing.Point(97, 12);
+            this.pbSuccess.Name = "pbSuccess";
+            this.pbSuccess.Size = new System.Drawing.Size(30, 23);
+            this.pbSuccess.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.pbSuccess.TabIndex = 24;
+            this.pbSuccess.TabStop = false;
             // 
-            // btnImagePrev
+            // btnConSaveAllImages
             // 
-            this.btnImagePrev.Enabled = false;
-            this.btnImagePrev.Image = global::DynamicMosaicExample.Resources.Previous;
-            this.btnImagePrev.Location = new System.Drawing.Point(45, 35);
-            this.btnImagePrev.Name = "btnImagePrev";
-            this.btnImagePrev.Size = new System.Drawing.Size(40, 52);
-            this.btnImagePrev.TabIndex = 12;
-            this.btnImagePrev.UseVisualStyleBackColor = true;
-            this.btnImagePrev.Click += new System.EventHandler(this.BtnImagePrev_Click);
+            this.btnConSaveAllImages.Enabled = false;
+            this.btnConSaveAllImages.Image = ((System.Drawing.Image)(resources.GetObject("btnConSaveAllImages.Image")));
+            this.btnConSaveAllImages.Location = new System.Drawing.Point(41, 128);
+            this.btnConSaveAllImages.Name = "btnConSaveAllImages";
+            this.btnConSaveAllImages.Size = new System.Drawing.Size(43, 24);
+            this.btnConSaveAllImages.TabIndex = 20;
+            this.btnConSaveAllImages.UseVisualStyleBackColor = true;
+            this.btnConSaveAllImages.Click += new System.EventHandler(this.BtnConSaveAllImages_Click);
             // 
-            // btnImageCreate
+            // btnConSaveImage
             // 
-            this.btnImageCreate.Image = global::DynamicMosaicExample.Resources.CreateImage;
-            this.btnImageCreate.Location = new System.Drawing.Point(182, 35);
-            this.btnImageCreate.Name = "btnImageCreate";
-            this.btnImageCreate.Size = new System.Drawing.Size(40, 52);
-            this.btnImageCreate.TabIndex = 15;
-            this.btnImageCreate.UseVisualStyleBackColor = true;
-            this.btnImageCreate.Click += new System.EventHandler(this.BtnImageCreate_Click);
+            this.btnConSaveImage.Enabled = false;
+            this.btnConSaveImage.Image = ((System.Drawing.Image)(resources.GetObject("btnConSaveImage.Image")));
+            this.btnConSaveImage.Location = new System.Drawing.Point(1, 128);
+            this.btnConSaveImage.Name = "btnConSaveImage";
+            this.btnConSaveImage.Size = new System.Drawing.Size(41, 24);
+            this.btnConSaveImage.TabIndex = 19;
+            this.btnConSaveImage.UseVisualStyleBackColor = true;
+            this.btnConSaveImage.Click += new System.EventHandler(this.BtnConSaveImage_Click);
             // 
-            // btnImageNext
+            // txtConSymbol
             // 
-            this.btnImageNext.Enabled = false;
-            this.btnImageNext.Image = global::DynamicMosaicExample.Resources.Next;
-            this.btnImageNext.Location = new System.Drawing.Point(84, 35);
-            this.btnImageNext.Name = "btnImageNext";
-            this.btnImageNext.Size = new System.Drawing.Size(40, 52);
-            this.btnImageNext.TabIndex = 13;
-            this.btnImageNext.UseVisualStyleBackColor = true;
-            this.btnImageNext.Click += new System.EventHandler(this.BtnImageNext_Click);
+            this.txtConSymbol.Enabled = false;
+            this.txtConSymbol.Font = new System.Drawing.Font("Arial", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.txtConSymbol.Location = new System.Drawing.Point(269, 141);
+            this.txtConSymbol.Name = "txtConSymbol";
+            this.txtConSymbol.ReadOnly = true;
+            this.txtConSymbol.Size = new System.Drawing.Size(125, 20);
+            this.txtConSymbol.TabIndex = 23;
             // 
-            // pbBrowse
+            // btnConPrevious
             // 
-            this.pbBrowse.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pbBrowse.Enabled = false;
-            this.pbBrowse.Location = new System.Drawing.Point(2, 36);
-            this.pbBrowse.Name = "pbBrowse";
-            this.pbBrowse.Size = new System.Drawing.Size(43, 50);
-            this.pbBrowse.TabIndex = 0;
-            this.pbBrowse.TabStop = false;
+            this.btnConPrevious.Enabled = false;
+            this.btnConPrevious.Image = ((System.Drawing.Image)(resources.GetObject("btnConPrevious.Image")));
+            this.btnConPrevious.Location = new System.Drawing.Point(1, 152);
+            this.btnConPrevious.Name = "btnConPrevious";
+            this.btnConPrevious.Size = new System.Drawing.Size(41, 24);
+            this.btnConPrevious.TabIndex = 21;
+            this.btnConPrevious.UseVisualStyleBackColor = true;
+            this.btnConPrevious.Click += new System.EventHandler(this.BtnConPrevious_Click);
+            // 
+            // btnConNext
+            // 
+            this.btnConNext.Enabled = false;
+            this.btnConNext.Image = ((System.Drawing.Image)(resources.GetObject("btnConNext.Image")));
+            this.btnConNext.Location = new System.Drawing.Point(41, 152);
+            this.btnConNext.Name = "btnConNext";
+            this.btnConNext.Size = new System.Drawing.Size(43, 24);
+            this.btnConNext.TabIndex = 22;
+            this.btnConNext.UseVisualStyleBackColor = true;
+            this.btnConNext.Click += new System.EventHandler(this.BtnConNext_Click);
+            // 
+            // pbConSymbol
+            // 
+            this.pbConSymbol.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pbConSymbol.Enabled = false;
+            this.pbConSymbol.Location = new System.Drawing.Point(84, 127);
+            this.pbConSymbol.Name = "pbConSymbol";
+            this.pbConSymbol.Size = new System.Drawing.Size(43, 50);
+            this.pbConSymbol.TabIndex = 19;
+            this.pbConSymbol.TabStop = false;
+            // 
+            // dlgOpenImage
+            // 
+            this.dlgOpenImage.Filter = "BMP|*.bmp";
             // 
             // FrmExample
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(397, 215);
-            this.Controls.Add(this.grpContains);
             this.Controls.Add(this.grpWords);
+            this.Controls.Add(this.txtConSymbol);
             this.Controls.Add(this.grpSourceImage);
             this.Controls.Add(this.grpResults);
             this.Controls.Add(this.grpImages);
@@ -499,18 +485,17 @@
             this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.FrmExample_KeyUp);
             this.grpImages.ResumeLayout(false);
             this.grpImages.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).EndInit();
             this.grpResults.ResumeLayout(false);
             this.grpSourceImage.ResumeLayout(false);
             this.grpSourceImage.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbDraw)).EndInit();
             this.grpWords.ResumeLayout(false);
             this.grpWords.PerformLayout();
-            this.grpContains.ResumeLayout(false);
-            this.grpContains.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.pbSuccess)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pbDraw)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).EndInit();
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
@@ -539,7 +524,6 @@
         private System.Windows.Forms.Button btnWide;
         private System.Windows.Forms.Button btnNarrow;
         private System.Windows.Forms.PictureBox pbConSymbol;
-        private System.Windows.Forms.GroupBox grpContains;
         private System.Windows.Forms.Button btnConPrevious;
         private System.Windows.Forms.Button btnConNext;
         private System.Windows.Forms.PictureBox pbSuccess;

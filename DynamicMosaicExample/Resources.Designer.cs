@@ -153,16 +153,6 @@ namespace DynamicMosaicExample {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
-        public static System.Drawing.Bitmap NextImage1 {
-            get {
-                object obj = ResourceManager.GetObject("NextImage1", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
-        /// </summary>
         public static System.Drawing.Bitmap OpenFile {
             get {
                 object obj = ResourceManager.GetObject("OpenFile", resourceCulture);
@@ -186,16 +176,6 @@ namespace DynamicMosaicExample {
         public static System.Drawing.Bitmap PreviousImage {
             get {
                 object obj = ResourceManager.GetObject("PreviousImage", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
-        /// </summary>
-        public static System.Drawing.Bitmap PreviousImage1 {
-            get {
-                object obj = ResourceManager.GetObject("PreviousImage1", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }
@@ -243,16 +223,6 @@ namespace DynamicMosaicExample {
         /// <summary>
         ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
         /// </summary>
-        public static System.Drawing.Bitmap SaveAllImages1 {
-            get {
-                object obj = ResourceManager.GetObject("SaveAllImages1", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
-        /// </summary>
         public static System.Drawing.Bitmap SaveFile {
             get {
                 object obj = ResourceManager.GetObject("SaveFile", resourceCulture);
@@ -266,16 +236,6 @@ namespace DynamicMosaicExample {
         public static System.Drawing.Bitmap SaveImage {
             get {
                 object obj = ResourceManager.GetObject("SaveImage", resourceCulture);
-                return ((System.Drawing.Bitmap)(obj));
-            }
-        }
-        
-        /// <summary>
-        ///   Поиск локализованного ресурса типа System.Drawing.Bitmap.
-        /// </summary>
-        public static System.Drawing.Bitmap SaveImage1 {
-            get {
-                object obj = ResourceManager.GetObject("SaveImage1", resourceCulture);
                 return ((System.Drawing.Bitmap)(obj));
             }
         }

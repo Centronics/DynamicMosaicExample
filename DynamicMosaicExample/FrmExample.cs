@@ -532,8 +532,8 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается по нажатию кнопки "Распознать".
-        ///     Распознаёт изображение и выводит результат на форму.
+        ///     Вызывается по нажатию кнопки "Найти".
+        ///     Находит заданные изображения и выводит результат на форму.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -578,7 +578,7 @@ namespace DynamicMosaicExample
 
                     if (!query.Any())
                     {
-                        ErrorMessageInOtherThread(@"Запросы для распознавания отсутствуют. Создайте хотя бы один.");
+                        ErrorMessageInOtherThread(@"Поисковые запросы отсутствуют. Создайте хотя бы один.");
                         return;
                     }
 
@@ -598,7 +598,7 @@ namespace DynamicMosaicExample
 
                     if (!processors.Any())
                     {
-                        ErrorMessageInOtherThread(@"Образы для распознавания отсутствуют. Создайте хотя бы два.");
+                        ErrorMessageInOtherThread(@"Образы для поиска отсутствуют. Создайте хотя бы два.");
                         return;
                     }
 

@@ -13,7 +13,7 @@ namespace DynamicMosaicExample
         public const char TagSeparatorChar = '!';
 
         /// <summary>
-        ///     Инициализирует экземпляр образа буквы для распознавания.
+        ///     Инициализирует экземпляр образа буквы для поиска.
         /// </summary>
         /// <param name="btm">Изображение буквы.</param>
         /// <param name="tag">Название буквы.</param>
@@ -24,9 +24,9 @@ namespace DynamicMosaicExample
             if (string.IsNullOrWhiteSpace(tag))
                 throw new ArgumentException(@"Поле Tag карты не может быть пустым или белым полем.", nameof(tag));
             if (btm.Width != FrmExample.ImageWidth)
-                throw new ArgumentException($@"Данное изображение не является образом распознающей карты, т.к. не подходит по ширине: {btm.Width}, необходимо {FrmExample.ImageWidth}.", nameof(btm));
+                throw new ArgumentException($@"Данное изображение не является образом искомой карты, т.к. не подходит по ширине: {btm.Width}, необходимо {FrmExample.ImageWidth}.", nameof(btm));
             if (btm.Height != FrmExample.ImageHeight)
-                throw new ArgumentException($@"Данное изображение не является образом распознающей карты, т.к. не подходит по высоте: {btm.Height}, необходимо {FrmExample.ImageHeight}.", nameof(btm));
+                throw new ArgumentException($@"Данное изображение не является образом искомой карты, т.к. не подходит по высоте: {btm.Height}, необходимо {FrmExample.ImageHeight}.", nameof(btm));
             return new Processor(ImageToMap(btm), tag);
         }
 
