@@ -158,34 +158,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Resources\OK_128.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Error_128.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Unk_128.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\NEWUnk_128.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Previous.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\Next.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\NextImage.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\PreviousImage.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\SaveAllImages.png" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Resources\SaveImage.png" />
+    <Folder Include="Resources\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
