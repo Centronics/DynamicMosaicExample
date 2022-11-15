@@ -38,17 +38,17 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
         /// <param name="relativeFolderPath"></param>
-        public override (Bitmap, string) SaveToFile(Processor processor, string relativeFolderPath)
+        public override string SaveToFile(Processor processor, string relativeFolderPath)
         {
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
 
             lock (SyncObject)
             {
-                (Processor p, string path) = GetUniqueProcessor(NamesToSave, processor, (processor.Tag, null), relativeFolderPath);
-                Bitmap saveBtm = ImageRect.GetBitmap(p);
-                SaveToFile(saveBtm, path);
-                return (saveBtm, path);
+                (Processor p, string path) = GetUniqueProcessor(NamesToSave, processor, (processor.Tag, 0), relativeFolderPath);
+                SaveToFile(ImageRect.GetBitmap(p), path);
+                SavedRecognizePath = path;
+                return path;
             }
         }
 
@@ -112,7 +112,7 @@ namespace DynamicMosaicExample
                 btm.Dispose();
                 throw new Exception($@"Загружаемое изображение не подходит по высоте: {h}; необходимо: {_height}. Путь: {fullPath}.");
             }
-            
+
             btm.SetPixel(0, 0, btm.GetPixel(0, 0)); // Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
 
             return btm;

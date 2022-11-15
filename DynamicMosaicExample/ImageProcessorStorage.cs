@@ -26,7 +26,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
         /// <param name="relativeFolderPath"></param>
-        public override (Bitmap, string) SaveToFile(Processor processor, string relativeFolderPath)
+        public override string SaveToFile(Processor processor, string relativeFolderPath)
         {
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
@@ -34,10 +34,10 @@ namespace DynamicMosaicExample
             lock (SyncObject)
             {
                 (uint? count, string name) = ImageRect.GetFileNumberByName(processor.Tag);
-                (Processor p, string resultPath) = GetUniqueProcessor(NamesToSave, processor, (name, count), relativeFolderPath);
-                Bitmap saveBtm = ImageRect.GetBitmap(p);
-                SaveToFile(saveBtm, resultPath);
-                return (saveBtm, resultPath);
+                (Processor p, string path) = GetUniqueProcessor(NamesToSave, processor, (name, count ?? 0), relativeFolderPath);
+                SaveToFile(ImageRect.GetBitmap(p), path);
+                SavedRecognizePath = path;
+                return path;
             }
         }
 

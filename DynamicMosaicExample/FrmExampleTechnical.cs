@@ -187,8 +187,6 @@ namespace DynamicMosaicExample
 
         string _savedRecognizeQuery = string.Empty;
 
-        string _savedRecognizePath = string.Empty;
-
         /// <summary>
         ///     Отражает статус всех кнопок на данный момент.
         /// </summary>

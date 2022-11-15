@@ -28,37 +28,29 @@ namespace DynamicMosaicExample
 
         public abstract ProcessorStorageType StorageType { get; }
 
-        protected static string GetImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(GetImagePath)}: Исходный путь образа не указан."), name)}.{FrmExample.ExtImg}";
+        protected static string CreateImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(CreateImagePath)}: Исходный путь образа не указан."), name)}.{FrmExample.ExtImg}";
 
-        public abstract (Bitmap, string) SaveToFile(Processor processor, string relativeFolderPath);
+        public abstract string SaveToFile(Processor processor, string relativeFolderPath);
 
-        protected (Processor processor, string path) GetUniqueProcessor(ISet<string> tagSet, Processor p, (string tag, ulong? number) tn, string pathToSave)
+        protected (Processor processor, string path) GetUniqueProcessor(ISet<string> tagSet, Processor p, (string tag, ulong number) tn, string pathToSave = null)
         {
             unchecked
             {
-                bool isDirectory = CreateWorkingPath(ref pathToSave);
+                if (GetImagePath(ref pathToSave))
+                    return (p, pathToSave);
 
-                ulong k = tn.number ?? 0, mk = k;
+                ulong k = tn.number, mk = k;
 
                 do
                 {
                     string t = $@"{tn.tag}{ImageRect.TagSeparatorChar}{k}";
 
-                    if (!tagSet.Add(t))
-                        continue;
+                    if (tagSet.Add(t))
+                        return (ProcessorHandler.ChangeProcessorTag(p, t), CreateImagePath(pathToSave, t));
 
-                    string path;
-
-                    if (string.IsNullOrEmpty(pathToSave))
-                        path = GetImagePath(ImagesPath, t);
-                    else
-                        path = isDirectory ? GetImagePath(pathToSave, t) : pathToSave;
-
-                    return (ProcessorHandler.ChangeProcessorTag(p, t), path);
                 } while (++k != mk);
 
-                string n = tn.number is null ? "<пусто>" : tn.number.ToString();
-                throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.Tag} по пути {ImagesPath}, изначальное имя карты {tn.tag}, номер {n}.");
+                throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.Tag} по пути {ImagesPath}, изначальное имя карты {tn.tag}, номер {tn.number}.");
             }
         }
 
@@ -89,6 +81,8 @@ namespace DynamicMosaicExample
         ///     конструкции <see langword="lock" />.
         /// </summary>
         protected readonly object SyncObject = new object();
+
+        int _lastProcessorIndex = -1;
 
         string _savedRecognizePath = string.Empty;
 
@@ -137,11 +131,8 @@ namespace DynamicMosaicExample
             }
         }
 
-        (Processor processor, string path) GetUniqueProcessor(ISet<string> tagSet, Processor processor, string sourcePath)
-        {
-            (ulong? number, string strPart) = ImageRect.NameParser(Path.GetFileNameWithoutExtension(sourcePath));
-            return GetUniqueProcessor(tagSet, processor, (strPart, number), string.Empty);
-        }
+        (Processor processor, string path) GetUniqueProcessor(ISet<string> tagSet, Processor processor, string sourcePath) =>
+            GetUniqueProcessor(tagSet, processor, ImageRect.NameParser(Path.GetFileNameWithoutExtension(sourcePath)));
 
         public bool IsWorkingPath(string path, bool isEqual = false)
         {
@@ -166,11 +157,11 @@ namespace DynamicMosaicExample
             return path;
         }
 
-        public bool CreateWorkingPath(ref string relativeFolderPath)
+        public bool GetImagePath(ref string relativeFolderPath)
         {
             if (string.IsNullOrEmpty(relativeFolderPath))
             {
-                relativeFolderPath = string.Empty;
+                relativeFolderPath = ImagesPath;
                 return false;
             }
 
@@ -181,14 +172,14 @@ namespace DynamicMosaicExample
 
             if (string.IsNullOrEmpty(ext))
             {
-                Directory.CreateDirectory(relativeFolderPath = AddEndingSlash(relativeFolderPath));
-                return true;
+                relativeFolderPath = ImagesPath;
+                return false;
             }
 
             if (string.Compare(ext, $".{FrmExample.ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
                 throw new ArgumentException($@"Необходимо, чтобы путь вёл к файлу с требуемым расширением ({FrmExample.ExtImg})", nameof(relativeFolderPath));
 
-            return false;
+            return true;
         }
 
         /// <summary>
@@ -238,6 +229,7 @@ namespace DynamicMosaicExample
             {
                 if (string.IsNullOrWhiteSpace(fullPath))
                     return (null, string.Empty, Count);
+
                 lock (SyncObject)
                 {
                     DictionaryByKey.TryGetValue(GetStringKey(fullPath), out ProcPath p);
@@ -355,6 +347,8 @@ namespace DynamicMosaicExample
                 ph.AddProcessor(new ProcPath(processor, fullPath));
             else
                 _dictionaryByHash.Add(hashCode, new ProcHash(new ProcPath(processor, fullPath)));
+
+            _lastProcessorIndex = -1;
         }
 
         /// <summary>
@@ -369,7 +363,7 @@ namespace DynamicMosaicExample
         ///     изначального значения, это значение остаётся прежним, иначе равняется индексу последней карты в коллекции.
         /// </param>
         /// <returns>Возвращает карту, путь к ней, и количество карт на момент её получения.</returns>
-        public (Processor processor, string path, int count) GetLastProcessor(ref int index)
+        public (Processor processor, string path, int count) GetLatestProcessor(ref int index)
         {
             lock (SyncObject)
             {
@@ -384,7 +378,8 @@ namespace DynamicMosaicExample
                     index = count - 1;
                 (Processor processor, string path, _) = this[index];
 
-                _savedRecognizePath = path;
+                SavedRecognizePath = path;
+                _lastProcessorIndex = -1;
 
                 return (processor, path, count);
             }
@@ -401,8 +396,9 @@ namespace DynamicMosaicExample
         ///     Индекс карты <see cref="Processor" />, которую необходимо получить. В случае допустимого
         ///     изначального значения, это значение остаётся прежним, иначе равняется индексу первой карты в коллекции.
         /// </param>
+        /// <param name="useLastIndex"></param>
         /// <returns>Возвращает карту, путь к ней, и количество карт на момент её получения.</returns>
-        public (Processor processor, string path, int count) GetFirstProcessor(ref int index)
+        public (Processor processor, string path, int count) GetFirstProcessor(ref int index, bool useLastIndex = false)
         {
             lock (SyncObject)
             {
@@ -413,13 +409,67 @@ namespace DynamicMosaicExample
                     return (null, string.Empty, 0);
                 }
 
+                if (useLastIndex)
+                    index = LastProcessorIndex;
+
                 if (index < 0 || index >= count)
                     index = 0;
+
                 (Processor processor, string path, _) = this[index];
 
-                _savedRecognizePath = path;
+                SavedRecognizePath = path;
+                _lastProcessorIndex = -1;
 
                 return (processor, path, count);
+            }
+        }
+
+        public string SavedRecognizePath
+        {
+            get
+            {
+                lock (SyncObject)
+                {
+                    return _savedRecognizePath;
+                }
+            }
+
+            protected set
+            {
+                lock (SyncObject)
+                {
+                    _savedRecognizePath = value;
+                }
+            }
+        }
+
+        public bool IsLastPathExists
+        {
+            get
+            {
+                string savedRecognizePath = SavedRecognizePath;
+                return !string.IsNullOrEmpty(savedRecognizePath) && new FileInfo(savedRecognizePath).Exists;
+            }
+        }
+
+        int LastProcessorIndex
+        {
+            get
+            {
+                lock (SyncObject)
+                {
+                    if (_lastProcessorIndex != -1)
+                        return _lastProcessorIndex;
+
+                    string savedRecognizePath = SavedRecognizePath;
+
+                    if (string.IsNullOrEmpty(savedRecognizePath))
+                        return -1;
+
+                    string findKey = GetStringKey(savedRecognizePath);
+
+                    return DictionaryByKey.Keys.TakeWhile(key => key != findKey).Count();
+                }
             }
         }
 
@@ -427,10 +477,12 @@ namespace DynamicMosaicExample
         {
             lock (SyncObject)
             {
-                if (string.IsNullOrEmpty(_savedRecognizePath))
+                string savedRecognizePath = SavedRecognizePath;
+
+                if (string.IsNullOrEmpty(savedRecognizePath))
                     return;
 
-                RemoveProcessor(this[GetStringKey(_savedRecognizePath)].processor);
+                RemoveProcessor(this[GetStringKey(savedRecognizePath)].processor);
             }
         }
 
@@ -484,8 +536,9 @@ namespace DynamicMosaicExample
                         string path = ph[index].CurrentPath;
                         DictionaryByKey.Remove(GetStringKey(path));
                         ph.RemoveProcessor(index);
-                        if (string.Compare(path, _savedRecognizePath, StringComparison.OrdinalIgnoreCase) == 0)
-                            _savedRecognizePath = string.Empty;
+                        if (string.Compare(path, SavedRecognizePath, StringComparison.OrdinalIgnoreCase) == 0)
+                            SavedRecognizePath = string.Empty;
+                        _lastProcessorIndex = -1;
                         break;
                     }
                     else
@@ -502,7 +555,7 @@ namespace DynamicMosaicExample
             {
                 DictionaryByKey.Clear();
                 _dictionaryByHash.Clear();
-                _savedRecognizePath = string.Empty;
+                SavedRecognizePath = string.Empty;
             }
         }
 

@@ -42,6 +42,11 @@
             this.btnImageNext = new System.Windows.Forms.Button();
             this.pbBrowse = new System.Windows.Forms.PictureBox();
             this.grpResults = new System.Windows.Forms.GroupBox();
+            this.btnConSaveAllImages = new System.Windows.Forms.Button();
+            this.btnConSaveImage = new System.Windows.Forms.Button();
+            this.pbConSymbol = new System.Windows.Forms.PictureBox();
+            this.btnConNext = new System.Windows.Forms.Button();
+            this.btnConPrevious = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
             this.lblElapsedTime = new System.Windows.Forms.Label();
             this.grpSourceImage = new System.Windows.Forms.GroupBox();
@@ -56,21 +61,16 @@
             this.btnClearImage = new System.Windows.Forms.Button();
             this.grpWords = new System.Windows.Forms.GroupBox();
             this.pbSuccess = new System.Windows.Forms.PictureBox();
-            this.btnConSaveAllImages = new System.Windows.Forms.Button();
-            this.btnConSaveImage = new System.Windows.Forms.Button();
             this.txtConSymbol = new System.Windows.Forms.TextBox();
-            this.btnConPrevious = new System.Windows.Forms.Button();
-            this.btnConNext = new System.Windows.Forms.Button();
-            this.pbConSymbol = new System.Windows.Forms.PictureBox();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
             this.grpImages.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).BeginInit();
             this.grpResults.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).BeginInit();
             this.grpSourceImage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbDraw)).BeginInit();
             this.grpWords.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbSuccess)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).BeginInit();
             this.SuspendLayout();
             // 
             // btnRecognizeImage
@@ -229,6 +229,60 @@
             this.grpResults.TabStop = false;
             this.grpResults.Text = "История объекта";
             // 
+            // btnConSaveAllImages
+            // 
+            this.btnConSaveAllImages.Enabled = false;
+            this.btnConSaveAllImages.Image = ((System.Drawing.Image)(resources.GetObject("btnConSaveAllImages.Image")));
+            this.btnConSaveAllImages.Location = new System.Drawing.Point(41, 128);
+            this.btnConSaveAllImages.Name = "btnConSaveAllImages";
+            this.btnConSaveAllImages.Size = new System.Drawing.Size(43, 24);
+            this.btnConSaveAllImages.TabIndex = 20;
+            this.btnConSaveAllImages.UseVisualStyleBackColor = true;
+            this.btnConSaveAllImages.Click += new System.EventHandler(this.BtnConSaveAllImages_Click);
+            // 
+            // btnConSaveImage
+            // 
+            this.btnConSaveImage.Enabled = false;
+            this.btnConSaveImage.Image = ((System.Drawing.Image)(resources.GetObject("btnConSaveImage.Image")));
+            this.btnConSaveImage.Location = new System.Drawing.Point(1, 128);
+            this.btnConSaveImage.Name = "btnConSaveImage";
+            this.btnConSaveImage.Size = new System.Drawing.Size(41, 24);
+            this.btnConSaveImage.TabIndex = 19;
+            this.btnConSaveImage.UseVisualStyleBackColor = true;
+            this.btnConSaveImage.Click += new System.EventHandler(this.BtnConSaveImage_Click);
+            // 
+            // pbConSymbol
+            // 
+            this.pbConSymbol.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.pbConSymbol.Enabled = false;
+            this.pbConSymbol.Location = new System.Drawing.Point(84, 127);
+            this.pbConSymbol.Name = "pbConSymbol";
+            this.pbConSymbol.Size = new System.Drawing.Size(43, 50);
+            this.pbConSymbol.TabIndex = 19;
+            this.pbConSymbol.TabStop = false;
+            // 
+            // btnConNext
+            // 
+            this.btnConNext.Enabled = false;
+            this.btnConNext.Image = ((System.Drawing.Image)(resources.GetObject("btnConNext.Image")));
+            this.btnConNext.Location = new System.Drawing.Point(41, 152);
+            this.btnConNext.Name = "btnConNext";
+            this.btnConNext.Size = new System.Drawing.Size(43, 24);
+            this.btnConNext.TabIndex = 22;
+            this.btnConNext.UseVisualStyleBackColor = true;
+            this.btnConNext.Click += new System.EventHandler(this.BtnConNext_Click);
+            // 
+            // btnConPrevious
+            // 
+            this.btnConPrevious.Enabled = false;
+            this.btnConPrevious.Image = ((System.Drawing.Image)(resources.GetObject("btnConPrevious.Image")));
+            this.btnConPrevious.Location = new System.Drawing.Point(1, 152);
+            this.btnConPrevious.Name = "btnConPrevious";
+            this.btnConPrevious.Size = new System.Drawing.Size(41, 24);
+            this.btnConPrevious.TabIndex = 21;
+            this.btnConPrevious.UseVisualStyleBackColor = true;
+            this.btnConPrevious.Click += new System.EventHandler(this.BtnConPrevious_Click);
+            // 
             // label2
             // 
             this.label2.AutoSize = true;
@@ -305,9 +359,9 @@
             this.btnWide.Enabled = false;
             this.btnWide.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold);
             this.btnWide.Image = global::DynamicMosaicExample.Resources.ExpandRight;
-            this.btnWide.Location = new System.Drawing.Point(141, 77);
+            this.btnWide.Location = new System.Drawing.Point(140, 77);
             this.btnWide.Name = "btnWide";
-            this.btnWide.Size = new System.Drawing.Size(36, 23);
+            this.btnWide.Size = new System.Drawing.Size(35, 23);
             this.btnWide.TabIndex = 4;
             this.btnWide.UseVisualStyleBackColor = true;
             this.btnWide.Click += new System.EventHandler(this.BtnWide_Click);
@@ -316,9 +370,9 @@
             // 
             this.btnNarrow.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.btnNarrow.Image = global::DynamicMosaicExample.Resources.ExpandLeft;
-            this.btnNarrow.Location = new System.Drawing.Point(103, 77);
+            this.btnNarrow.Location = new System.Drawing.Point(106, 77);
             this.btnNarrow.Name = "btnNarrow";
-            this.btnNarrow.Size = new System.Drawing.Size(36, 23);
+            this.btnNarrow.Size = new System.Drawing.Size(35, 23);
             this.btnNarrow.TabIndex = 3;
             this.btnNarrow.UseVisualStyleBackColor = true;
             this.btnNarrow.Click += new System.EventHandler(this.BtnNarrow_Click);
@@ -326,9 +380,9 @@
             // btnLoadRecognizeImage
             // 
             this.btnLoadRecognizeImage.Image = global::DynamicMosaicExample.Resources.OpenFile;
-            this.btnLoadRecognizeImage.Location = new System.Drawing.Point(141, 103);
+            this.btnLoadRecognizeImage.Location = new System.Drawing.Point(140, 103);
             this.btnLoadRecognizeImage.Name = "btnLoadRecognizeImage";
-            this.btnLoadRecognizeImage.Size = new System.Drawing.Size(36, 23);
+            this.btnLoadRecognizeImage.Size = new System.Drawing.Size(35, 23);
             this.btnLoadRecognizeImage.TabIndex = 6;
             this.btnLoadRecognizeImage.UseVisualStyleBackColor = true;
             this.btnLoadRecognizeImage.Click += new System.EventHandler(this.BtnLoadRecognizeImage_Click);
@@ -337,9 +391,9 @@
             // 
             this.btnSaveRecognizeImage.Enabled = false;
             this.btnSaveRecognizeImage.Image = global::DynamicMosaicExample.Resources.SaveFile;
-            this.btnSaveRecognizeImage.Location = new System.Drawing.Point(103, 103);
+            this.btnSaveRecognizeImage.Location = new System.Drawing.Point(106, 103);
             this.btnSaveRecognizeImage.Name = "btnSaveRecognizeImage";
-            this.btnSaveRecognizeImage.Size = new System.Drawing.Size(36, 23);
+            this.btnSaveRecognizeImage.Size = new System.Drawing.Size(35, 23);
             this.btnSaveRecognizeImage.TabIndex = 5;
             this.btnSaveRecognizeImage.UseVisualStyleBackColor = true;
             this.btnSaveRecognizeImage.Click += new System.EventHandler(this.BtnSaveRecognizeImage_Click);
@@ -394,28 +448,6 @@
             this.pbSuccess.TabIndex = 24;
             this.pbSuccess.TabStop = false;
             // 
-            // btnConSaveAllImages
-            // 
-            this.btnConSaveAllImages.Enabled = false;
-            this.btnConSaveAllImages.Image = ((System.Drawing.Image)(resources.GetObject("btnConSaveAllImages.Image")));
-            this.btnConSaveAllImages.Location = new System.Drawing.Point(41, 128);
-            this.btnConSaveAllImages.Name = "btnConSaveAllImages";
-            this.btnConSaveAllImages.Size = new System.Drawing.Size(43, 24);
-            this.btnConSaveAllImages.TabIndex = 20;
-            this.btnConSaveAllImages.UseVisualStyleBackColor = true;
-            this.btnConSaveAllImages.Click += new System.EventHandler(this.BtnConSaveAllImages_Click);
-            // 
-            // btnConSaveImage
-            // 
-            this.btnConSaveImage.Enabled = false;
-            this.btnConSaveImage.Image = ((System.Drawing.Image)(resources.GetObject("btnConSaveImage.Image")));
-            this.btnConSaveImage.Location = new System.Drawing.Point(1, 128);
-            this.btnConSaveImage.Name = "btnConSaveImage";
-            this.btnConSaveImage.Size = new System.Drawing.Size(41, 24);
-            this.btnConSaveImage.TabIndex = 19;
-            this.btnConSaveImage.UseVisualStyleBackColor = true;
-            this.btnConSaveImage.Click += new System.EventHandler(this.BtnConSaveImage_Click);
-            // 
             // txtConSymbol
             // 
             this.txtConSymbol.Enabled = false;
@@ -425,38 +457,6 @@
             this.txtConSymbol.ReadOnly = true;
             this.txtConSymbol.Size = new System.Drawing.Size(125, 20);
             this.txtConSymbol.TabIndex = 23;
-            // 
-            // btnConPrevious
-            // 
-            this.btnConPrevious.Enabled = false;
-            this.btnConPrevious.Image = ((System.Drawing.Image)(resources.GetObject("btnConPrevious.Image")));
-            this.btnConPrevious.Location = new System.Drawing.Point(1, 152);
-            this.btnConPrevious.Name = "btnConPrevious";
-            this.btnConPrevious.Size = new System.Drawing.Size(41, 24);
-            this.btnConPrevious.TabIndex = 21;
-            this.btnConPrevious.UseVisualStyleBackColor = true;
-            this.btnConPrevious.Click += new System.EventHandler(this.BtnConPrevious_Click);
-            // 
-            // btnConNext
-            // 
-            this.btnConNext.Enabled = false;
-            this.btnConNext.Image = ((System.Drawing.Image)(resources.GetObject("btnConNext.Image")));
-            this.btnConNext.Location = new System.Drawing.Point(41, 152);
-            this.btnConNext.Name = "btnConNext";
-            this.btnConNext.Size = new System.Drawing.Size(43, 24);
-            this.btnConNext.TabIndex = 22;
-            this.btnConNext.UseVisualStyleBackColor = true;
-            this.btnConNext.Click += new System.EventHandler(this.BtnConNext_Click);
-            // 
-            // pbConSymbol
-            // 
-            this.pbConSymbol.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pbConSymbol.Enabled = false;
-            this.pbConSymbol.Location = new System.Drawing.Point(84, 127);
-            this.pbConSymbol.Name = "pbConSymbol";
-            this.pbConSymbol.Size = new System.Drawing.Size(43, 50);
-            this.pbConSymbol.TabIndex = 19;
-            this.pbConSymbol.TabStop = false;
             // 
             // dlgOpenImage
             // 
@@ -487,13 +487,13 @@
             this.grpImages.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).EndInit();
             this.grpResults.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).EndInit();
             this.grpSourceImage.ResumeLayout(false);
             this.grpSourceImage.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbDraw)).EndInit();
             this.grpWords.ResumeLayout(false);
             this.grpWords.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbSuccess)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
 
