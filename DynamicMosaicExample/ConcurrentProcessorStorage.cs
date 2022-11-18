@@ -443,14 +443,9 @@ namespace DynamicMosaicExample
             }
         }
 
-        public bool IsLastPathExists
-        {
-            get
-            {
-                string savedRecognizePath = SavedRecognizePath;
-                return !string.IsNullOrEmpty(savedRecognizePath) && new FileInfo(savedRecognizePath).Exists;
-            }
-        }
+        public bool IsLastPathExists => IsFileExists(SavedRecognizePath);
+
+        public static bool IsFileExists(string path) => !string.IsNullOrEmpty(path) && new FileInfo(path).Exists;
 
         int LastProcessorIndex
         {

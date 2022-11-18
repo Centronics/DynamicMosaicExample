@@ -19,27 +19,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Текст кнопки "Найти".
         /// </summary>
-        const string StrRecognize = "Ждите   ";
-
-        /// <summary>
-        ///     Текст кнопки "Найти".
-        /// </summary>
-        const string StrRecognize1 = "Ждите.  ";
-
-        /// <summary>
-        ///     Текст кнопки "Найти".
-        /// </summary>
-        const string StrRecognize2 = "Ждите.. ";
-
-        /// <summary>
-        ///     Текст кнопки "Найти".
-        /// </summary>
-        const string StrRecognize3 = "Ждите...";
-
-        /// <summary>
-        ///     Текст кнопки "Найти".
-        /// </summary>
-        const string StrLoading = "Загрузка   ";
+        const string StrLoading0 = "Загрузка   ";
 
         /// <summary>
         ///     Текст кнопки "Найти".
@@ -132,15 +112,10 @@ namespace DynamicMosaicExample
         readonly RecognizeProcessorStorage _recognizeProcessorStorage;
 
         /// <summary>
-        ///     Хранит значение свойства <see cref="GroupBox.Text" /> объекта <see cref="grpResults" />.
-        /// </summary>
-        readonly string _strGrpResults;
-
-        /// <summary>
         ///     Текст кнопки "Найти". Сохраняет исходное значение свойства <see cref="Button.Text" /> кнопки
         ///     <see cref="btnRecognizeImage" />.
         /// </summary>
-        readonly string _strRecog;
+        readonly Image _imgSearchDefault;
 
         /// <summary>
         ///     Таймер для измерения времени, затраченного на поиск символов на распознаваемой карте.
@@ -151,11 +126,6 @@ namespace DynamicMosaicExample
         ///     Содержит изначальное значение поля "Название" искомого образа буквы.
         /// </summary>
         readonly string _unknownSymbolName;
-
-        /// <summary>
-        ///     Содержит изначальное значение поля "Название" искомого образа в <see cref="DynamicReflex" />.
-        /// </summary>
-        readonly string _unknownSystemName;
 
         /// <summary>
         ///     Задаёт цвет и ширину для стирания в окне создания распознаваемого изображения.
@@ -206,8 +176,6 @@ namespace DynamicMosaicExample
         ///     Значение <see langword="true" /> - вывод разрешён, в противном случае - <see langword="false" />.
         /// </summary>
         bool _draw;
-
-        readonly string _grpWordsDefaultValue;
 
         /// <summary>
         ///     Поверхность рисования в окне создания распознаваемого изображения.
@@ -268,10 +236,7 @@ namespace DynamicMosaicExample
                 Directory.CreateDirectory(SearchImagesPath);
                 Directory.CreateDirectory(RecognizeImagesPath);
                 _unknownSymbolName = txtSymbolPath.Text;
-                _unknownSystemName = txtConSymbol.Text;
-                _strRecog = btnRecognizeImage.Text;
-                _strGrpResults = grpResults.Text;
-                _grpWordsDefaultValue = grpWords.Text;
+                _imgSearchDefault = btnRecognizeImage.Image;
                 ImageWidth = pbBrowse.Width;
                 ImageHeight = pbBrowse.Height;
                 _currentState = new CurrentState(this);
@@ -348,12 +313,15 @@ namespace DynamicMosaicExample
                     btnImageUpToQueries.Enabled = value;
                     btnImagePrev.Enabled = value;
                     btnImageNext.Enabled = value;
+                    txtImagesNumber.Enabled = value;
                     txtImagesCount.Enabled = value;
                     txtWord.ReadOnly = !value;
                     btnLoadRecognizeImage.Enabled = value;
                     btnClearImage.Enabled = value && IsPainting;
-                    btnPrevRecogImage.Enabled = value;
-                    btnNextRecogImage.Enabled = value;
+                    btnRecogPrev.Enabled = value;
+                    btnRecogNext.Enabled = value;
+                    txtRecogNumber.Enabled = value;
+                    txtRecogCount.Enabled = value;
                     btnDeleteRecognizeImage.Enabled = value;
 
                     if (value)

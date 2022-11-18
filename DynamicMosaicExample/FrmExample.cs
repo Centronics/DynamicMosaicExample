@@ -50,15 +50,15 @@ namespace DynamicMosaicExample
                 case ImageActualizeAction.NEXT:
                     {
                         _currentRecognizeProcIndex++;
-                        (Processor processor, string _, int count) =
+                        (Processor processor, string path, int count) =
                             _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex);
-                        UpdateRecognizeCount(count);
+                        SavedPathInfoActualize(count, path);
                         if (processor == null || count < 1)
                             return;
 
                         if (count == 1)
                         {
-                            btnNextRecogImage.Enabled = false;
+                            btnRecogNext.Enabled = false;
                             txtWord.Select();
                         }
 
@@ -69,9 +69,9 @@ namespace DynamicMosaicExample
                 case ImageActualizeAction.PREV:
                     {
                         _currentRecognizeProcIndex--;
-                        (Processor processor, string _, int count) =
+                        (Processor processor, string path, int count) =
                             _recognizeProcessorStorage.GetLatestProcessor(ref _currentRecognizeProcIndex);
-                        UpdateRecognizeCount(count);
+                        SavedPathInfoActualize(count, path);
                         if (processor == null || count < 1)
                             return;
 
@@ -240,15 +240,6 @@ namespace DynamicMosaicExample
         void PbDraw_MouseUp(object sender, MouseEventArgs e) => DrawStop();
 
         /// <summary>
-        ///     Возвращает окно просмотра образов в исходное состояние.
-        /// </summary>
-        void ImageBrowseClear()
-        {
-            txtSymbolPath.Text = _unknownSymbolName;
-            pbBrowse.Image = new Bitmap(pbBrowse.Width, pbBrowse.Height);
-        }
-
-        /// <summary>
         ///     Вызывается по нажатию кнопки "Следующий" в искомых образах букв.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
@@ -295,9 +286,22 @@ namespace DynamicMosaicExample
                 fs.ShowDialog();
         });
 
-        void SavedPathInfoActualize(bool turnOn)
+        void SavedPathInfoActualize(int count, string recogPath)
         {
-            bool isExists = turnOn && _recognizeProcessorStorage.IsLastPathExists;
+            if (count > 0)
+            {
+                txtRecogNumber.Text = unchecked(_currentRecognizeProcIndex + 1).ToString();
+                txtRecogCount.Text= count.ToString();
+            }
+            else
+            {
+                txtRecogNumber.Text = string.Empty;
+                txtRecogCount.Text = string.Empty;
+            }
+
+            txtRecogPath.Text = recogPath;
+
+            bool isExists = count > 0 && ConcurrentProcessorStorage.IsFileExists(recogPath);
 
             btnDeleteRecognizeImage.Enabled = isExists;
             btnSaveRecognizeImage.Enabled = !isExists || IsQueryChanged;
@@ -305,14 +309,26 @@ namespace DynamicMosaicExample
 
         int ShowCurrentImage((Processor imageProcessor, string imagePath, int imageCount) t)
         {
-            txtImagesCount.Text = t.imageCount > 0 ? $@"{checked(_currentImageIndex + 1)} / {t.imageCount}" : string.Empty;
-
-            if (t.imageProcessor == null || t.imageCount < 1)
-                ImageBrowseClear();
+            if (t.imageCount > 0)
+            {
+                txtImagesNumber.Text = checked(_currentImageIndex + 1).ToString();
+                txtImagesCount.Text = t.imageCount.ToString();
+            }
             else
+            {
+                txtImagesNumber.Text = string.Empty;
+                txtImagesCount.Text = string.Empty;
+            }
+
+            if (t.imageProcessor != null && t.imageCount > 0)
             {
                 pbBrowse.Image = ImageRect.GetBitmap(t.imageProcessor);
                 txtSymbolPath.Text = t.imagePath;
+            }
+            else
+            {
+                pbBrowse.Image = new Bitmap(pbBrowse.Width, pbBrowse.Height);
+                txtSymbolPath.Text = _unknownSymbolName;
             }
 
             return t.imageCount;
@@ -329,6 +345,7 @@ namespace DynamicMosaicExample
             btnImageUpToQueries.Enabled = btnImageDelete.Enabled = EnableButtons && imageCount > 0;
             btnImageNext.Enabled = imageCount > 1;
             btnImagePrev.Enabled = imageCount > 1;
+            txtImagesNumber.Enabled = imageCount > 0;
             txtImagesCount.Enabled = imageCount > 0;
             txtSymbolPath.Enabled = imageCount > 0;
             pbBrowse.Enabled = imageCount > 0;
@@ -345,9 +362,13 @@ namespace DynamicMosaicExample
                         if (recogProcessor != null)
                             ImageActualize(ImageActualizeAction.LOAD, recogPath);
 
-                        btnPrevRecogImage.Enabled = btnNextRecogImage.Enabled = recogCount > 1;
-                        SavedPathInfoActualize(true);
-                        UpdateRecognizeCount(recogCount);
+                        btnRecogNext.Enabled = recogCount > 1;
+                        btnRecogPrev.Enabled = recogCount > 1;
+                        txtRecogNumber.Enabled = true;
+                        txtRecogCount.Enabled = true;
+                        txtRecogPath.Enabled = true;
+
+                        SavedPathInfoActualize(recogCount, recogPath);
                         return;
 
                     case false when recogCount < 1 && !isQueryChanged:
@@ -362,24 +383,19 @@ namespace DynamicMosaicExample
                         break;
                 }
 
-                SavedPathInfoActualize(recogCount > 0);
+                SavedPathInfoActualize(recogCount, recogPath);
 
-                UpdateRecognizeCount(recogCount);
-
-                bool presence = recogCount > 1;
-
-                btnPrevRecogImage.Enabled = presence;
-
-                btnNextRecogImage.Enabled = presence || isQueryChanged || txtWord.Text != _savedRecognizeQuery || (recogProcessor != null && !CompareBitmaps(_btmRecognizeImage, ImageRect.GetBitmap(recogProcessor)));
+                btnRecogNext.Enabled = recogCount > 1 || isQueryChanged || txtWord.Text != _savedRecognizeQuery || (recogProcessor != null && !CompareBitmaps(_btmRecognizeImage, ImageRect.GetBitmap(recogProcessor)));
+                btnRecogPrev.Enabled = recogCount > 1;
+                txtRecogNumber.Enabled = recogCount > 1;
+                txtRecogCount.Enabled = recogCount > 1;
+                txtRecogPath.Enabled = recogCount > 1;
             }
             finally
             {
                 _needInitRecognizeImage = recogCount <= 0;
             }
         });
-
-        void UpdateRecognizeCount(int count) => grpWords.Text =
-            count > 0 ? $@"{_grpWordsDefaultValue} ({unchecked(_currentRecognizeProcIndex + 1)} / {count})" : _grpWordsDefaultValue;
 
         /// <summary>
         ///     Создаёт новый поток для отображения статуса фоновых операций, в случае, если поток (<see cref="_userInterfaceThread" />)
@@ -405,7 +421,8 @@ namespace DynamicMosaicExample
                         stwRenew.Reset();
                         InvokeAction(() =>
                         {
-                            btnRecognizeImage.Text = _strRecog;
+                            btnRecognizeImage.Image = _imgSearchDefault;
+                            btnRecognizeImage.Text = string.Empty;
                             EnableButtons = true;
                             RefreshImagesCount();
                             txtWord.Select();
@@ -438,52 +455,45 @@ namespace DynamicMosaicExample
                         stwRenew.Restart();
                     }
 
+                    void OutCurrentStatus(string strLoading) => InvokeAction(() =>
+                    {
+                        string CreateTimeString(TimeSpan ts) => $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+
+                        if (IsRecognizing)
+                        {
+                            btnRecognizeImage.Image = null;
+                            btnRecognizeImage.Text = CreateTimeString(_stwRecognize.Elapsed);
+                            return;
+                        }
+
+                        if (IsFileActivity)
+                        {
+                            btnRecognizeImage.Image = null;
+                            btnRecognizeImage.Text = strLoading;
+                            return;
+                        }
+
+                        btnRecognizeImage.Text = string.Empty;
+                        btnRecognizeImage.Image = _imgSearchDefault;
+                    });
+
                     switch (k)
                     {
                         case 0:
-                            InvokeAction(() =>
-                            {
-                                btnRecognizeImage.Text =
-                                    IsRecognizing ? StrRecognize :
-                                    IsFileActivity ? StrLoading : _strRecog;
-                                TimeSpan ts = _stwRecognize.Elapsed;
-                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
-                            });
+                            OutCurrentStatus(StrLoading0);
                             Thread.Sleep(100);
                             break;
                         case 1:
-                            InvokeAction(() =>
-                            {
-                                btnRecognizeImage.Text =
-                                    IsRecognizing ? StrRecognize1 :
-                                    IsFileActivity ? StrLoading1 : _strRecog;
-                                TimeSpan ts = _stwRecognize.Elapsed;
-                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
-                            });
+                            OutCurrentStatus(StrLoading1);
                             Thread.Sleep(100);
                             break;
                         case 2:
-                            InvokeAction(() =>
-                            {
-                                btnRecognizeImage.Text =
-                                    IsRecognizing ? StrRecognize2 :
-                                    IsFileActivity ? StrLoading2 : _strRecog;
-                                TimeSpan ts = _stwRecognize.Elapsed;
-                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
-                            });
+                            OutCurrentStatus(StrLoading2);
                             Thread.Sleep(100);
                             break;
                         case 3:
-                            InvokeAction(() =>
-                            {
-                                btnRecognizeImage.Text =
-                                    IsRecognizing ? StrRecognize3 :
-                                    IsFileActivity ? StrLoading3 : _strRecog;
-                                TimeSpan ts = _stwRecognize.Elapsed;
-                                lblElapsedTime.Text = $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
-                            });
+                            OutCurrentStatus(StrLoading3);
                             Thread.Sleep(100);
-                            k = -1;
                             break;
                         default:
                             k = -1;
@@ -613,7 +623,6 @@ namespace DynamicMosaicExample
                         string systemName = $@"({ps.Length}) {DateTime.Now:HH:mm:ss}";
                         _recognizeResults.Insert(0, (ps, 0, systemName));
                         lstResults.Items.Insert(0, systemName);
-                        grpResults.Text = $@"{_strGrpResults} ({lstResults.Items.Count})";
                         lstResults.SelectedIndex = 0;
                     });
                 }
@@ -699,7 +708,7 @@ namespace DynamicMosaicExample
 
             int count = _recognizeProcessorStorage.Count;
 
-            btnNextRecogImage.Enabled = (changed && count > 0) || count > 1;
+            btnRecogNext.Enabled = (changed && count > 0) || count > 1;
         }
 
         void DrawStop() => SafetyExecute(() =>
@@ -763,13 +772,15 @@ namespace DynamicMosaicExample
         {
             string tag = txtWord.Text;
 
-            if ((!rewrite && string.IsNullOrEmpty(tag)) || (rewrite && string.IsNullOrEmpty(_recognizeProcessorStorage.SavedRecognizePath)))
+            string savedRecognizePath = _recognizeProcessorStorage.SavedRecognizePath;
+
+            if ((!rewrite && string.IsNullOrEmpty(tag)) || (rewrite && string.IsNullOrEmpty(savedRecognizePath)))
             {
                 MessageBox.Show(this, SaveImageQueryError, @"Уведомление", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
-            string pathToSave = rewrite ? _recognizeProcessorStorage.SavedRecognizePath : string.Empty;
+            string pathToSave = rewrite ? savedRecognizePath : string.Empty;
             string savedPath = _recognizeProcessorStorage.SaveToFile(new Processor(_btmRecognizeImage, tag), pathToSave);
             ImageActualize(ImageActualizeAction.LOAD, savedPath);
         }
@@ -908,10 +919,15 @@ namespace DynamicMosaicExample
         {
             if (lstResults.SelectedIndex < 0)
             {
-                txtConSymbol.Text = _unknownSystemName;
+                txtConSymbolNumber.Text = string.Empty;
+                txtConSymbolCount.Text = string.Empty;
+                txtConSymbolTag.Text = string.Empty;
+
                 pbConSymbol.Image = new Bitmap(pbConSymbol.Width, pbConSymbol.Height);
 
-                txtConSymbol.Enabled = false;
+                txtConSymbolNumber.Enabled = false;
+                txtConSymbolCount.Enabled = false;
+                txtConSymbolTag.Enabled = false;
                 pbConSymbol.Enabled = false;
                 btnConNext.Enabled = false;
                 btnConPrevious.Enabled = false;
@@ -921,11 +937,18 @@ namespace DynamicMosaicExample
             }
 
             (Processor[] processors, int reflexMapIndex, string _) = SelectedResult;
+
             Processor p = processors[reflexMapIndex];
-            txtConSymbol.Text = $@"№ {reflexMapIndex + 1} {p.Tag}";
+
+            txtConSymbolNumber.Text = checked(reflexMapIndex + 1).ToString();
+            txtConSymbolCount.Text = processors.Length.ToString();
+            txtConSymbolTag.Text = p.Tag;
+
             pbConSymbol.Image = ImageRect.GetBitmap(p);
 
-            txtConSymbol.Enabled = true;
+            txtConSymbolNumber.Enabled = true;
+            txtConSymbolCount.Enabled = true;
+            txtConSymbolTag.Enabled = true;
             pbConSymbol.Enabled = true;
             btnConNext.Enabled = true;
             btnConPrevious.Enabled = true;
@@ -1024,21 +1047,24 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void TxtSymbolPath_TextChanged(object sender, EventArgs e) => SafetyExecute(() =>
+        void TextBoxTextChanged(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            if (txtSymbolPath.Text.Length < 4)
+            TextBox tb = (TextBox)sender;
+
+            if (tb.Text.Length < 4)
                 return;
-            int pos = txtSymbolPath.Text.Length - 3;
-            txtSymbolPath.Select(pos, 0);
+
+            int pos = tb.Text.Length - 3;
+            tb.Select(pos, 0);
             for (int k = pos; k > -1; k--)
-                if (ConcurrentProcessorStorage.IsDirectorySeparatorSymbol(txtSymbolPath.Text[k]))
+                if (ConcurrentProcessorStorage.IsDirectorySeparatorSymbol(tb.Text[k]))
                 {
                     if (k < pos)
-                        txtSymbolPath.Select(k + 1, 0);
+                        tb.Select(k + 1, 0);
                     return;
                 }
 
-            txtSymbolPath.Select(0, 0);
+            tb.Select(0, 0);
         });
 
         /// <summary>
