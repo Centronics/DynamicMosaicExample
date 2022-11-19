@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(FrmExample));
-            this.lstResults = new System.Windows.Forms.ListBox();
+            this.lstHistory = new System.Windows.Forms.ListBox();
             this.txtWord = new System.Windows.Forms.TextBox();
             this.grpImages = new System.Windows.Forms.GroupBox();
             this.txtImagesCount = new System.Windows.Forms.TextBox();
@@ -79,20 +79,19 @@
             ((System.ComponentModel.ISupportInitialize)(this.pbDraw)).BeginInit();
             this.SuspendLayout();
             // 
-            // lstResults
+            // lstHistory
             // 
-            this.lstResults.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.lstResults.ColumnWidth = 100;
-            this.lstResults.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
-            this.lstResults.Font = new System.Drawing.Font("Arial Narrow", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.lstResults.FormattingEnabled = true;
-            this.lstResults.Location = new System.Drawing.Point(2, 14);
-            this.lstResults.MultiColumn = true;
-            this.lstResults.Name = "lstResults";
-            this.lstResults.Size = new System.Drawing.Size(125, 132);
-            this.lstResults.TabIndex = 17;
-            this.lstResults.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.LstResults_DrawItem);
-            this.lstResults.SelectedIndexChanged += new System.EventHandler(this.LstResults_SelectedIndexChanged);
+            this.lstHistory.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.lstHistory.ColumnWidth = 125;
+            this.lstHistory.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
+            this.lstHistory.Font = new System.Drawing.Font("Times New Roman", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.lstHistory.Location = new System.Drawing.Point(2, 14);
+            this.lstHistory.Name = "lstHistory";
+            this.lstHistory.ScrollAlwaysVisible = true;
+            this.lstHistory.Size = new System.Drawing.Size(125, 132);
+            this.lstHistory.TabIndex = 17;
+            this.lstHistory.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.LstResults_DrawItem);
+            this.lstHistory.SelectedIndexChanged += new System.EventHandler(this.LstResults_SelectedIndexChanged);
             // 
             // txtWord
             // 
@@ -239,7 +238,7 @@
             this.grpResults.Controls.Add(this.txtConSymbolTag);
             this.grpResults.Controls.Add(this.txtConSymbolCount);
             this.grpResults.Controls.Add(this.btnConSaveAllImages);
-            this.grpResults.Controls.Add(this.lstResults);
+            this.grpResults.Controls.Add(this.lstHistory);
             this.grpResults.Controls.Add(this.btnConSaveImage);
             this.grpResults.Controls.Add(this.pbConSymbol);
             this.grpResults.Controls.Add(this.btnConNext);
@@ -587,7 +586,7 @@
         private System.Windows.Forms.PictureBox pbDraw;
         private System.Windows.Forms.Button btnRecognizeImage;
         private System.Windows.Forms.Button btnClearImage;
-        private System.Windows.Forms.ListBox lstResults;
+        private System.Windows.Forms.ListBox lstHistory;
         private System.Windows.Forms.TextBox txtWord;
         private System.Windows.Forms.Button btnImageCreate;
         private System.Windows.Forms.GroupBox grpImages;

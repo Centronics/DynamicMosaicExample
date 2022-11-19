@@ -291,7 +291,7 @@ namespace DynamicMosaicExample
             if (count > 0)
             {
                 txtRecogNumber.Text = unchecked(_currentRecognizeProcIndex + 1).ToString();
-                txtRecogCount.Text= count.ToString();
+                txtRecogCount.Text = count.ToString();
             }
             else
             {
@@ -414,7 +414,7 @@ namespace DynamicMosaicExample
                 WaitHandle[] waitHandles = { _fileActivity, _recognizerActivity };
                 Stopwatch stwRenew = new Stopwatch();
                 bool initializeUserInterface = false;
-                for (int k = 0; k < 4; k++)
+                for (int k = 0; ; k++)
                 {
                     if (WaitHandle.WaitAny(waitHandles, 0) == WaitHandle.WaitTimeout)
                     {
@@ -494,10 +494,10 @@ namespace DynamicMosaicExample
                         case 3:
                             OutCurrentStatus(StrLoading3);
                             Thread.Sleep(100);
-                            break;
-                        default:
                             k = -1;
                             break;
+                        default:
+                            throw new ArgumentOutOfRangeException(nameof(k), k, @"Некорректное значение индикатора для отображения статуса.");
                     }
                 }
             }))
@@ -546,7 +546,7 @@ namespace DynamicMosaicExample
 
             _errorMessageIsShowed = false;
             EnableButtons = false;
-            lstResults.SelectedIndex = -1;
+            lstHistory.SelectedIndex = -1;
 
             ManualResetEvent preparingActivity = new ManualResetEvent(false);
 
@@ -594,7 +594,11 @@ namespace DynamicMosaicExample
                         return;
                     }
 
-                    DynamicReflex recognizer = new DynamicReflex(new ProcessorContainer(processors));
+                    if (_recognizer == null)
+                    {
+                        _recognizer = new DynamicReflex(new ProcessorContainer(processors));
+                        OutHistory(null, _recognizer.Processors.ToArray(), @"start");
+                    }
 
                     _currentState.CriticalChange(sender, e);
                     _currentState.WordChange(sender, e);
@@ -604,7 +608,7 @@ namespace DynamicMosaicExample
 
                     try
                     {
-                        result = recognizer.FindRelation(query);
+                        result = _recognizer.FindRelation(query);
                     }
                     finally
                     {
@@ -613,18 +617,7 @@ namespace DynamicMosaicExample
                         _currentState.State = result ? RecognizeState.SUCCESS : RecognizeState.ERROR;
                     }
 
-                    if (!result)
-                        return;
-
-                    Processor[] ps = recognizer.Processors.ToArray();
-
-                    InvokeAction(() =>
-                    {
-                        string systemName = $@"({ps.Length}) {DateTime.Now:HH:mm:ss}";
-                        _recognizeResults.Insert(0, (ps, 0, systemName));
-                        lstResults.Items.Insert(0, systemName);
-                        lstResults.SelectedIndex = 0;
-                    });
+                    OutHistory(result, _recognizer.Processors.ToArray());
                 }
                 catch (Exception ex)
                 {
@@ -652,6 +645,48 @@ namespace DynamicMosaicExample
             }).Start();
 
             preparingActivity.WaitOne();
+        });
+
+        void OutHistory(bool? result, Processor[] ps, string comment = null) => InvokeAction(() =>
+        {
+            string GetSystemName(int count)
+            {
+                string strCount = string.IsNullOrEmpty(comment) ? lstHistory.Items.Count < 10 ?
+                        ps.Length > 99999 ? "∞" : ps.Length.ToString() :
+                        ps.Length > 9999 ? "∞" : ps.Length.ToString() :
+                    comment;
+
+                char r = result != null ? result.Value ? 'T' : 'F' : ' ';
+
+                return $@"№{count}{r}{DateTime.Now:HH:mm:ss} ({strCount})";
+            }
+
+            if (lstHistory.Items.Count < 100)
+            {
+                string sm = GetSystemName(lstHistory.Items.Count);
+
+                _recognizeResults.Insert(0, (ps, 0, sm));
+                lstHistory.Items.Insert(0, sm);
+                lstHistory.SelectedIndex = 0;
+                return;
+            }
+
+            if (_currentHistoryPos == 100)
+                _currentHistoryPos = 0;
+
+            int pos = 99 - _currentHistoryPos;
+
+            _recognizeResults.RemoveAt(pos);
+            lstHistory.Items.RemoveAt(pos);
+
+            string si = GetSystemName(_currentHistoryPos);
+
+            _recognizeResults.Insert(pos, (ps, 0, si));
+            lstHistory.Items.Insert(pos, si);
+
+            lstHistory.SelectedIndex = pos;
+
+            _currentHistoryPos++;
         });
 
         /// <summary>
@@ -917,7 +952,7 @@ namespace DynamicMosaicExample
 
         void ChangeSystemSelectedIndex()
         {
-            if (lstResults.SelectedIndex < 0)
+            if (lstHistory.SelectedIndex < 0)
             {
                 txtConSymbolNumber.Text = string.Empty;
                 txtConSymbolCount.Text = string.Empty;
@@ -1087,7 +1122,7 @@ namespace DynamicMosaicExample
             if (e.Index < 0)
                 return;
 
-            TextRenderer.DrawText(e.Graphics, lstResults.Items[e.Index].ToString(), e.Font,
+            TextRenderer.DrawText(e.Graphics, lstHistory.Items[e.Index].ToString(), e.Font,
                 e.Bounds, e.ForeColor, e.BackColor, TextFormatFlags.HorizontalCenter);
         });
 

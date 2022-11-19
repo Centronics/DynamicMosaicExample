@@ -80,6 +80,10 @@ namespace DynamicMosaicExample
         /// </summary>
         readonly CurrentState _currentState;
 
+        DynamicReflex _recognizer;
+
+        int _currentHistoryPos;
+
         /// <summary>
         ///     Цвет, который считается изначальным. Определяет изначальный цвет, отображаемый на поверхности для рисования.
         ///     Используется для стирания изображения.
@@ -191,8 +195,8 @@ namespace DynamicMosaicExample
 
         (Processor[] processors, int reflexMapIndex, string systemName) SelectedResult
         {
-            get => _recognizeResults[lstResults.SelectedIndex];
-            set => _recognizeResults[lstResults.SelectedIndex] = value;
+            get => _recognizeResults[lstHistory.SelectedIndex];
+            set => _recognizeResults[lstHistory.SelectedIndex] = value;
         }
 
         /// <summary>
