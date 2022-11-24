@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
-using System.Windows.Forms;
 using DynamicParser;
 using ProcStorType = DynamicMosaicExample.ConcurrentProcessorStorage.ProcessorStorageType;
 
@@ -49,11 +49,10 @@ namespace DynamicMosaicExample
             if (storage == null)
                 return;
 
-            string p = ConcurrentProcessorStorage.AddEndingSlash(fullPath);
+            fullPath = ConcurrentProcessorStorage.AddEndingSlash(fullPath);
 
-            foreach ((Processor _, string path) in storage.Elements)
-                if (path.StartsWith(p, StringComparison.OrdinalIgnoreCase))
-                    _concurrentFileTasks.Enqueue(new Common(FileTaskAction.REMOVED, storage, path));
+            foreach ((Processor _, string path) in storage.Elements.TakeWhile(_ => !NeedStopBackground).Where(x => x.sourcePath.StartsWith(fullPath, StringComparison.OrdinalIgnoreCase)))
+                _concurrentFileTasks.Enqueue(new Common(FileTaskAction.REMOVED, storage, path));
         }
 
         void NeedCreate(string fullPath, ConcurrentProcessorStorage storage)
@@ -61,11 +60,7 @@ namespace DynamicMosaicExample
             if (storage == null)
                 return;
 
-            string[] paths = GetFiles(fullPath);
-            if (paths == null || paths.Length < 1)
-                return;
-
-            foreach (string path in paths)
+            foreach (string path in GetFiles(fullPath))
                 _concurrentFileTasks.Enqueue(new Common(FileTaskAction.CREATED, storage, path));
         }
 
@@ -87,7 +82,7 @@ namespace DynamicMosaicExample
             }
         }
 
-        void RestartStorages(ConcurrentProcessorStorage storage, bool enable)
+        void TrackStorage(ConcurrentProcessorStorage storage, bool enable)
         {
             if (storage == null)
                 return;
@@ -122,10 +117,10 @@ namespace DynamicMosaicExample
 
             if (source == SourceChanged.WORKDIR)
             {
-                RestartStorages(oldStorage, false);
+                TrackStorage(oldStorage, false);
                 NeedRemoveStorage(oldStorage);
 
-                RestartStorages(newStor, true);
+                TrackStorage(newStor, true);
                 NeedCreate(newFullPath, newStor);
             }
             else
@@ -143,16 +138,16 @@ namespace DynamicMosaicExample
             {
                 case WatcherChangeTypes.Deleted:
                     if (source == SourceChanged.WORKDIR)
-                        RestartStorages(storage, false);
-                    else
-                        NeedRemove(fullPath, storage);
+                        TrackStorage(storage, false);
+
+                    NeedRemove(fullPath, storage);
                     _needRefreshEvent.Set();
                     return;
                 case WatcherChangeTypes.Created:
                     if (source == SourceChanged.WORKDIR)
-                        RestartStorages(storage, true);
-                    else
-                        NeedCreate(fullPath, storage);
+                        TrackStorage(storage, true);
+
+                    NeedCreate(fullPath, storage);
                     _needRefreshEvent.Set();
                     return;
                 case WatcherChangeTypes.Changed:

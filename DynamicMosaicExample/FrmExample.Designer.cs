@@ -563,7 +563,7 @@
             this.MinimizeBox = false;
             this.Name = "FrmExample";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Демонстрационный стенд";
+            this.Text = "Тестовый стенд";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmExample_FormClosing);
             this.Shown += new System.EventHandler(this.FrmExample_Shown);
             this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.FrmExample_KeyUp);

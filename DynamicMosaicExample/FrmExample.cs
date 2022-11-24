@@ -432,11 +432,14 @@ namespace DynamicMosaicExample
 
                             initializeUserInterface = true;
 
-                            CreateFileRefreshThread();
-
                             CreateImageWatcher();
                             CreateRecognizeWatcher();
                             CreateWorkDirWatcher();
+
+                            CreateFileRefreshThread();
+
+                            ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => ChangedThreadFunction(WatcherChangeTypes.Created, SearchImagesPath, _imagesProcessorStorage, SourceChanged.IMAGES)));
+                            ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => ChangedThreadFunction(WatcherChangeTypes.Created, RecognizeImagesPath, _recognizeProcessorStorage, SourceChanged.RECOGNIZE)));
                         });
 
                         WaitHandle.WaitAny(waitHandles);
@@ -815,6 +818,8 @@ namespace DynamicMosaicExample
                 return;
             }
 
+            CreateFolder(_recognizeProcessorStorage.ImagesPath);
+
             string pathToSave = rewrite ? savedRecognizePath : string.Empty;
             string savedPath = _recognizeProcessorStorage.SaveToFile(new Processor(_btmRecognizeImage, tag), pathToSave);
             ImageActualize(ImageActualizeAction.LOAD, savedPath);
@@ -1035,7 +1040,11 @@ namespace DynamicMosaicExample
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
-            _imagesProcessorStorage.SaveToFile(SelectedResult.processors[SelectedResult.reflexMapIndex], SelectedResult.systemName, SelectedResult.reflexMapIndex.ToString()));
+        {
+            CreateFolder(_imagesProcessorStorage.ImagesPath);
+
+            _imagesProcessorStorage.SaveToFile(SelectedResult.processors[SelectedResult.reflexMapIndex], SelectedResult.systemName, SelectedResult.reflexMapIndex.ToString());
+        });
 
         /// <summary>
         ///     Сохраняет все карты <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.
@@ -1044,6 +1053,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
+            CreateFolder(_imagesProcessorStorage.ImagesPath);
+
             for (int k = 0; k < SelectedResult.processors.Length; k++)
                 _imagesProcessorStorage.SaveToFile(SelectedResult.processors[k], SelectedResult.systemName, k.ToString());
         });
@@ -1153,7 +1164,7 @@ namespace DynamicMosaicExample
             }
             catch (DirectoryNotFoundException ex)
             {
-                WriteLogMessage(ex.Message);
+                WriteLogMessage($@"{nameof(DeleteFile)}: {ex.Message}");
             }
         }
 

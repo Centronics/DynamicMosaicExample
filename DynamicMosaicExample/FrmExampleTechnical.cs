@@ -237,8 +237,8 @@ namespace DynamicMosaicExample
             {
                 InitializeComponent();
                 _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, WidthStep, pbDraw.Height);
-                Directory.CreateDirectory(SearchImagesPath);
-                Directory.CreateDirectory(RecognizeImagesPath);
+                CreateFolder(SearchImagesPath);
+                CreateFolder(RecognizeImagesPath);
                 _unknownSymbolName = txtSymbolPath.Text;
                 _imgSearchDefault = btnRecognizeImage.Image;
                 ImageWidth = pbBrowse.Width;
@@ -287,6 +287,8 @@ namespace DynamicMosaicExample
         internal static string SearchImagesPath { get; } = Path.Combine(WorkingDirectory, ImagesFolder);
 
         internal static string RecognizeImagesPath { get; } = Path.Combine(WorkingDirectory, RecognizeFolder);
+
+        internal static void CreateFolder(string path) => Directory.CreateDirectory(path);
 
         /// <summary>
         ///     Расширение изображений, которые интерпретируются как карты <see cref="Processor" />.
@@ -383,16 +385,16 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="path">Путь, по которому требуется получить список файлов изображений карт.</param>
         /// <returns>Возвращает список файлов изображений карт в указанной папке.</returns>
-        static string[] GetFiles(string path)
+        IEnumerable<string> GetFiles(string path)
         {
             try
             {
-                return Directory.EnumerateFiles(path, $"*.{ExtImg}", SearchOption.AllDirectories).Where(p =>
-                        string.Compare(Path.GetExtension(p), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0)
-                    .ToArray();
+                return Directory.EnumerateFiles(path, $"*.{ExtImg}", SearchOption.AllDirectories).TakeWhile(_ => !NeedStopBackground).Where(p =>
+                        string.Compare(Path.GetExtension(p), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0);
             }
-            catch
+            catch (Exception ex)
             {
+                WriteLogMessage($@"{nameof(GetFiles)}: {ex.Message}");
                 return Array.Empty<string>();
             }
         }
@@ -479,33 +481,8 @@ namespace DynamicMosaicExample
                         ThreadPool.GetMaxThreads(out _, out int comPortMax);
                         ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
 
-                        void Execute(ConcurrentProcessorStorage storage, string searchPath) => SafetyExecute(() =>
-                            Parallel.ForEach(
-                                Directory.EnumerateFiles(searchPath, $"*.{ExtImg}", SearchOption.AllDirectories),
-                                (fullPath, state) =>
-                                {
-                                    try
-                                    {
-                                        if (NeedStopBackground || state.IsStopped)
-                                        {
-                                            state.Stop();
-                                            return;
-                                        }
-
-                                        if (!string.IsNullOrWhiteSpace(fullPath) &&
-                                            string.Compare(Path.GetExtension(fullPath), $".{ExtImg}",
-                                                StringComparison.OrdinalIgnoreCase) == 0)
-                                            ExceptionClause(() => storage.AddProcessor(fullPath),
-                                                $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> (addition) -> {fullPath}");
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        WriteLogMessage(ex.Message);
-                                    }
-                                }));
-
-                        Execute(_imagesProcessorStorage, SearchImagesPath);
-                        Execute(_recognizeProcessorStorage, RecognizeImagesPath);
+                        //FillStorage(_imagesProcessorStorage, SearchImagesPath);//ДОДЕЛАТЬ РЕФАКТОРИНГ!
+                        //FillStorage(_recognizeProcessorStorage, RecognizeImagesPath);
                     }
                     finally
                     {
@@ -566,7 +543,7 @@ namespace DynamicMosaicExample
                                 }
                                 catch (Exception ex)
                                 {
-                                    WriteLogMessage(ex.Message);
+                                    WriteLogMessage($@"{nameof(CreateFileRefreshThread)}: {ex.Message}");
                                 }
                             }
                         }

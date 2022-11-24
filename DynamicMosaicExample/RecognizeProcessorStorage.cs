@@ -30,6 +30,7 @@ namespace DynamicMosaicExample
         public string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(fullPath)}";
 
         public override string ImagesPath => FrmExample.RecognizeImagesPath;
+
         public override ProcessorStorageType StorageType => ProcessorStorageType.RECOGNIZE;
 
         /// <summary>
