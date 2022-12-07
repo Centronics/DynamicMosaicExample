@@ -86,6 +86,10 @@ namespace DynamicMosaicExample
 
         string _savedRecognizePath = string.Empty;
 
+        static bool _longOperationsAllowed = true;
+
+        static readonly object LongOperationsSync = new object();
+
         /// <summary>
         ///     Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
@@ -238,6 +242,18 @@ namespace DynamicMosaicExample
             }
         }
 
+        public void AddProcessor(string fullPath)
+        {
+            if (!IsDirectory(fullPath))
+            {
+                IntAddProcessor(fullPath);
+                return;
+            }
+
+            foreach (string pFile in GetFiles(fullPath))
+                IntAddProcessor(pFile);
+        }
+
         /// <summary>
         ///     Добавляет карту в коллекцию, по указанному пути.
         ///     Если карта не подходит по каким-либо признакам, а в коллекции хранится карта по тому же пути, то она удаляется из
@@ -245,7 +261,7 @@ namespace DynamicMosaicExample
         ///     Если карта уже присутствовала в коллекции, то она будет перезагружена в неё.
         /// </summary>
         /// <param name="fullPath">Полный путь к изображению, которое будет интерпретировано как карта <see cref="Processor" />.</param>
-        public void AddProcessor(string fullPath)
+        void IntAddProcessor(string fullPath)
         {
             fullPath = Path.GetFullPath(fullPath);
             Processor addingProcessor;
@@ -263,6 +279,8 @@ namespace DynamicMosaicExample
             lock (SyncObject)
                 AddElement(hashCode, fullPath, addingProcessor);
         }
+
+        protected virtual IEnumerable<string> GetFiles(string path) => throw new NotImplementedException($@"Реализация метода {nameof(GetFiles)} отсутствует. Значение: {path}.");
 
         static Bitmap CheckBitmapByAlphaColor(Bitmap btm)
         {
@@ -492,20 +510,39 @@ namespace DynamicMosaicExample
                 return;
 
             lock (SyncObject)
-                RemoveProcessor(this[GetStringKey(fullPath)].processor);
+            {
+                if (!IsDirectory(fullPath))
+                {
+                    RemoveProcessor(this[GetStringKey(fullPath)].processor);
+                    return;
+                }
+
+                if (!LongOperationsAllowed)
+                    return;
+
+                foreach (string path in DictionaryByKey.Keys.TakeWhile(_ => LongOperationsAllowed).Where(x => x.StartsWith(fullPath, StringComparison.OrdinalIgnoreCase)))
+                    RemoveProcessor(this[GetStringKey(path)].processor);
+            }
         }
 
-        static string GetStringKey(string path)
-        {
-            if (string.IsNullOrEmpty(path))
-                throw new ArgumentException(@"Для получения ключа карты необходимо указать путь к ней.", nameof(path));
+        static bool IsDirectory(string path) => !string.IsNullOrEmpty(path) && (IsDirectorySeparatorSymbol(path[path.Length - 1]) || string.IsNullOrEmpty(Path.GetExtension(path)));
 
-            return path.ToLower();
+        static string GetStringKey(string path) => string.IsNullOrEmpty(path) ? string.Empty : path.ToLower();
+
+        public static bool LongOperationsAllowed
+        {
+            get => _longOperationsAllowed;
+
+            set
+            {
+                lock (LongOperationsSync)
+                    _longOperationsAllowed = value;
+            }
         }
 
         static int GetHashKey(Processor processor)
         {
-            if (processor is null)
+            if (processor == null)
                 throw new ArgumentNullException(nameof(processor), @"Для получения хеша карты необходимо её указать.");
 
             return CRCIntCalc.GetHash(processor);
@@ -517,7 +554,7 @@ namespace DynamicMosaicExample
         /// <param name="processor">Карта <see cref="Processor" />, которую следует удалить.</param>
         void RemoveProcessor(Processor processor)
         {
-            if (processor is null)
+            if (processor == null)
                 return;
             int hashCode = GetHashKey(processor);
             lock (SyncObject)
@@ -636,7 +673,7 @@ namespace DynamicMosaicExample
             /// <param name="p">Добавляемая карта.</param>
             public ProcHash(ProcPath p)
             {
-                if (p.CurrentProcessor is null || string.IsNullOrWhiteSpace(p.CurrentPath))
+                if (p.CurrentProcessor == null || string.IsNullOrWhiteSpace(p.CurrentPath))
                     throw new ArgumentNullException(nameof(p), $@"Функция (конструктор) {nameof(ProcHash)}.");
                 _lst = new List<ProcPath> { p };
             }
@@ -648,7 +685,7 @@ namespace DynamicMosaicExample
             /// <param name="p">Добавляемая карта.</param>
             public void AddProcessor(ProcPath p)
             {
-                if (p.CurrentProcessor is null || string.IsNullOrWhiteSpace(p.CurrentPath))
+                if (p.CurrentProcessor == null || string.IsNullOrWhiteSpace(p.CurrentPath))
                     throw new ArgumentNullException(nameof(p), $@"Функция {nameof(AddProcessor)}.");
                 _lst.Add(p);
             }
@@ -717,7 +754,7 @@ namespace DynamicMosaicExample
             /// <returns>Возвращает хеш заданной карты.</returns>
             public static int GetHash(Processor p)
             {
-                if (p is null)
+                if (p == null)
                     throw new ArgumentNullException(nameof(p), $@"Функция {nameof(GetHash)}.");
                 return GetHash(GetInts(p));
             }
@@ -729,7 +766,7 @@ namespace DynamicMosaicExample
             /// <returns>Возвращает значения элементов карты построчно.</returns>
             static IEnumerable<int> GetInts(Processor p)
             {
-                if (p is null)
+                if (p == null)
                     throw new ArgumentNullException(nameof(p), $@"Функция {nameof(GetInts)}.");
                 for (int j = 0; j < p.Height; j++)
                     for (int i = 0; i < p.Width; i++)
@@ -743,7 +780,7 @@ namespace DynamicMosaicExample
             /// <returns>Возвращает значение хеша для заданной последовательности целых чисел <see cref="int" />.</returns>
             static int GetHash(IEnumerable<int> ints)
             {
-                if (ints is null)
+                if (ints == null)
                     throw new ArgumentNullException(nameof(ints),
                         $@"Для подсчёта контрольной суммы необходимо указать массив байт. Функция {nameof(GetHash)}.");
                 return ints.Aggregate(255, (current, t) => Table[(byte)(current ^ t)]);

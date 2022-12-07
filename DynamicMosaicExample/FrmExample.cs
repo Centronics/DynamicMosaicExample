@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -342,7 +343,7 @@ namespace DynamicMosaicExample
         {
             int imageCount = ShowCurrentImage(_imagesProcessorStorage.GetFirstProcessor(ref _currentImageIndex, true));
 
-            btnImageUpToQueries.Enabled = btnImageDelete.Enabled = EnableButtons && imageCount > 0;
+            btnImageUpToQueries.Enabled = btnImageDelete.Enabled = ButtonsEnabled && imageCount > 0;
             btnImageNext.Enabled = imageCount > 1;
             btnImagePrev.Enabled = imageCount > 1;
             txtImagesNumber.Enabled = imageCount > 0;
@@ -411,91 +412,112 @@ namespace DynamicMosaicExample
 
             Thread thread = new Thread(() => SafetyExecute(() =>
             {
-                WaitHandle[] waitHandles = { _fileActivity, _recognizerActivity };
+                WaitHandle[] waitHandles = { _stopBackground, _recognizerActivity, _recogPreparing, _fileActivity };
+
                 Stopwatch stwRenew = new Stopwatch();
                 bool initializeUserInterface = false;
+
                 for (int k = 0; ; k++)
                 {
-                    if (WaitHandle.WaitAny(waitHandles, 0) == WaitHandle.WaitTimeout)
-                    {
-                        stwRenew.Reset();
-                        InvokeAction(() =>
-                        {
-                            btnRecognizeImage.Image = _imgSearchDefault;
-                            btnRecognizeImage.Text = string.Empty;
-                            EnableButtons = true;
-                            RefreshImagesCount();
-                            txtWord.Select();
+                    int eventIndex = WaitHandle.WaitAny(waitHandles, 0);
 
-                            if (initializeUserInterface)
+                    switch (eventIndex)
+                    {
+                        case WaitHandle.WaitTimeout:
+                            stwRenew.Reset();
+
+                            InvokeAction(() =>
+                            {
+                                btnRecognizeImage.Image = _imgSearchDefault;
+                                btnRecognizeImage.Text = string.Empty;
+                                ButtonsEnabled = true;
+                                RefreshImagesCount();
+                                txtWord.Select();
+
+                                if (initializeUserInterface)
+                                    return;
+
+                                initializeUserInterface = true;
+
+                                CreateImageWatcher();
+                                CreateRecognizeWatcher();
+                                CreateWorkDirWatcher();
+
+                                CreateFileRefreshThread();
+
+                                ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => ChangedThreadFunction(WatcherChangeTypes.Created, SearchImagesPath, _imagesProcessorStorage, SourceChanged.IMAGES)));
+                                ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => ChangedThreadFunction(WatcherChangeTypes.Created, RecognizeImagesPath, _recognizeProcessorStorage, SourceChanged.RECOGNIZE)));
+                            });
+
+                            eventIndex = WaitHandle.WaitAny(waitHandles);
+
+                            if (eventIndex == 0)
                                 return;
 
-                            initializeUserInterface = true;
+                            break;
 
-                            CreateImageWatcher();
-                            CreateRecognizeWatcher();
-                            CreateWorkDirWatcher();
-
-                            CreateFileRefreshThread();
-
-                            ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => ChangedThreadFunction(WatcherChangeTypes.Created, SearchImagesPath, _imagesProcessorStorage, SourceChanged.IMAGES)));
-                            ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => ChangedThreadFunction(WatcherChangeTypes.Created, RecognizeImagesPath, _recognizeProcessorStorage, SourceChanged.RECOGNIZE)));
-                        });
-
-                        WaitHandle.WaitAny(waitHandles);
+                        case 0:
+                            return;
                     }
 
-                    if (NeedStopBackground)
-                        return;
-
-                    if (!IsRecognizing)
-                        EnableButtons = true;
-
                     stwRenew.Start();
-                    if (stwRenew.ElapsedMilliseconds >= 2000 && IsFileActivity)
+
+                    if (stwRenew.ElapsedMilliseconds >= 2000)
                     {
                         RefreshImagesCount();
                         stwRenew.Restart();
                     }
 
-                    void OutCurrentStatus(string strLoading) => InvokeAction(() =>
+                    void OutCurrentStatus(string strPreparing, string strLoading) => InvokeAction(() =>
                     {
                         string CreateTimeString(TimeSpan ts) => $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
 
-                        if (IsRecognizing)
+                        switch (eventIndex)
                         {
-                            btnRecognizeImage.Image = null;
-                            btnRecognizeImage.Text = CreateTimeString(_stwRecognize.Elapsed);
-                            return;
-                        }
+                            case 0:
+                                throw new Exception($@"Этот ID произошедшего события недопустим ({eventIndex}).");
 
-                        if (IsFileActivity)
-                        {
-                            btnRecognizeImage.Image = null;
-                            btnRecognizeImage.Text = strLoading;
-                            return;
-                        }
+                            case 1:
+                                btnRecognizeImage.Image = null;
+                                btnRecognizeImage.Text = CreateTimeString(_stwRecognize.Elapsed);
+                                return;
 
-                        btnRecognizeImage.Text = string.Empty;
-                        btnRecognizeImage.Image = _imgSearchDefault;
+                            case 2:
+                                btnRecognizeImage.Image = null;
+                                btnRecognizeImage.Text = strPreparing;
+                                ButtonsEnabled = true;
+                                return;
+
+                            case 3:
+                                btnRecognizeImage.Image = null;
+                                btnRecognizeImage.Text = strLoading;
+                                ButtonsEnabled = true;
+                                return;
+
+                            default:
+                                btnRecognizeImage.Text = string.Empty;
+                                btnRecognizeImage.Image = _imgSearchDefault;
+                                ButtonsEnabled = true;
+                                return;
+                        }
                     });
 
                     switch (k)
                     {
                         case 0:
-                            OutCurrentStatus(StrLoading0);
+                            OutCurrentStatus(StrPreparing0, StrLoading0);
                             Thread.Sleep(100);
                             break;
                         case 1:
-                            OutCurrentStatus(StrLoading1);
+                            OutCurrentStatus(StrPreparing1, StrLoading1);
                             Thread.Sleep(100);
                             break;
                         case 2:
-                            OutCurrentStatus(StrLoading2);
+                            OutCurrentStatus(StrPreparing2, StrLoading2);
                             Thread.Sleep(100);
                             break;
                         case 3:
-                            OutCurrentStatus(StrLoading3);
+                            OutCurrentStatus(StrPreparing3, StrLoading3);
                             Thread.Sleep(100);
                             k = -1;
                             break;
@@ -534,8 +556,11 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnRecognizeImage_Click(object sender, EventArgs e) => SafetyExecute(() =>
         {
-            if (StopRecognize())
+            if (!StopRecognize())
+            {
+                WriteLogMessage($@"{nameof(BtnRecognizeImage_Click)}: Ошибка при остановке потока перед запуском новой сессии поиска.");
                 return;
+            }
 
             if (string.IsNullOrEmpty(txtWord.Text))
             {
@@ -547,29 +572,64 @@ namespace DynamicMosaicExample
             if (IsQueryChanged)
                 SaveRecognizeImage(true);
 
-            _errorMessageIsShowed = false;
-            EnableButtons = false;
+            lock (ErrorMessageLocker)
+                _errorMessageIsShowed = false;
+
+            ButtonsEnabled = false;
             lstHistory.SelectedIndex = -1;
 
-            ManualResetEvent preparingActivity = new ManualResetEvent(false);
+            _currentState.CriticalChange(sender, e);
+            _currentState.WordChange(sender, e);
 
-            (_recognizerThread = new Thread(() => SafetyExecute(() =>
+            (RecognizerThread = new Thread(() => SafetyExecute(() =>
             {
-                try
+                _recogPreparing.Set();
+
+                bool? result = null;
+                bool resultShowed = false;
+
+                void ShowResult(DynamicReflex reflex)
                 {
-                    preparingActivity.Set();
+                    if (resultShowed || !result.HasValue)
+                        return;
 
-                    (Processor, string)[] query;
+                    resultShowed = true;
 
-                    try
+                    OutHistory(result, reflex.Processors.ToArray());
+
+                    if (result.Value)
                     {
-                        query = _recognizeProcessorStorage.Elements.Select(t => (t.processor, t.processor.Tag)).ToArray();
-                    }
-                    catch (Exception ex)
-                    {
-                        ErrorMessageInOtherThread(ex.Message);
+                        pbSuccess.Image = Resources.Result_OK;
+                        _currentState.State = RecognizeState.SUCCESS;
                         return;
                     }
+
+                    pbSuccess.Image = Resources.Result_Error;
+                    _currentState.State = RecognizeState.ERROR;
+                }
+
+                DynamicReflex recognizer = Recognizer;
+
+                try
+                {
+                    if (recognizer == null)
+                    {
+                        List<Processor> processors = _imagesProcessorStorage.UniqueElements.Select(t => t.processor).ToList();
+
+                        if (!processors.Any())
+                        {
+                            ErrorMessageInOtherThread(@"Образы для поиска отсутствуют. Создайте хотя бы два.");
+                            return;
+                        }
+
+                        recognizer = new DynamicReflex(new ProcessorContainer(processors));
+
+                        Recognizer = recognizer;
+
+                        OutHistory(null, recognizer.Processors.ToArray(), @"start");
+                    }
+
+                    (Processor, string)[] query = _recognizeProcessorStorage.Elements.Select(t => (t.processor, t.processor.Tag)).ToArray();
 
                     if (!query.Any())
                     {
@@ -579,67 +639,33 @@ namespace DynamicMosaicExample
 
                     _recognizerActivity.Set();
 
-                    Processor[] processors;
-
-                    try
-                    {
-                        processors = _imagesProcessorStorage.UniqueElements.Select(t => t.processor).ToArray();
-                    }
-                    catch (Exception ex)
-                    {
-                        ErrorMessageInOtherThread(ex.Message);
-                        return;
-                    }
-
-                    if (!processors.Any())
-                    {
-                        ErrorMessageInOtherThread(@"Образы для поиска отсутствуют. Создайте хотя бы два.");
-                        return;
-                    }
-
-                    if (_recognizer == null)
-                    {
-                        _recognizer = new DynamicReflex(new ProcessorContainer(processors));
-                        OutHistory(null, _recognizer.Processors.ToArray(), @"start");
-                    }
-
-                    _currentState.CriticalChange(sender, e);
-                    _currentState.WordChange(sender, e);
                     _stwRecognize.Restart();
+                    result = recognizer.FindRelation(query);
+                    _stwRecognize.Stop();
 
-                    bool result = false;
-
-                    try
-                    {
-                        result = _recognizer.FindRelation(query);
-                    }
-                    finally
-                    {
-                        _stwRecognize.Stop();
-                        pbSuccess.Image = result ? Resources.Result_OK : Resources.Result_Error;
-                        _currentState.State = result ? RecognizeState.SUCCESS : RecognizeState.ERROR;
-                    }
-
-                    OutHistory(result, _recognizer.Processors.ToArray());
+                    ShowResult(recognizer);
+                }
+                catch (ThreadAbortException)
+                {
+                    _stwRecognize.Stop();
+                    Thread.ResetAbort();
                 }
                 catch (Exception ex)
                 {
-                    if (ex is ThreadAbortException)
-                    {
-                        Thread.ResetAbort();
-                        return;
-                    }
-
+                    _stwRecognize.Stop();
                     ErrorMessageInOtherThread(ex.Message);
                 }
                 finally
                 {
-                    if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)
-                        Thread.ResetAbort();
-
-                    preparingActivity.Reset();
-                    _recognizerActivity.Reset();
+                    _stwRecognize.Stop();
+                    ShowResult(recognizer);
                 }
+            }, () =>
+            {
+                _recogPreparing.Reset();
+                _recognizerActivity.Reset();
+
+                RecognizerThread = null;
             }))
             {
                 Priority = ThreadPriority.Highest,
@@ -647,17 +673,17 @@ namespace DynamicMosaicExample
                 Name = "Recognizer"
             }).Start();
 
-            preparingActivity.WaitOne();
+            _recogPreparing.WaitOne();
         });
 
         void OutHistory(bool? result, Processor[] ps, string comment = null) => InvokeAction(() =>
         {
             string GetSystemName(int count)
             {
-                string strCount = string.IsNullOrEmpty(comment) ? lstHistory.Items.Count < 10 ?
-                        ps.Length > 99999 ? "∞" : ps.Length.ToString() :
-                        ps.Length > 9999 ? "∞" : ps.Length.ToString() :
-                    comment;
+                string strCount = string.IsNullOrEmpty(comment)
+                    ? lstHistory.Items.Count < 10 ? ps.Length > 99999 ? "∞" : ps.Length.ToString() :
+                    ps.Length > 9999 ? "∞" : ps.Length.ToString()
+                    : comment;
 
                 char r = result != null ? result.Value ? 'T' : 'F' : ' ';
 
@@ -844,7 +870,19 @@ namespace DynamicMosaicExample
         void InvokeAction(Action funcAction, Action catchAction = null)
         {
             if (funcAction == null)
+            {
+                WriteLogMessage($@"{nameof(InvokeAction)}: funcAction = null.");
+
                 return;
+            }
+
+            if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)
+            {
+                WriteLogMessage($@"{nameof(InvokeAction)}: AbortRequested.");
+
+                return;
+            }
+
             try
             {
                 void Act()
@@ -853,18 +891,27 @@ namespace DynamicMosaicExample
                     {
                         funcAction();
                     }
+                    catch (ThreadAbortException ex)
+                    {
+                        Thread.ResetAbort();
+
+                        WriteLogMessage($@"{nameof(InvokeAction)}(1): {ex.Message}");
+                    }
                     catch (Exception ex)
                     {
                         try
                         {
-                            MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK,
-                                MessageBoxIcon.Exclamation);
+                            WriteLogMessage($@"{nameof(InvokeAction)}(2): {ex.Message}");
+
+                            MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+
                             catchAction?.Invoke();
                         }
                         catch (Exception ex1)
                         {
-                            MessageBox.Show(this, ex1.Message, @"Ошибка", MessageBoxButtons.OK,
-                                MessageBoxIcon.Exclamation);
+                            WriteLogMessage($@"{nameof(InvokeAction)}(3): {ex1.Message}");
+
+                            MessageBox.Show(this, ex1.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                         }
                     }
                 }
@@ -874,8 +921,16 @@ namespace DynamicMosaicExample
                 else
                     Act();
             }
+            catch (ThreadAbortException ex)
+            {
+                Thread.ResetAbort();
+
+                WriteLogMessage($@"{nameof(InvokeAction)}(4): {ex.Message}");
+            }
             catch (Exception ex)
             {
+                WriteLogMessage($@"{nameof(InvokeAction)}(5): {ex.Message}");
+
                 MessageBox.Show(ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -890,6 +945,13 @@ namespace DynamicMosaicExample
         /// <param name="catchAction">Функция, которая должна быть выполнена в блоке <see langword="catch" />.</param>
         void SafetyExecute(Action funcAction, Action finallyAction = null, Action catchAction = null)
         {
+            if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)
+            {
+                WriteLogMessage($@"{nameof(SafetyExecute)}: AbortRequested.");
+
+                return;
+            }
+
             try
             {
                 funcAction?.Invoke();
@@ -898,18 +960,17 @@ namespace DynamicMosaicExample
             {
                 try
                 {
-                    InvokeAction(
-                        () =>
-                            MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK,
-                                MessageBoxIcon.Exclamation));
+                    WriteLogMessage($@"{nameof(SafetyExecute)}(1): {ex.Message}");
+
+                    InvokeAction(() => MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation));
+
                     catchAction?.Invoke();
                 }
-                catch
+                catch (Exception ex1)
                 {
-                    InvokeAction(
-                        () =>
-                            MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK,
-                                MessageBoxIcon.Exclamation));
+                    WriteLogMessage($@"{nameof(SafetyExecute)}(2): {ex1.Message}");
+
+                    InvokeAction(() => MessageBox.Show(this, ex1.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation));
                 }
             }
             finally
@@ -920,10 +981,9 @@ namespace DynamicMosaicExample
                 }
                 catch (Exception ex)
                 {
-                    InvokeAction(
-                        () =>
-                            MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK,
-                                MessageBoxIcon.Exclamation));
+                    WriteLogMessage($@"{nameof(SafetyExecute)}(3): {ex.Message}");
+
+                    InvokeAction(() => MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation));
                 }
             }
         }
@@ -935,16 +995,25 @@ namespace DynamicMosaicExample
         void ErrorMessageInOtherThread(string message)
         {
             if (string.IsNullOrWhiteSpace(message))
-                return;
-            SafetyExecute(() => new Thread(
-                () => InvokeAction(
-                    () =>
-                        MessageBox.Show(this, message, @"Ошибка", MessageBoxButtons.OK,
-                            MessageBoxIcon.Exclamation)))
             {
-                IsBackground = true,
-                Name = @"Message"
-            }.Start());
+                WriteLogMessage($@"{nameof(ErrorMessageInOtherThread)}: {message}");
+
+                return;
+            }
+
+            if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)
+            {
+                WriteLogMessage($@"{nameof(ErrorMessageInOtherThread)}: AbortRequested.");
+
+                return;
+            }
+
+            SafetyExecute(() =>
+                new Thread(() => InvokeAction(() => MessageBox.Show(this, message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)))
+                {
+                    IsBackground = true,
+                    Name = @"Message"
+                }.Start());
         }
 
         /// <summary>
@@ -1072,11 +1141,10 @@ namespace DynamicMosaicExample
                 DisposeWorkDirWatcher();
                 DisposeRecognizeWatcher();
                 DisposeImageWatcher();
-                StopRecognize();
-                _stopBackgroundThreadEventFlag.Set();
-                _needRefreshEvent.Set();
-                _fileActivity.Set();
-                _recognizerActivity.Set();
+                if (!StopRecognize())
+                    WriteLogMessage($@"{nameof(FrmExample_FormClosing)}: Ошибка остановки поиска при завершении работы программы.");
+                _stopBackground.Set();
+                ConcurrentProcessorStorage.LongOperationsAllowed = false;
                 _fileRefreshThread?.Join();
                 _userInterfaceThread?.Join();
             }

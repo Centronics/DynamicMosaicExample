@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
 using System.Threading;
-using DynamicParser;
 using ProcStorType = DynamicMosaicExample.ConcurrentProcessorStorage.ProcessorStorageType;
 
 namespace DynamicMosaicExample
@@ -36,32 +34,34 @@ namespace DynamicMosaicExample
             throw new ArgumentException($@"Неизвестно, в каком хранилище требуется произвести изменение {nameof(SourceChanged)}: {source}", nameof(source));
         }
 
-        void NeedRemoveStorage(ConcurrentProcessorStorage storage)
+        void EnqueueRemoveStorage(ConcurrentProcessorStorage storage)
         {
             if (storage == null)
                 return;
 
             _concurrentFileTasks.Enqueue(new FileTask(FileTaskAction.CLEARED, storage));
+
+            RefreshRecognizer();
         }
 
-        void NeedRemove(string fullPath, ConcurrentProcessorStorage storage)
+        void EnqueueRemove(string fullPath, ConcurrentProcessorStorage storage)
         {
             if (storage == null)
                 return;
 
-            fullPath = ConcurrentProcessorStorage.AddEndingSlash(fullPath);
+            _concurrentFileTasks.Enqueue(new Common(FileTaskAction.REMOVED, storage, ConcurrentProcessorStorage.AddEndingSlash(fullPath)));
 
-            foreach ((Processor _, string path) in storage.Elements.TakeWhile(_ => !NeedStopBackground).Where(x => x.sourcePath.StartsWith(fullPath, StringComparison.OrdinalIgnoreCase)))
-                _concurrentFileTasks.Enqueue(new Common(FileTaskAction.REMOVED, storage, path));
+            RefreshRecognizer();
         }
 
-        void NeedCreate(string fullPath, ConcurrentProcessorStorage storage)
+        void EnqueueCreate(string fullPath, ConcurrentProcessorStorage storage)
         {
             if (storage == null)
                 return;
 
-            foreach (string path in GetFiles(fullPath))
-                _concurrentFileTasks.Enqueue(new Common(FileTaskAction.CREATED, storage, path));
+            _concurrentFileTasks.Enqueue(new Common(FileTaskAction.CREATED, storage, fullPath));
+
+            RefreshRecognizer();
         }
 
         static FileTaskAction ConvertWatcherChangeTypes(WatcherChangeTypes c)
@@ -118,18 +118,14 @@ namespace DynamicMosaicExample
             if (source == SourceChanged.WORKDIR)
             {
                 TrackStorage(oldStorage, false);
-                NeedRemoveStorage(oldStorage);
+                EnqueueRemoveStorage(oldStorage);
 
                 TrackStorage(newStor, true);
-                NeedCreate(newFullPath, newStor);
             }
             else
-            {
-                NeedRemove(oldFullPath, oldStorage);
-                NeedCreate(newFullPath, newStor);
-            }
+                EnqueueRemove(oldFullPath, oldStorage);
 
-            _needRefreshEvent.Set();
+            EnqueueCreate(newFullPath, newStor);
         }
 
         void ChangedThreadFunction(WatcherChangeTypes type, string fullPath, ConcurrentProcessorStorage storage, SourceChanged source)
@@ -140,15 +136,13 @@ namespace DynamicMosaicExample
                     if (source == SourceChanged.WORKDIR)
                         TrackStorage(storage, false);
 
-                    NeedRemove(fullPath, storage);
-                    _needRefreshEvent.Set();
+                    EnqueueRemove(fullPath, storage);
                     return;
                 case WatcherChangeTypes.Created:
                     if (source == SourceChanged.WORKDIR)
                         TrackStorage(storage, true);
 
-                    NeedCreate(fullPath, storage);
-                    _needRefreshEvent.Set();
+                    EnqueueCreate(fullPath, storage);
                     return;
                 case WatcherChangeTypes.Changed:
                 case WatcherChangeTypes.Renamed:
@@ -176,7 +170,7 @@ namespace DynamicMosaicExample
             }
 
             _concurrentFileTasks.Enqueue(new Common(ConvertWatcherChangeTypes(e.ChangeType), storage, e.FullPath));
-            _needRefreshEvent.Set();
+            RefreshRecognizer();
         });
 
         void OnRenamed(RenamedEventArgs e, SourceChanged source) => SafetyExecute(() =>
@@ -199,7 +193,7 @@ namespace DynamicMosaicExample
                 return;
 
             _concurrentFileTasks.Enqueue(new Renamed(ConvertWatcherChangeTypes(e.ChangeType), oldStorage, e.FullPath, e.OldFullPath, renamedTo, renamedFrom));
-            _needRefreshEvent.Set();
+            RefreshRecognizer();
         });
 
         void IntRecognizeOnChanged(object _, FileSystemEventArgs e) => SafetyExecute(() => OnChanged(e, SourceChanged.RECOGNIZE));

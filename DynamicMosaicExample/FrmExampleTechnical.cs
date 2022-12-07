@@ -4,10 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using DynamicMosaic;
 using DynamicParser;
@@ -16,27 +14,43 @@ namespace DynamicMosaicExample
 {
     internal sealed partial class FrmExample
     {
-        /// <summary>
-        ///     Текст кнопки "Найти".
-        /// </summary>
-        const string StrLoading0 = "Загрузка   ";
+        const string StrPreparing0 = @"Подготовка(/)";
+
+        const string StrPreparing1 = @"Подготовка(~)";
+
+        const string StrPreparing2 = @"Подготовка(|)";
+
+        const string StrPreparing3 = @"Подготовка(\)";
 
         /// <summary>
         ///     Текст кнопки "Найти".
         /// </summary>
-        const string StrLoading1 = "Загрузка.  ";
+        const string StrLoading0 = @"Загрузка(+)";
 
         /// <summary>
         ///     Текст кнопки "Найти".
         /// </summary>
-        const string StrLoading2 = "Загрузка.. ";
+        const string StrLoading1 = @"Загрузка(-)";
 
         /// <summary>
         ///     Текст кнопки "Найти".
         /// </summary>
-        const string StrLoading3 = "Загрузка...";
+        const string StrLoading2 = @"Загрузка(*)";
+
+        /// <summary>
+        ///     Текст кнопки "Найти".
+        /// </summary>
+        const string StrLoading3 = @"Загрузка(/)";
 
         const string SaveImageQueryError = @"Необходимо написать какой-либо запрос, который будет использоваться в качестве имени файла изображения.";
+
+        const string LogRefreshedMessage = @"Содержимое лог-файла обновлено. Есть новые сообщения.";
+
+        const string ThreadStuck = @"Во время остановки процесса поиска произошла ошибка: поток, отвечающий за поиск, завис. Рекомендуется перезапустить программу.";
+
+        const string SearchStopError = @"Во время остановки процесса поиска произошла ошибка.";
+
+        const string UnknownFSChangeType = @"Неизвестный тип изменения файловой системы.";
 
         /// <summary>
         ///     Определяет шаг (в пикселях), на который изменяется ширина сканируемого (создаваемого) изображения при нажатии
@@ -49,11 +63,6 @@ namespace DynamicMosaicExample
         /// </summary>
         static readonly object LogLockerObject = new object();
 
-        /// <summary>
-        ///     Служит для блокировки одновременного доступа к процедуре отображения сообщения об ошибке.
-        /// </summary>
-        static readonly object LogLocker = new object();
-
         FileSystemWatcher _fswRecognizeChanged;
 
         FileSystemWatcher _fswImageChanged;
@@ -64,6 +73,8 @@ namespace DynamicMosaicExample
         ///     Указывает, было ли просмотрено сообщение о том, что в процессе работы программы уже произошла ошибка.
         /// </summary>
         static volatile bool _errorMessageIsShowed;
+
+        static readonly object ErrorMessageLocker = new object();
 
         /// <summary>
         ///     Задаёт цвет и ширину для рисования в окне создания распознаваемого изображения.
@@ -80,7 +91,29 @@ namespace DynamicMosaicExample
         /// </summary>
         readonly CurrentState _currentState;
 
+        readonly object _recognizerSync = new object();
+
         DynamicReflex _recognizer;
+
+        DynamicReflex Recognizer
+        {
+            get
+            {
+                lock (_recognizerSync)
+                    return _recognizer;
+            }
+
+            set
+            {
+                lock (_recognizerSync)
+                {
+                    if (value != null && _recognizer != null)
+                        throw new ArgumentException($@"Нельзя создать новый экземпляр {nameof(DynamicReflex)}, когда предыдущий ещё существует.", nameof(value));
+
+                    _recognizer = value;
+                }
+            }
+        }
 
         int _currentHistoryPos;
 
@@ -101,10 +134,12 @@ namespace DynamicMosaicExample
         /// </summary>
         readonly ManualResetEvent _fileActivity = new ManualResetEvent(false);
 
+        readonly ManualResetEvent _recogPreparing = new ManualResetEvent(false);
+
         /// <summary>
         ///     Уведомляет о необходимости запустить поток для обновления списка файлов изображений.
         /// </summary>
-        readonly AutoResetEvent _needRefreshEvent = new AutoResetEvent(false);
+        readonly AutoResetEvent _refreshEvent = new AutoResetEvent(false);
 
         /// <summary>
         ///     Хранит загруженные карты, которые требуется искать на основной карте.
@@ -166,6 +201,8 @@ namespace DynamicMosaicExample
         /// </summary>
         bool _buttonsEnabled = true;
 
+        readonly object _buttonsEnabledSync = new object();
+
         /// <summary>
         ///     Индекс <see cref="ImageRect" />, рассматриваемый в данный момент.
         /// </summary>
@@ -189,9 +226,9 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Сигнал остановки потокам, работающим на фоне.
         /// </summary>
-        readonly ManualResetEvent _stopBackgroundThreadEventFlag = new ManualResetEvent(false);
+        readonly ManualResetEvent _stopBackground = new ManualResetEvent(false);
 
-        bool NeedStopBackground => _stopBackgroundThreadEventFlag.WaitOne(0);
+        bool NeedStopBackground => _stopBackground.WaitOne(0);
 
         (Processor[] processors, int reflexMapIndex, string systemName) SelectedResult
         {
@@ -199,10 +236,27 @@ namespace DynamicMosaicExample
             set => _recognizeResults[lstHistory.SelectedIndex] = value;
         }
 
+        readonly object _recognizerThreadSyncObject = new object();
+
         /// <summary>
         ///     Поток, отвечающий за выполнение процедуры поиска символов на распознаваемом изображении.
         /// </summary>
         Thread _recognizerThread;
+
+        Thread RecognizerThread
+        {
+            get
+            {
+                lock (_recognizerThreadSyncObject)
+                    return _recognizerThread;
+            }
+
+            set
+            {
+                lock (_recognizerThreadSyncObject)
+                    _recognizerThread = value;
+            }
+        }
 
         bool _txtWordTextChecking;
 
@@ -236,7 +290,13 @@ namespace DynamicMosaicExample
             try
             {
                 InitializeComponent();
-                _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, WidthStep, pbDraw.Height);
+
+                ThreadPool.GetMinThreads(out _, out int comPortMin);
+                ThreadPool.SetMinThreads(Environment.ProcessorCount * 3, comPortMin);
+                ThreadPool.GetMaxThreads(out _, out int comPortMax);
+                ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
+
+                _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, WidthStep, pbDraw.Height, ExtImg);
                 CreateFolder(SearchImagesPath);
                 CreateFolder(RecognizeImagesPath);
                 _unknownSymbolName = txtSymbolPath.Text;
@@ -258,11 +318,6 @@ namespace DynamicMosaicExample
                 Process.GetCurrentProcess().Kill();
             }
         }
-
-        /// <summary>
-        ///     Получает значение, отражающее статус рабочего процесса по распознаванию изображения.
-        /// </summary>
-        bool IsRecognizing => _recognizerActivity.WaitOne(0);
 
         /// <summary>
         ///     Ширина образа для распознавания.
@@ -296,51 +351,55 @@ namespace DynamicMosaicExample
         internal static string ExtImg => "bmp";
 
         /// <summary>
-        ///     Отражает статус процесса актуализации содержимого карт с жёсткого диска.
-        /// </summary>
-        bool IsFileActivity => _fileActivity.WaitOne(0);
-
-        /// <summary>
         ///     Отключает или включает доступность кнопок на время выполнения операции.
         /// </summary>
-        bool EnableButtons
+        bool ButtonsEnabled
         {
-            get => _buttonsEnabled;
+            get
+            {
+                lock (_buttonsEnabledSync)
+                    return _buttonsEnabled;
+            }
+
             set
             {
-                if (value == _buttonsEnabled)
-                    return;
-
-                InvokeAction(() =>
+                lock (_buttonsEnabledSync)
                 {
-                    pbDraw.Enabled = value;
-                    btnImageCreate.Enabled = value;
-                    btnImageDelete.Enabled = value;
-                    btnImageUpToQueries.Enabled = value;
-                    btnImagePrev.Enabled = value;
-                    btnImageNext.Enabled = value;
-                    txtImagesNumber.Enabled = value;
-                    txtImagesCount.Enabled = value;
-                    txtWord.ReadOnly = !value;
-                    btnLoadRecognizeImage.Enabled = value;
-                    btnClearImage.Enabled = value && IsPainting;
-                    btnRecogPrev.Enabled = value;
-                    btnRecogNext.Enabled = value;
-                    txtRecogNumber.Enabled = value;
-                    txtRecogCount.Enabled = value;
-                    btnDeleteRecognizeImage.Enabled = value;
-
-                    if (value)
-                    {
-                        btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
-                        btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
+                    if (value == _buttonsEnabled)
                         return;
-                    }
 
-                    btnWide.Enabled = false;
-                    btnNarrow.Enabled = false;
-                });
-                _buttonsEnabled = value;
+                    InvokeAction(() =>
+                    {
+                        pbDraw.Enabled = value;
+                        btnImageCreate.Enabled = value;
+                        btnImageDelete.Enabled = value;
+                        btnImageUpToQueries.Enabled = value;
+                        btnImagePrev.Enabled = value;
+                        btnImageNext.Enabled = value;
+                        txtImagesNumber.Enabled = value;
+                        txtImagesCount.Enabled = value;
+                        txtWord.ReadOnly = !value;
+                        btnLoadRecognizeImage.Enabled = value;
+                        btnClearImage.Enabled = value && IsPainting;
+                        btnRecogPrev.Enabled = value;
+                        btnRecogNext.Enabled = value;
+                        txtRecogNumber.Enabled = value;
+                        txtRecogCount.Enabled = value;
+                        btnDeleteRecognizeImage.Enabled = value;
+
+                        if (value)
+                        {
+                            btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
+                            btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
+                            return;
+                        }
+
+                        btnWide.Enabled = false;
+                        btnNarrow.Enabled = false;
+                    });
+
+                    _buttonsEnabled = value;
+                }
             }
         }
 
@@ -358,6 +417,12 @@ namespace DynamicMosaicExample
                         return false;
 
             return true;
+        }
+
+        void RefreshRecognizer()
+        {
+            Recognizer = null;
+            _refreshEvent.Set();
         }
 
         /// <summary>
@@ -379,27 +444,6 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Получает список файлов изображений карт в указанной папке.
-        ///     Это файлы с расширением <see cref="ExtImg" />.
-        ///     В случае какой-либо ошибки возвращает пустой массив.
-        /// </summary>
-        /// <param name="path">Путь, по которому требуется получить список файлов изображений карт.</param>
-        /// <returns>Возвращает список файлов изображений карт в указанной папке.</returns>
-        IEnumerable<string> GetFiles(string path)
-        {
-            try
-            {
-                return Directory.EnumerateFiles(path, $"*.{ExtImg}", SearchOption.AllDirectories).TakeWhile(_ => !NeedStopBackground).Where(p =>
-                        string.Compare(Path.GetExtension(p), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0);
-            }
-            catch (Exception ex)
-            {
-                WriteLogMessage($@"{nameof(GetFiles)}: {ex.Message}");
-                return Array.Empty<string>();
-            }
-        }
-
-        /// <summary>
         ///     Останавливает процесс поиска символов на распознаваемом изображении.
         ///     Возвращает значение <see langword="true" /> в случае успешной остановки процесса распознавания, в противном случае
         ///     возвращает значение <see langword="false" />, в том числе, если процесс распознавания не был запущен.
@@ -410,31 +454,39 @@ namespace DynamicMosaicExample
         /// </returns>
         bool StopRecognize()
         {
-            if (!IsRecognizing)
-                return false;
+            Thread t = RecognizerThread;
+
+            if (t == null)
+                return true;
 
             try
             {
-                _recognizerThread.Abort();
+                try
+                {
+                    t.Abort();
+                }
+                catch (Exception ex)
+                {
+                    WriteLogMessage($@"{nameof(StopRecognize)}: {ex.Message}");
+                }
 
-                if (!_recognizerThread.Join(15000))
-                    MessageBox.Show(this,
-                        @"Во время остановки процесса поиска произошла ошибка: поток, отвечающий за поиск, завис. Рекомендуется перезапустить программу.",
-                        @"Ошибка",
-                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (t.Join(5000))
+                {
+                    RecognizerThread = null;
+
+                    return true;
+                }
+
+                WriteLogMessage($@"{nameof(StopRecognize)}: {ThreadStuck}");
+                MessageBox.Show(this, ThreadStuck, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this,
-                    $@"Во время остановки процесса поиска произошла ошибка:{Environment.NewLine}{ex.Message}", @"Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            finally
-            {
-                _recognizerThread = null;
+                WriteLogMessage($@"{nameof(StopRecognize)}: {SearchStopError}{Environment.NewLine}{ex.Message}");
+                MessageBox.Show(this, SearchStopError, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
-            return true;
+            return false;
         }
 
         /// <summary>
@@ -473,26 +525,12 @@ namespace DynamicMosaicExample
             {
                 try
                 {
-                    _fileActivity.Set();
-                    try
-                    {
-                        ThreadPool.GetMinThreads(out _, out int comPortMin);
-                        ThreadPool.SetMinThreads(Environment.ProcessorCount * 3, comPortMin);
-                        ThreadPool.GetMaxThreads(out _, out int comPortMax);
-                        ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
+                    WaitHandle[] waitHandles = { _stopBackground, _refreshEvent };
 
-                        //FillStorage(_imagesProcessorStorage, SearchImagesPath);//ДОДЕЛАТЬ РЕФАКТОРИНГ!
-                        //FillStorage(_recognizeProcessorStorage, RecognizeImagesPath);
-                    }
-                    finally
+                    while (WaitHandle.WaitAny(waitHandles) != 0)
                     {
-                        _fileActivity.Reset();
-                    }
-
-                    while (!NeedStopBackground)
-                    {
-                        _needRefreshEvent.WaitOne();
                         _fileActivity.Set();
+
                         try
                         {
                             while (!NeedStopBackground && _concurrentFileTasks.TryDequeue(out FileTask task))
@@ -504,41 +542,33 @@ namespace DynamicMosaicExample
                                         case FileTaskAction.REMOVED:
                                         {
                                             Common c = (Common)task;
-                                            ExceptionClause(
-                                                () => c.Storage.RemoveProcessor(c.Path),
-                                                $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {c.Path}");
+                                            ExceptionClause(() => c.Storage.RemoveProcessor(c.Path), $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {c.Path}");
                                             break;
                                         }
                                         case FileTaskAction.CLEARED:
                                         {
                                             FileTask t = task;
-                                            ExceptionClause(() => t.Storage.Clear(),
-                                                $"{nameof(ConcurrentProcessorStorage.Clear)} -> {task.Type}");
+                                            ExceptionClause(() => t.Storage.Clear(), $"{nameof(ConcurrentProcessorStorage.Clear)} -> {task.Type}");
                                             break;
                                         }
                                         case FileTaskAction.RENAMED:
                                         {
                                             Renamed r = (Renamed)task;
                                             if (r.RenamedFrom)
-                                                ExceptionClause(
-                                                    () => r.Storage.RemoveProcessor(r.OldPath),
-                                                    $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {r.OldPath}");
+                                                ExceptionClause(() => r.Storage.RemoveProcessor(r.OldPath), $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {r.OldPath}");
                                             if (r.RenamedTo)
-                                                ExceptionClause(() => r.Storage.AddProcessor(r.Path),
-                                                    $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {r.Path}");
+                                                ExceptionClause(() => r.Storage.AddProcessor(r.Path), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {r.Path}");
                                             break;
                                         }
                                         case FileTaskAction.CREATED:
                                         case FileTaskAction.CHANGED:
                                         {
                                             Common c = (Common)task;
-                                            ExceptionClause(() => c.Storage.AddProcessor(c.Path),
-                                                $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {c.Path}");
+                                            ExceptionClause(() => c.Storage.AddProcessor(c.Path), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {c.Path}");
                                             break;
                                         }
                                         default:
-                                            throw new ArgumentOutOfRangeException(nameof(task), task.Type,
-                                                @"Неизвестный тип изменения файловой системы.");
+                                            throw new ArgumentOutOfRangeException(nameof(task), task.Type, UnknownFSChangeType);
                                     }
                                 }
                                 catch (Exception ex)
@@ -568,6 +598,54 @@ namespace DynamicMosaicExample
             _fileRefreshThread = thread;
         }
 
+        void ShowOnceUserMessage(string addMes = null)
+        {
+            lock (ErrorMessageLocker)
+            {
+                if (_errorMessageIsShowed)
+                    return;
+
+                _errorMessageIsShowed = true;
+            }
+
+            string m = string.IsNullOrWhiteSpace(addMes) ? LogRefreshedMessage : addMes;
+
+            try
+            {
+                void Act()
+                {
+                    try
+                    {
+                        MessageBox.Show(this, m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                    }
+                    catch
+                    {
+                        MessageBox.Show(m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+
+                new Thread(() =>
+                {
+                    try
+                    {
+                        Invoke((Action)Act);
+                    }
+                    catch
+                    {
+                        MessageBox.Show(m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                })
+                {
+                    IsBackground = true,
+                    Name = @"Message"
+                }.Start();
+            }
+            catch
+            {
+                MessageBox.Show(m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         /// <summary>
         ///     Записывает сообщение в лог-файл, в синхронном режиме.
         ///     Доступ к этому методу синхронизируется.
@@ -576,41 +654,23 @@ namespace DynamicMosaicExample
         /// <param name="logstr">Строка лога, которую надо записать.</param>
         void WriteLogMessage(string logstr)
         {
-            void ShowMessage(string addMes)
-            {
-                if (_errorMessageIsShowed)
-                    return;
-                try
-                {
-                    if (!Monitor.TryEnter(LogLocker) || _errorMessageIsShowed)
-                        return;
-                    _errorMessageIsShowed = true;
-                    ErrorMessageInOtherThread(string.IsNullOrWhiteSpace(addMes)
-                        ? @"Содержимое лог-файла обновлено. Есть новые сообщения."
-                        : addMes);
-                }
-                finally
-                {
-                    if (Monitor.IsEntered(LogLocker))
-                        Monitor.Exit(LogLocker);
-                }
-            }
-
             try
             {
                 logstr = $@"{DateTime.Now:dd.MM.yyyy HH:mm:ss} {logstr}";
-                string path = Path.Combine(WorkingDirectory, "DynamicMosaicExampleLog.log");
+                string path = Path.Combine(WorkingDirectory, "log.log");
                 lock (LogLockerObject)
                     using (FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write,
                         FileShare.ReadWrite | FileShare.Delete))
                     using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8))
                         sw.WriteLine(logstr);
-                ShowMessage(string.Empty);
             }
             catch (Exception ex)
             {
-                ShowMessage($@"Ошибка при записи логов: {ex.Message}{Environment.NewLine}Сообщение лога: {logstr}");
+                ShowOnceUserMessage($@"Ошибка при записи логов: {ex.Message}{Environment.NewLine}Сообщение лога: {logstr}");
+                return;
             }
+
+            ShowOnceUserMessage();
         }
 
         /// <summary>
