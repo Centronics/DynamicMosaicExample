@@ -17,9 +17,7 @@ namespace DynamicMosaicExample
 
         readonly int _widthStep;
 
-        public string ExtImg { get; }
-
-        public RecognizeProcessorStorage(int minWidth, int maxWidth, int widthStep, int height, string extImg)
+        public RecognizeProcessorStorage(int minWidth, int maxWidth, int widthStep, int height, string extImg) : base(extImg)
         {
             if (string.IsNullOrWhiteSpace(extImg))
                 throw new ArgumentNullException(nameof(extImg), $@"Расширение загружаемых изображений должно быть указано ({extImg ?? @"null"}).");
@@ -28,7 +26,6 @@ namespace DynamicMosaicExample
             _maxWidth = maxWidth;
             _height = height;
             _widthStep = widthStep;
-            ExtImg = extImg;
         }
 
         public override Processor GetAddingProcessor(string fullPath) => new Processor(LoadRecognizeBitmap(fullPath), GetProcessorTag(fullPath));
@@ -86,26 +83,6 @@ namespace DynamicMosaicExample
                         yield return k;
                     yield return _maxWidth;
                 }
-            }
-        }
-
-        /// <summary>
-        ///     Получает список файлов изображений карт в указанной папке.
-        ///     Это файлы с расширением <see cref="ExtImg" />.
-        ///     В случае какой-либо ошибки возвращает пустой массив.
-        /// </summary>
-        /// <param name="path">Путь, по которому требуется получить список файлов изображений карт.</param>
-        /// <returns>Возвращает список файлов изображений карт в указанной папке.</returns>
-        protected override IEnumerable<string> GetFiles(string path)
-        {
-            try
-            {
-                return Directory.EnumerateFiles(path, $"*.{ExtImg}", SearchOption.AllDirectories).TakeWhile(_ => LongOperationsAllowed).Where(p =>
-                    string.Compare(Path.GetExtension(p), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($@"{nameof(GetFiles)}: {ex.Message}{Environment.NewLine}{nameof(path)}: {path}", ex);
             }
         }
 

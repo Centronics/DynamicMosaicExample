@@ -22,13 +22,20 @@ namespace DynamicMosaicExample
             RECOGNIZE
         }
 
+        protected ConcurrentProcessorStorage(string extImg)
+        {
+            ExtImg = extImg;
+        }
+
+        public string ExtImg { get; }
+
         public abstract Processor GetAddingProcessor(string fullPath);
 
         public abstract string ImagesPath { get; }
 
         public abstract ProcessorStorageType StorageType { get; }
 
-        protected static string CreateImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(CreateImagePath)}: Исходный путь образа не указан."), name)}.{FrmExample.ExtImg}";
+        protected string CreateImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(CreateImagePath)}: Исходный путь образа не указан."), name)}.{ExtImg}";
 
         public abstract string SaveToFile(Processor processor, string relativeFolderPath);
 
@@ -180,10 +187,29 @@ namespace DynamicMosaicExample
                 return false;
             }
 
-            if (string.Compare(ext, $".{FrmExample.ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
-                throw new ArgumentException($@"Необходимо, чтобы путь вёл к файлу с требуемым расширением ({FrmExample.ExtImg})", nameof(relativeFolderPath));
+            if (string.Compare(ext, $".{ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
+                throw new ArgumentException($@"Необходимо, чтобы путь вёл к файлу с требуемым расширением ({ExtImg})", nameof(relativeFolderPath));
 
             return true;
+        }
+
+        /// <summary>
+        ///     Получает список файлов изображений карт в указанной папке.
+        ///     Это файлы с расширением <see cref="ExtImg" />.
+        ///     В случае какой-либо ошибки возвращает пустой массив.
+        /// </summary>
+        /// <param name="path">Путь, по которому требуется получить список файлов изображений карт.</param>
+        /// <returns>Возвращает список файлов изображений карт в указанной папке.</returns>
+        IEnumerable<string> GetFiles(string path)
+        {
+            try
+            {
+                return Directory.EnumerateFiles(path, $"*.{ExtImg}", SearchOption.AllDirectories).TakeWhile(_ => LongOperationsAllowed).Where(IsProcessorFile);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($@"{nameof(GetFiles)}: {ex.Message}{Environment.NewLine}{nameof(path)}: {path}", ex);
+            }
         }
 
         /// <summary>
@@ -244,11 +270,14 @@ namespace DynamicMosaicExample
 
         public void AddProcessor(string fullPath)
         {
-            if (!IsDirectory(fullPath))
+            if (IsProcessorFile(fullPath))
             {
                 IntAddProcessor(fullPath);
                 return;
             }
+
+            if (!IsDirectory(fullPath))
+                return;
 
             foreach (string pFile in GetFiles(fullPath))
                 IntAddProcessor(pFile);
@@ -279,8 +308,6 @@ namespace DynamicMosaicExample
             lock (SyncObject)
                 AddElement(hashCode, fullPath, addingProcessor);
         }
-
-        protected virtual IEnumerable<string> GetFiles(string path) => throw new NotImplementedException($@"Реализация метода {nameof(GetFiles)} отсутствует. Значение: {path}.");
 
         static Bitmap CheckBitmapByAlphaColor(Bitmap btm)
         {
@@ -525,6 +552,8 @@ namespace DynamicMosaicExample
             }
         }
 
+        public bool IsProcessorFile(string path) => !string.IsNullOrEmpty(path) && string.Compare(Path.GetExtension(path), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0;
+
         static bool IsDirectory(string path) => !string.IsNullOrEmpty(path) && (IsDirectorySeparatorSymbol(path[path.Length - 1]) || string.IsNullOrEmpty(Path.GetExtension(path)));
 
         static string GetStringKey(string path) => string.IsNullOrEmpty(path) ? string.Empty : path.ToLower();
@@ -607,7 +636,7 @@ namespace DynamicMosaicExample
                     nameof(path));
             path = Path.ChangeExtension(path, string.Empty);
             string resultTmp = Path.Combine(ImagesPath, $@"{path}bmpTMP");
-            string result = Path.Combine(ImagesPath, path + FrmExample.ExtImg);
+            string result = Path.Combine(ImagesPath, path + ExtImg);
             using (FileStream fs = new FileStream(resultTmp, FileMode.Create, FileAccess.Write))
                 btm.Save(fs, ImageFormat.Bmp);
             try

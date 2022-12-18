@@ -145,7 +145,7 @@ namespace DynamicMosaicExample
         ///     Хранит загруженные карты, которые требуется искать на основной карте.
         ///     Предназначена для использования несколькими потоками одновременно.
         /// </summary>
-        readonly ImageProcessorStorage _imagesProcessorStorage = new ImageProcessorStorage();
+        readonly ImageProcessorStorage _imagesProcessorStorage;
 
 
         readonly RecognizeProcessorStorage _recognizeProcessorStorage;
@@ -296,6 +296,7 @@ namespace DynamicMosaicExample
                 ThreadPool.GetMaxThreads(out _, out int comPortMax);
                 ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
 
+                _imagesProcessorStorage = new ImageProcessorStorage(ExtImg);
                 _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, WidthStep, pbDraw.Height, ExtImg);
                 CreateFolder(SearchImagesPath);
                 CreateFolder(RecognizeImagesPath);

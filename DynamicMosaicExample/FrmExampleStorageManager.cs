@@ -113,19 +113,18 @@ namespace DynamicMosaicExample
 
         void RenamedThreadFunction(string oldFullPath, string newFullPath, SourceChanged source, ConcurrentProcessorStorage oldStorage)
         {
-            ConcurrentProcessorStorage newStor = GetStorage(source, newFullPath);
-
-            if (source == SourceChanged.WORKDIR)
+            if (source != SourceChanged.WORKDIR)
             {
-                TrackStorage(oldStorage, false);
-                EnqueueRemoveStorage(oldStorage);
-
-                TrackStorage(newStor, true);
-            }
-            else
                 EnqueueRemove(oldFullPath, oldStorage);
+                EnqueueCreate(newFullPath, oldStorage);
+                return;
+            }
 
-            EnqueueCreate(newFullPath, newStor);
+            TrackStorage(oldStorage, false);
+            EnqueueRemoveStorage(oldStorage);
+
+            TrackStorage(oldStorage, true);
+            EnqueueCreate(newFullPath, oldStorage);
         }
 
         void ChangedThreadFunction(WatcherChangeTypes type, string fullPath, ConcurrentProcessorStorage storage, SourceChanged source)
@@ -134,9 +133,12 @@ namespace DynamicMosaicExample
             {
                 case WatcherChangeTypes.Deleted:
                     if (source == SourceChanged.WORKDIR)
+                    {
                         TrackStorage(storage, false);
-
-                    EnqueueRemove(fullPath, storage);
+                        EnqueueRemoveStorage(storage);
+                    }
+                    else
+                        EnqueueRemove(fullPath, storage);
                     return;
                 case WatcherChangeTypes.Created:
                     if (source == SourceChanged.WORKDIR)
@@ -163,7 +165,7 @@ namespace DynamicMosaicExample
             if (storage == null)
                 return;
 
-            if (string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
+            if (!storage.IsProcessorFile(e.FullPath))
             {
                 ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => ChangedThreadFunction(e.ChangeType, e.FullPath, storage, source)));
                 return;
@@ -180,17 +182,17 @@ namespace DynamicMosaicExample
 
             ConcurrentProcessorStorage oldStorage = GetStorage(source, e.OldFullPath);
 
-            bool renamedTo = string.Compare(Path.GetExtension(e.FullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0;
-            bool renamedFrom = string.Compare(Path.GetExtension(e.OldFullPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) == 0;
+            if (oldStorage == null)
+                return;
+
+            bool renamedFrom = oldStorage.IsProcessorFile(e.OldFullPath);
+            bool renamedTo = oldStorage.IsProcessorFile(e.FullPath);
 
             if (!renamedTo && !renamedFrom)
             {
                 ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => RenamedThreadFunction(e.OldFullPath, e.FullPath, source, oldStorage)));
                 return;
             }
-
-            if (oldStorage == null)
-                return;
 
             _concurrentFileTasks.Enqueue(new Renamed(ConvertWatcherChangeTypes(e.ChangeType), oldStorage, e.FullPath, e.OldFullPath, renamedTo, renamedFrom));
             RefreshRecognizer();

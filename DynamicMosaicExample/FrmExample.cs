@@ -719,32 +719,28 @@ namespace DynamicMosaicExample
         });
 
         /// <summary>
-        ///     Осуществляет выход из программы по нажатию клавиши Escape.
+        ///     Осуществляет ввод искомого слова по нажатии клавиши Enter.
+        ///     Предназначен для переопределения функции отката (CTRL + Z).
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void FrmExample_KeyUp(object sender, KeyEventArgs e) => SafetyExecute(() =>
+        void FrmExample_KeyDown(object sender, KeyEventArgs e) => SafetyExecute(() =>
         {
-            if (e.Alt || e.Control || e.Shift)
-                return;
-            // ReSharper disable once SwitchStatementMissingSomeCases
             switch (e.KeyCode)
             {
+                case Keys.Enter when txtWord.Focused:
+                    BtnRecognizeImage_Click(btnRecognizeImage, EventArgs.Empty);
+                    break;
+                case Keys.Z when e.Control && txtWord.Focused:
+                    if (string.IsNullOrEmpty(_currentState.CurWord))
+                        return;
+                    txtWord.Text = _currentState.CurWord;
+                    txtWord.Select(txtWord.Text.Length, 0);
+                    return;
                 case Keys.Escape:
                     Application.Exit();
-                    break;
+                    return;
             }
-        });
-
-        /// <summary>
-        ///     Осуществляет ввод искомого слова по нажатии клавиши Enter.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void TxtWord_KeyUp(object sender, KeyEventArgs e) => SafetyExecute(() =>
-        {
-            if (e.KeyCode == Keys.Enter)
-                BtnRecognizeImage_Click(null, null);
         });
 
         /// <summary>
@@ -752,10 +748,20 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void TxtWord_KeyPress(object sender, KeyPressEventArgs e) =>
-            e.Handled = (Keys)e.KeyChar == Keys.Enter || (Keys)e.KeyChar == Keys.Tab ||
-                        (Keys)e.KeyChar == Keys.Pause ||
-                        (Keys)e.KeyChar == Keys.XButton1 || e.KeyChar == 15 || e.KeyChar == 27;
+        void TxtWord_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            switch ((Keys)e.KeyChar)
+            {
+                case Keys.Enter:
+                case Keys.Tab:
+                case Keys.Escape:
+                case Keys.Pause:
+                case Keys.XButton1:
+                case Keys.RButton | Keys.Enter:
+                    e.Handled = true;
+                    return;
+            }
+        }
 
         /// <summary>
         ///     Отменяет отрисовку изображения для распознавания в случае ухода указателя мыши с поля рисования.
@@ -835,6 +841,8 @@ namespace DynamicMosaicExample
         void SaveRecognizeImage(bool rewrite)
         {
             string tag = txtWord.Text;
+
+            rewrite &= tag == _savedRecognizeQuery;
 
             string savedRecognizePath = _recognizeProcessorStorage.SavedRecognizePath;
 
@@ -1179,21 +1187,6 @@ namespace DynamicMosaicExample
                 }
 
             tb.Select(0, 0);
-        });
-
-        /// <summary>
-        ///     Предназначен для переопределения функции отката (CTRL + Z).
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void TxtWord_KeyDown(object sender, KeyEventArgs e) => SafetyExecute(() =>
-        {
-            if (!e.Control || e.KeyCode != Keys.Z)
-                return;
-            e.SuppressKeyPress = true;
-            e.Handled = true;
-            if (!string.IsNullOrEmpty(_currentState.CurWord))
-                txtWord.Text = _currentState.CurWord;
         });
 
         void LstResults_DrawItem(object sender, DrawItemEventArgs e) => SafetyExecute(() =>

@@ -38,11 +38,6 @@ namespace DynamicMosaicExample
         bool _draw;
 
         /// <summary>
-        ///     Необходимо для обозначения временного интервала, необходимого для задержки реакции на нажатую клавишу.
-        /// </summary>
-        bool _timedOut;
-
-        /// <summary>
         ///     Хранит загруженные карты, которые требуется искать на основной карте.
         ///     Предназначена для использования несколькими потоками одновременно.
         /// </summary>
@@ -116,10 +111,7 @@ namespace DynamicMosaicExample
         {
             if (string.IsNullOrWhiteSpace(txtSymbol.Text))
             {
-                MessageBox.Show(this,
-                    @"Необходимо вписать название символа. Оно не может быть более одного знака и состоять из невидимых символов.");
-                tmrPressWait.Enabled = true;
-                _timedOut = false;
+                MessageBox.Show(this, @"Необходимо вписать название символа. Оно не может быть более одного знака и состоять из невидимых символов.");
                 return;
             }
 
@@ -134,88 +126,19 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnClear_Click(object sender, EventArgs e)
+        void BtnClear_Click(object sender, EventArgs e) => RunAction(() =>
         {
-            RunAction(() =>
-            {
-                _grFront.Clear(DefaultColor);
-                btnClear.Enabled = false;
-            });
-            RunAction(() => pbBox.Refresh());
-        }
+            _grFront.Clear(DefaultColor);
+            btnClear.Enabled = false;
+            pbBox.Refresh();
+        });
 
         /// <summary>
         ///     Подготавливает поверхность для рисования искомого образа.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void FrmSymbol_Shown(object sender, EventArgs e) => RunAction(() =>
-        {
-            BtnClear_Click(null, null);
-            tmrPressWait.Enabled = true;
-        });
-
-        /// <summary>
-        ///     Обрабатывает нажатия клавиш пользователем.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void FrmSymbol_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.Alt || e.Control || e.Shift)
-                return;
-            RunAction(() =>
-            {
-                if (!_timedOut)
-                    return;
-                // ReSharper disable once SwitchStatementMissingSomeCases
-                switch (e.KeyCode)
-                {
-                    case Keys.Enter:
-                        BtnOK_Click(null, null);
-                        break;
-                    case Keys.Escape:
-                        DialogResult = DialogResult.Cancel;
-                        break;
-                }
-            });
-        }
-
-        /// <summary>
-        ///     Предотвращает реакцию системы на некорректный ввод.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void TxtSymbol_KeyPress(object sender, KeyPressEventArgs e) => RunAction(() =>
-        {
-            if ((Keys) e.KeyChar == Keys.Enter || (Keys) e.KeyChar == Keys.Tab ||
-                (Keys) e.KeyChar == Keys.Escape ||
-                (Keys) e.KeyChar == Keys.Pause || (Keys) e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
-                e.Handled = true;
-        });
-
-        /// <summary>
-        ///     Предотвращает реакцию системы на некорректный ввод.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void FrmSymbol_KeyPress(object sender, KeyPressEventArgs e) => RunAction(() =>
-        {
-            if ((Keys) e.KeyChar == Keys.Enter || (Keys) e.KeyChar == Keys.Tab || (Keys) e.KeyChar == Keys.Escape ||
-                (Keys) e.KeyChar == Keys.Pause || (Keys) e.KeyChar == Keys.XButton1 || e.KeyChar == 15)
-                e.Handled = true;
-        });
-
-        /// <summary>
-        ///     Происходит, когда отсчитываемое время реакции на нажатую клавишу подошло к концу.
-        /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void TmrPressWait_Tick(object sender, EventArgs e)
-        {
-            _timedOut = true;
-            tmrPressWait.Enabled = false;
-        }
+        void FrmSymbol_Shown(object sender, EventArgs e) => BtnClear_Click(btnClear, EventArgs.Empty);
 
         /// <summary>
         ///     Выполняет функцию с выводом сообщения об ошибке на экран.
@@ -234,5 +157,85 @@ namespace DynamicMosaicExample
                 MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
         }
+
+        bool _txtSymbolTextChecking;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void TxtSymbolTextCheck(object sender, EventArgs e) => RunAction(() =>
+        {
+            if (_txtSymbolTextChecking)
+                return;
+
+            string t = txtSymbol.Text;
+
+            if (string.IsNullOrEmpty(t))
+                return;
+
+            _txtSymbolTextChecking = true;
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(t))
+                {
+                    txtSymbol.Text = string.Empty;
+                    return;
+                }
+
+                int ml = txtSymbol.MaxLength;
+
+                t = txtSymbol.Text = t.Length <= ml ? t.ToUpper() : t.Remove(ml).ToUpper();
+                txtSymbol.Select(t.Length, 0);
+            }
+            finally
+            {
+                _txtSymbolTextChecking = false;
+            }
+        });
+
+        void Btn_KeyDown(object sender, KeyEventArgs e) => RunAction(() =>
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Escape:
+                    ExitCancel();
+                    break;
+            }
+        });
+
+        void TxtSymbol_KeyDown(object sender, KeyEventArgs e) => RunAction(() =>
+        {
+            switch (e.KeyCode)
+            {
+                case Keys.Enter:
+                    BtnOK_Click(btnOK, EventArgs.Empty);
+                    return;
+                case Keys.Escape:
+                    ExitCancel();
+                    return;
+            }
+        });
+
+        void ExitCancel() => DialogResult = DialogResult.Cancel;
+
+        void TxtSymbol_KeyPress(object sender, KeyPressEventArgs e) => RunAction(() =>
+        {
+            switch ((Keys)e.KeyChar)
+            {
+                case Keys.Enter:
+                case Keys.Tab:
+                case Keys.Escape:
+                case Keys.Pause:
+                case Keys.XButton1:
+                case Keys.RButton | Keys.Enter:
+                    e.Handled = true;
+                    return;
+            }
+
+            txtSymbol.Text = string.Empty;
+        });
     }
 }

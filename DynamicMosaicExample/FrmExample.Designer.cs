@@ -103,9 +103,7 @@
             this.txtWord.TabIndex = 9;
             this.txtWord.Tag = "";
             this.txtWord.TextChanged += new System.EventHandler(this.TxtWord_TextChanged);
-            this.txtWord.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TxtWord_KeyDown);
             this.txtWord.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TxtWord_KeyPress);
-            this.txtWord.KeyUp += new System.Windows.Forms.KeyEventHandler(this.TxtWord_KeyUp);
             // 
             // grpImages
             // 
@@ -566,7 +564,7 @@
             this.Text = "Тестовый стенд";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmExample_FormClosing);
             this.Shown += new System.EventHandler(this.FrmExample_Shown);
-            this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.FrmExample_KeyUp);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FrmExample_KeyDown);
             this.grpImages.ResumeLayout(false);
             this.grpImages.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbBrowse)).EndInit();

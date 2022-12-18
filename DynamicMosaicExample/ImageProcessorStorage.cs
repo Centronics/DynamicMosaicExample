@@ -6,6 +6,8 @@ namespace DynamicMosaicExample
 {
     public sealed class ImageProcessorStorage : ConcurrentProcessorStorage
     {
+        public ImageProcessorStorage(string extImg) : base(extImg) { }
+
         public override Processor GetAddingProcessor(string fullPath) => ImageRect.GetProcessor(LoadBitmap(fullPath), GetProcessorTag(fullPath));
 
         /// <summary>

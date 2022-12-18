@@ -28,11 +28,9 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
             this.txtSymbol = new System.Windows.Forms.TextBox();
             this.label1 = new System.Windows.Forms.Label();
             this.btnOK = new System.Windows.Forms.Button();
-            this.tmrPressWait = new System.Windows.Forms.Timer(this.components);
             this.btnClear = new System.Windows.Forms.Button();
             this.pbBox = new System.Windows.Forms.PictureBox();
             ((System.ComponentModel.ISupportInitialize)(this.pbBox)).BeginInit();
@@ -46,6 +44,9 @@
             this.txtSymbol.Name = "txtSymbol";
             this.txtSymbol.Size = new System.Drawing.Size(18, 22);
             this.txtSymbol.TabIndex = 0;
+            this.txtSymbol.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.txtSymbol.TextChanged += new System.EventHandler(this.TxtSymbolTextCheck);
+            this.txtSymbol.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TxtSymbol_KeyDown);
             this.txtSymbol.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TxtSymbol_KeyPress);
             // 
             // label1
@@ -67,11 +68,7 @@
             this.btnOK.TabIndex = 2;
             this.btnOK.UseVisualStyleBackColor = true;
             this.btnOK.Click += new System.EventHandler(this.BtnOK_Click);
-            // 
-            // tmrPressWait
-            // 
-            this.tmrPressWait.Interval = 1000;
-            this.tmrPressWait.Tick += new System.EventHandler(this.TmrPressWait_Tick);
+            this.btnOK.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Btn_KeyDown);
             // 
             // btnClear
             // 
@@ -83,6 +80,7 @@
             this.btnClear.TabIndex = 4;
             this.btnClear.UseVisualStyleBackColor = true;
             this.btnClear.Click += new System.EventHandler(this.BtnClear_Click);
+            this.btnClear.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Btn_KeyDown);
             // 
             // pbBox
             // 
@@ -109,15 +107,12 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.txtSymbol);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
-            this.KeyPreview = true;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "FrmSymbol";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Образ";
             this.Shown += new System.EventHandler(this.FrmSymbol_Shown);
-            this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.FrmSymbol_KeyPress);
-            this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.FrmSymbol_KeyUp);
             ((System.ComponentModel.ISupportInitialize)(this.pbBox)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -131,6 +126,5 @@
         private System.Windows.Forms.Button btnOK;
         private System.Windows.Forms.PictureBox pbBox;
         private System.Windows.Forms.Button btnClear;
-        private System.Windows.Forms.Timer tmrPressWait;
     }
 }
