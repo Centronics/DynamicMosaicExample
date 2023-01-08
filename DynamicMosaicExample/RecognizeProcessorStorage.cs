@@ -28,7 +28,7 @@ namespace DynamicMosaicExample
             _widthStep = widthStep;
         }
 
-        public override Processor GetAddingProcessor(string fullPath) => new Processor(LoadRecognizeBitmap(fullPath), GetProcessorTag(fullPath));
+        protected override Processor GetAddingProcessor(string fullPath) => new Processor(LoadRecognizeBitmap(fullPath), GetProcessorTag(fullPath));
 
         public string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(fullPath)}";
 
@@ -59,7 +59,7 @@ namespace DynamicMosaicExample
         static string GetQueryFromPath(string fullPath)
         {
             if (string.IsNullOrWhiteSpace(fullPath))
-                throw new ArgumentException();
+                throw new ArgumentException($@"{nameof(GetQueryFromPath)}: Обнаружен пустой параметр, значение ({fullPath ?? @"<null>"}).", nameof(fullPath));
 
             fullPath = Path.GetFileNameWithoutExtension(fullPath);
 
@@ -100,7 +100,7 @@ namespace DynamicMosaicExample
             }
             catch (Exception ex)
             {
-                throw new Exception($@"Ошибка при загрузке изображения по пути: {fullPath}{Environment.NewLine}Текст ошибки: {ex.Message}.", ex);
+                throw new Exception($@"Ошибка при загрузке изображения по пути: {fullPath}{Environment.NewLine}Текст ошибки: ""{ex.Message}"".", ex);
             }
 
             if (WidthSizes.All(s => s != btm.Width))

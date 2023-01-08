@@ -29,7 +29,7 @@ namespace DynamicMosaicExample
 
         public string ExtImg { get; }
 
-        public abstract Processor GetAddingProcessor(string fullPath);
+        protected abstract Processor GetAddingProcessor(string fullPath);
 
         public abstract string ImagesPath { get; }
 
@@ -224,6 +224,15 @@ namespace DynamicMosaicExample
             }
         }
 
+        public bool IsEmpty
+        {
+            get
+            {
+                lock (SyncObject)
+                    return !DictionaryByKey.Any();
+            }
+        }
+
         /// <summary>
         ///     Возвращает карту <see cref="Processor" /> по указанному индексу, путь к ней, и количество карт в коллекции.
         ///     Если индекс представляет собой недопустимое значение, возвращается (<see langword="null" />,
@@ -268,19 +277,24 @@ namespace DynamicMosaicExample
             }
         }
 
-        public void AddProcessor(string fullPath)
+        public IEnumerable<Processor> AddProcessor(string fullPath)
         {
-            if (IsProcessorFile(fullPath))
+            IEnumerable<Processor> IntAdd()
             {
-                IntAddProcessor(fullPath);
-                return;
+                if (IsProcessorFile(fullPath))
+                {
+                    yield return IntAddProcessor(fullPath);
+                    yield break;
+                }
+
+                if (!IsDirectory(fullPath))
+                    yield break;
+
+                foreach (string pFile in GetFiles(fullPath))
+                    yield return IntAddProcessor(pFile);
             }
 
-            if (!IsDirectory(fullPath))
-                return;
-
-            foreach (string pFile in GetFiles(fullPath))
-                IntAddProcessor(pFile);
+            return IntAdd().ToList();
         }
 
         /// <summary>
@@ -290,23 +304,34 @@ namespace DynamicMosaicExample
         ///     Если карта уже присутствовала в коллекции, то она будет перезагружена в неё.
         /// </summary>
         /// <param name="fullPath">Полный путь к изображению, которое будет интерпретировано как карта <see cref="Processor" />.</param>
-        void IntAddProcessor(string fullPath)
+        Processor IntAddProcessor(string fullPath)
         {
             fullPath = Path.GetFullPath(fullPath);
+
+            bool needAdd = IsWorkingPath(fullPath);
+
             Processor addingProcessor;
+
             try
             {
                 addingProcessor = GetAddingProcessor(fullPath);
             }
             catch
             {
-                RemoveProcessor(fullPath);
+                if (needAdd)
+                    RemoveProcessor(fullPath);
                 throw;
             }
 
-            int hashCode = GetHashKey(addingProcessor);
+            if (!needAdd)
+                return addingProcessor;
+
+            int hashCode = GetHashCode(addingProcessor);
+
             lock (SyncObject)
-                AddElement(hashCode, fullPath, addingProcessor);
+                ReplaceElement(hashCode, fullPath, addingProcessor);
+
+            return addingProcessor;
         }
 
         static Bitmap CheckBitmapByAlphaColor(Bitmap btm)
@@ -381,19 +406,19 @@ namespace DynamicMosaicExample
         /// <param name="hashCode">Хеш добавляемой карты.</param>
         /// <param name="fullPath">Полный путь к добавляемой карте.</param>
         /// <param name="processor">Добавляемая карта <see cref="Processor" />.</param>
-        void AddElement(int hashCode, string fullPath, Processor processor)
+        void ReplaceElement(int hashCode, string fullPath, Processor processor)
         {
-            string key = GetStringKey(fullPath);
-            if (DictionaryByKey.ContainsKey(key))
-                RemoveProcessor(fullPath);
+            bool needReplace = RemoveProcessor(fullPath);
 
-            DictionaryByKey.Add(key, new ProcPath(processor, fullPath));
+            DictionaryByKey.Add(GetStringKey(fullPath), new ProcPath(processor, fullPath));
+
             if (_dictionaryByHash.TryGetValue(hashCode, out ProcHash ph))
                 ph.AddProcessor(new ProcPath(processor, fullPath));
             else
                 _dictionaryByHash.Add(hashCode, new ProcHash(new ProcPath(processor, fullPath)));
 
-            _lastProcessorIndex = -1;
+            if (needReplace)
+                SavedRecognizePath = fullPath;
         }
 
         /// <summary>
@@ -412,19 +437,19 @@ namespace DynamicMosaicExample
         {
             lock (SyncObject)
             {
-                int count = Count;
-                if (count < 1)
+                if (IsEmpty)
                 {
                     index = 0;
                     return (null, string.Empty, 0);
                 }
+
+                int count = Count;
 
                 if (index < 0 || index >= count)
                     index = count - 1;
                 (Processor processor, string path, _) = this[index];
 
                 SavedRecognizePath = path;
-                _lastProcessorIndex = -1;
 
                 return (processor, path, count);
             }
@@ -447,15 +472,20 @@ namespace DynamicMosaicExample
         {
             lock (SyncObject)
             {
-                int count = Count;
-                if (count < 1)
+                if (IsEmpty)
                 {
                     index = 0;
                     return (null, string.Empty, 0);
                 }
 
                 if (useLastIndex)
-                    index = LastProcessorIndex;
+                {
+                    int lastIndex = LastProcessorIndex;
+                    if (lastIndex > -1)
+                        index = lastIndex;
+                }
+
+                int count = Count;
 
                 if (index < 0 || index >= count)
                     index = 0;
@@ -463,7 +493,6 @@ namespace DynamicMosaicExample
                 (Processor processor, string path, _) = this[index];
 
                 SavedRecognizePath = path;
-                _lastProcessorIndex = -1;
 
                 return (processor, path, count);
             }
@@ -484,21 +513,18 @@ namespace DynamicMosaicExample
                 lock (SyncObject)
                 {
                     _savedRecognizePath = value;
+                    LastProcessorIndex = -1;
                 }
             }
         }
 
-        public bool IsLastPathExists => IsFileExists(SavedRecognizePath);
-
-        public static bool IsFileExists(string path) => !string.IsNullOrEmpty(path) && new FileInfo(path).Exists;
-
-        int LastProcessorIndex
+        public int LastProcessorIndex
         {
             get
             {
                 lock (SyncObject)
                 {
-                    if (_lastProcessorIndex != -1)
+                    if (_lastProcessorIndex > -1)
                         return _lastProcessorIndex;
 
                     string savedRecognizePath = SavedRecognizePath;
@@ -511,6 +537,12 @@ namespace DynamicMosaicExample
                     return DictionaryByKey.Keys.TakeWhile(key => key != findKey).Count();
                 }
             }
+
+            private set
+            {
+                lock (SyncObject)
+                    _lastProcessorIndex = value;
+            }
         }
 
         public void RemoveProcessor()
@@ -522,7 +554,7 @@ namespace DynamicMosaicExample
                 if (string.IsNullOrEmpty(savedRecognizePath))
                     return;
 
-                RemoveProcessor(this[GetStringKey(savedRecognizePath)].processor);
+                RemoveProcessor(this[savedRecognizePath].processor);
             }
         }
 
@@ -531,24 +563,37 @@ namespace DynamicMosaicExample
         ///     идентифицируя её по пути к ней.
         /// </summary>
         /// <param name="fullPath">Полный путь к карте <see cref="Processor" />, которую необходимо удалить из коллекции.</param>
-        public void RemoveProcessor(string fullPath)
+        public bool RemoveProcessor(string fullPath)
         {
             if (string.IsNullOrEmpty(fullPath))
-                return;
+                return false;
 
             lock (SyncObject)
             {
                 if (!IsDirectory(fullPath))
-                {
-                    RemoveProcessor(this[GetStringKey(fullPath)].processor);
-                    return;
-                }
+                    return RemoveProcessor(this[fullPath].processor);
 
                 if (!LongOperationsAllowed)
-                    return;
+                    return false;
 
-                foreach (string path in DictionaryByKey.Keys.TakeWhile(_ => LongOperationsAllowed).Where(x => x.StartsWith(fullPath, StringComparison.OrdinalIgnoreCase)))
-                    RemoveProcessor(this[GetStringKey(path)].processor);
+                Processor[] arrNeedRemove = DictionaryByKey.Keys.TakeWhile(_ => LongOperationsAllowed)
+                    .Where(x => x.StartsWith(fullPath, StringComparison.OrdinalIgnoreCase)).Select(path => this[path].processor).ToArray();
+
+                if (!LongOperationsAllowed)
+                    return false;
+
+                bool result = false;
+
+                foreach (Processor p in arrNeedRemove)
+                {
+                    if (!LongOperationsAllowed)
+                        return false;
+
+                    if (RemoveProcessor(p))
+                        result = true;
+                }
+
+                return result;
             }
         }
 
@@ -569,7 +614,7 @@ namespace DynamicMosaicExample
             }
         }
 
-        static int GetHashKey(Processor processor)
+        static int GetHashCode(Processor processor)
         {
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor), @"Для получения хеша карты необходимо её указать.");
@@ -581,25 +626,26 @@ namespace DynamicMosaicExample
         ///     Удаляет указанную карту <see cref="Processor" /> из коллекции <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую следует удалить.</param>
-        void RemoveProcessor(Processor processor)
+        bool RemoveProcessor(Processor processor)
         {
             if (processor == null)
-                return;
-            int hashCode = GetHashKey(processor);
+                return false;
+            int hashCode = GetHashCode(processor);
+            bool result = false;
             lock (SyncObject)
             {
                 if (!_dictionaryByHash.TryGetValue(hashCode, out ProcHash ph))
-                    return;
+                    return false;
                 int index = 0;
                 foreach (ProcPath px in ph.Elements)
                     if (ReferenceEquals(processor, px.CurrentProcessor))
                     {
                         string path = ph[index].CurrentPath;
-                        DictionaryByKey.Remove(GetStringKey(path));
-                        ph.RemoveProcessor(index);
+                        result = DictionaryByKey.Remove(GetStringKey(path));
+                        result &= ph.RemoveProcessor(index);
                         if (string.Compare(path, SavedRecognizePath, StringComparison.OrdinalIgnoreCase) == 0)
                             SavedRecognizePath = string.Empty;
-                        _lastProcessorIndex = -1;
+                        LastProcessorIndex = -1;
                         break;
                     }
                     else
@@ -608,6 +654,8 @@ namespace DynamicMosaicExample
                 if (!ph.Elements.Any())
                     _dictionaryByHash.Remove(hashCode);
             }
+
+            return result;
         }
 
         public void Clear()
@@ -736,10 +784,14 @@ namespace DynamicMosaicExample
             ///     Недопустимые значения индекса игнорируются.
             /// </summary>
             /// <param name="index">Индекс удаляемой карты.</param>
-            public void RemoveProcessor(int index)
+            public bool RemoveProcessor(int index)
             {
-                if (index > -1 && index < _lst.Count)
-                    _lst.RemoveAt(index);
+                if (index < 0 || index >= _lst.Count)
+                    return false;
+
+                _lst.RemoveAt(index);
+
+                return true;
             }
         }
 

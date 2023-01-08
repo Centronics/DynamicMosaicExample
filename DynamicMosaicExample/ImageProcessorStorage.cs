@@ -8,7 +8,7 @@ namespace DynamicMosaicExample
     {
         public ImageProcessorStorage(string extImg) : base(extImg) { }
 
-        public override Processor GetAddingProcessor(string fullPath) => ImageRect.GetProcessor(LoadBitmap(fullPath), GetProcessorTag(fullPath));
+        protected override Processor GetAddingProcessor(string fullPath) => ImageRect.GetProcessor(LoadBitmap(fullPath), GetProcessorTag(fullPath));
 
         /// <summary>
         ///     Преобразует название карты, заканчивающееся символами '0', в строку, содержащую имя и количество символов '0' в

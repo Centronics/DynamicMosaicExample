@@ -126,12 +126,15 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnClear_Click(object sender, EventArgs e) => RunAction(() =>
+        void BtnClear_Click(object sender, EventArgs e)
         {
-            _grFront.Clear(DefaultColor);
-            btnClear.Enabled = false;
-            pbBox.Refresh();
-        });
+            RunAction(() =>
+            {
+                _grFront.Clear(DefaultColor);
+                btnClear.Enabled = false;
+            });
+            RunAction(() => pbBox.Refresh());
+        }
 
         /// <summary>
         ///     Подготавливает поверхность для рисования искомого образа.

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Threading;
 using ProcStorType = DynamicMosaicExample.ConcurrentProcessorStorage.ProcessorStorageType;
 
 namespace DynamicMosaicExample
@@ -87,31 +86,28 @@ namespace DynamicMosaicExample
             if (storage == null)
                 return;
 
-            ThreadPool.QueueUserWorkItem(_ => InvokeAction(() =>
+            switch (storage.StorageType)
             {
-                switch (storage.StorageType)
-                {
-                    case ProcStorType.IMAGE:
-                        if (enable)
-                            CreateImageWatcher();
-                        else
-                            DisposeImageWatcher();
-                        return;
-                    case ProcStorType.RECOGNIZE:
-                        if (enable)
-                            CreateRecognizeWatcher();
-                        else
-                            DisposeRecognizeWatcher();
-                        return;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(storage.StorageType),
-                            storage.StorageType,
-                            @"Неизвестный тип хранилища.");
-                }
-            }));
+                case ProcStorType.IMAGE:
+                    if (enable)
+                        CreateImageWatcher();
+                    else
+                        DisposeImageWatcher();
+                    return;
+                case ProcStorType.RECOGNIZE:
+                    if (enable)
+                        CreateRecognizeWatcher();
+                    else
+                        DisposeRecognizeWatcher();
+                    return;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(storage.StorageType),
+                        storage.StorageType,
+                        @"Неизвестный тип хранилища.");
+            }
         }
 
-        void RenamedThreadFunction(string oldFullPath, string newFullPath, SourceChanged source, ConcurrentProcessorStorage oldStorage)
+        void RenamedThreadFunction(string oldFullPath, string newFullPath, SourceChanged source, ConcurrentProcessorStorage oldStorage, ConcurrentProcessorStorage newStorage) => SafetyExecute(() =>
         {
             if (source != SourceChanged.WORKDIR)
             {
@@ -120,14 +116,20 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            TrackStorage(oldStorage, false);
-            EnqueueRemoveStorage(oldStorage);
+            if (oldStorage != null)
+            {
+                TrackStorage(oldStorage, false);
+                EnqueueRemoveStorage(oldStorage);
+            }
 
-            TrackStorage(oldStorage, true);
-            EnqueueCreate(newFullPath, oldStorage);
-        }
+            if (newStorage == null)
+                return;
 
-        void ChangedThreadFunction(WatcherChangeTypes type, string fullPath, ConcurrentProcessorStorage storage, SourceChanged source)
+            TrackStorage(newStorage, true);
+            EnqueueCreate(newFullPath, newStorage);
+        });
+
+        void ChangedThreadFunction(WatcherChangeTypes type, string fullPath, ConcurrentProcessorStorage storage, SourceChanged source) => SafetyExecute(() =>
         {
             switch (type)
             {
@@ -153,7 +155,7 @@ namespace DynamicMosaicExample
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, $@"{nameof(ChangedThreadFunction)}: Неизвестный тип изменения.");
             }
-        }
+        });
 
         void OnChanged(FileSystemEventArgs e, SourceChanged source) => SafetyExecute(() =>
         {
@@ -167,7 +169,7 @@ namespace DynamicMosaicExample
 
             if (!storage.IsProcessorFile(e.FullPath))
             {
-                ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => ChangedThreadFunction(e.ChangeType, e.FullPath, storage, source)));
+                ChangedThreadFunction(e.ChangeType, e.FullPath, storage, source);
                 return;
             }
 
@@ -181,20 +183,21 @@ namespace DynamicMosaicExample
                 return;
 
             ConcurrentProcessorStorage oldStorage = GetStorage(source, e.OldFullPath);
+            ConcurrentProcessorStorage newStorage = GetStorage(source, e.FullPath);
 
-            if (oldStorage == null)
-                return;
-
-            bool renamedFrom = oldStorage.IsProcessorFile(e.OldFullPath);
-            bool renamedTo = oldStorage.IsProcessorFile(e.FullPath);
+            bool renamedFrom = oldStorage != null;
+            bool renamedTo = newStorage != null;
 
             if (!renamedTo && !renamedFrom)
+                return;
+
+            if (!renamedTo || !renamedFrom)
             {
-                ThreadPool.QueueUserWorkItem(state => SafetyExecute(() => RenamedThreadFunction(e.OldFullPath, e.FullPath, source, oldStorage)));
+                RenamedThreadFunction(e.OldFullPath, e.FullPath, source, oldStorage, newStorage);
                 return;
             }
 
-            _concurrentFileTasks.Enqueue(new Renamed(ConvertWatcherChangeTypes(e.ChangeType), oldStorage, e.FullPath, e.OldFullPath, renamedTo, renamedFrom));
+            _concurrentFileTasks.Enqueue(new Renamed(ConvertWatcherChangeTypes(e.ChangeType), oldStorage, e.FullPath, e.OldFullPath, true, true));
             RefreshRecognizer();
         });
 
@@ -215,7 +218,6 @@ namespace DynamicMosaicExample
 
             rw.BeginInit();
             rw.IncludeSubdirectories = true;
-            rw.NotifyFilter = NotifyFilters.FileName;
             rw.SynchronizingObject = this;
             rw.Path = RecognizeImagesPath;
             rw.IncludeSubdirectories = true;
@@ -240,7 +242,6 @@ namespace DynamicMosaicExample
 
             ic.BeginInit();
             ic.IncludeSubdirectories = true;
-            ic.NotifyFilter = NotifyFilters.FileName;
             ic.SynchronizingObject = this;
             ic.Path = SearchImagesPath;
             ic.IncludeSubdirectories = true;

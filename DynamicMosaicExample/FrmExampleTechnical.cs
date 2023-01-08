@@ -81,6 +81,16 @@ namespace DynamicMosaicExample
         /// </summary>
         public static Pen BlackPen = new Pen(CheckAlphaColor(Color.Black), 2.0f);
 
+        public static Pen ImageFramePen = new Pen(Color.Black);
+
+        Pen _imageFrameResetPen;
+
+        Graphics _grpSourceImageGraphics;
+
+        Graphics _grpResultsGraphics;
+
+        Graphics _grpImagesGraphics;
+
         /// <summary>
         ///     Предназначена для хранения задач, связанных с изменениями в файловой системе.
         /// </summary>
@@ -437,7 +447,7 @@ namespace DynamicMosaicExample
             {
                 for (int y = 0; y < _btmRecognizeImage.Height; y++)
                     for (int x = 0; x < _btmRecognizeImage.Width; x++)
-                        if (_btmRecognizeImage.GetPixel(x, y) != DefaultColor)
+                        if (_btmRecognizeImage.GetPixel(x, y).ToArgb() != DefaultColor.ToArgb())
                             return true;
 
                 return false;
@@ -504,7 +514,7 @@ namespace DynamicMosaicExample
             }
             catch (Exception ex)
             {
-                throw new Exception($@"{name}: {ex.Message}");
+                throw new Exception($@"{name}: {ex.Message}", ex);
             }
         }
 
