@@ -545,19 +545,6 @@ namespace DynamicMosaicExample
             }
         }
 
-        public void RemoveProcessor()
-        {
-            lock (SyncObject)
-            {
-                string savedRecognizePath = SavedRecognizePath;
-
-                if (string.IsNullOrEmpty(savedRecognizePath))
-                    return;
-
-                RemoveProcessor(this[savedRecognizePath].processor);
-            }
-        }
-
         /// <summary>
         ///     Удаляет указанную карту <see cref="Processor" /> из коллекции <see cref="ConcurrentProcessorStorage" />,
         ///     идентифицируя её по пути к ней.

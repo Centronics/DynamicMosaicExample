@@ -9,6 +9,7 @@ using System.Threading;
 using System.Windows.Forms;
 using DynamicMosaic;
 using DynamicParser;
+using ThreadState = System.Threading.ThreadState;
 
 namespace DynamicMosaicExample
 {
@@ -79,9 +80,9 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Задаёт цвет и ширину для рисования в окне создания распознаваемого изображения.
         /// </summary>
-        public static Pen BlackPen = new Pen(CheckAlphaColor(Color.Black), 2.0f);
+        public static readonly Pen BlackPen = new Pen(CheckAlphaColor(Color.Black), 2.0f);
 
-        public static Pen ImageFramePen = new Pen(Color.Black);
+        public static readonly Pen ImageFramePen = new Pen(Color.Black);
 
         Pen _imageFrameResetPen;
 
@@ -179,7 +180,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Задаёт цвет и ширину для стирания в окне создания распознаваемого изображения.
         /// </summary>
-        public static Pen WhitePen = new Pen(DefaultColor, 2.0f);
+        public static readonly Pen WhitePen = new Pen(DefaultColor, 2.0f);
 
         /// <summary>
         ///     Коллекция задействованных элементов <see cref="DynamicReflex" />.
@@ -231,7 +232,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Поверхность рисования в окне создания распознаваемого изображения.
         /// </summary>
-        Graphics _grRecognizeImage;
+        Graphics _grRecognizeImageGraphics;
 
         /// <summary>
         ///     Сигнал остановки потокам, работающим на фоне.
@@ -379,7 +380,7 @@ namespace DynamicMosaicExample
                     if (value == _buttonsEnabled)
                         return;
 
-                    InvokeAction(() =>
+                    SafeExecute(() =>
                     {
                         pbDraw.Enabled = value;
                         btnImageCreate.Enabled = value;
@@ -397,6 +398,8 @@ namespace DynamicMosaicExample
                         txtRecogNumber.Enabled = value;
                         txtRecogCount.Enabled = value;
                         btnDeleteRecognizeImage.Enabled = value;
+                        lblSourceCount.Enabled = value;
+                        lblImagesCount.Enabled = value;
 
                         if (value)
                         {
@@ -407,7 +410,7 @@ namespace DynamicMosaicExample
 
                         btnWide.Enabled = false;
                         btnNarrow.Enabled = false;
-                    });
+                    }, true);
 
                     _buttonsEnabled = value;
                 }
@@ -472,14 +475,7 @@ namespace DynamicMosaicExample
 
             try
             {
-                try
-                {
-                    t.Abort();
-                }
-                catch (Exception ex)
-                {
-                    WriteLogMessage($@"{nameof(StopRecognize)}: {ex.Message}");
-                }
+                t.Abort();
 
                 if (t.Join(5000))
                 {
@@ -532,7 +528,7 @@ namespace DynamicMosaicExample
             if (_fileRefreshThread != null)
                 throw new InvalidOperationException($@"Попытка вызвать метод {nameof(CreateFileRefreshThread)} в то время, когда поток {nameof(_fileRefreshThread)} уже существует.");
 
-            Thread thread = new Thread(() => SafetyExecute(() =>
+            Thread thread = new Thread(() => SafeExecute(() =>
             {
                 try
                 {
@@ -609,54 +605,6 @@ namespace DynamicMosaicExample
             _fileRefreshThread = thread;
         }
 
-        void ShowOnceUserMessage(string addMes = null)
-        {
-            lock (ErrorMessageLocker)
-            {
-                if (_errorMessageIsShowed)
-                    return;
-
-                _errorMessageIsShowed = true;
-            }
-
-            string m = string.IsNullOrWhiteSpace(addMes) ? LogRefreshedMessage : addMes;
-
-            try
-            {
-                void Act()
-                {
-                    try
-                    {
-                        MessageBox.Show(this, m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
-                    }
-                    catch
-                    {
-                        MessageBox.Show(m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-
-                new Thread(() =>
-                {
-                    try
-                    {
-                        Invoke((Action)Act);
-                    }
-                    catch
-                    {
-                        MessageBox.Show(m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                })
-                {
-                    IsBackground = true,
-                    Name = @"Message"
-                }.Start();
-            }
-            catch
-            {
-                MessageBox.Show(m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
         /// <summary>
         ///     Записывает сообщение в лог-файл, в синхронном режиме.
         ///     Доступ к этому методу синхронизируется.
@@ -665,6 +613,55 @@ namespace DynamicMosaicExample
         /// <param name="logstr">Строка лога, которую надо записать.</param>
         void WriteLogMessage(string logstr)
         {
+            void ShowOnceUserMessage(string addMes = null)
+            {
+                string m = string.Empty;
+
+                try
+                {
+                    lock (ErrorMessageLocker)
+                    {
+                        if (_errorMessageIsShowed)
+                            return;
+
+                        _errorMessageIsShowed = true;
+                    }
+
+                    m = string.IsNullOrWhiteSpace(addMes) ? LogRefreshedMessage : addMes;
+
+                    void Act()
+                    {
+                        try
+                        {
+                            MessageBox.Show(this, m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                        }
+                        catch
+                        {
+                            MessageBox.Show(m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+
+                    new Thread(() =>
+                    {
+                        try
+                        {
+                            Invoke((Action)Act);
+                        }
+                        catch
+                        {
+                            MessageBox.Show(m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    })
+                    {
+                        Name = @"Message"
+                    }.Start();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(string.IsNullOrEmpty(m) ? ex.Message : m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+
             try
             {
                 logstr = $@"{DateTime.Now:dd.MM.yyyy HH:mm:ss} {logstr}";
@@ -682,6 +679,81 @@ namespace DynamicMosaicExample
             }
 
             ShowOnceUserMessage();
+        }
+
+        /// <summary>
+        ///     Отображает сообщение с указанным текстом в другом потоке.
+        /// </summary>
+        /// <param name="message">Текст отображаемого сообщения.</param>
+        void ErrorMessageInOtherThread(string message)
+        {
+            Thread t = new Thread(() => SafeExecute(() => MessageBox.Show(this, message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation), true))
+            {
+                IsBackground = true,
+                Name = @"Message"
+            };
+
+            t.Start();
+        }
+
+        /// <summary>
+        ///     Представляет обёртку для выполнения функций с применением блоков <see langword="try" />-<see langword="catch" />,
+        ///     а также выдачей сообщений обо всех
+        ///     ошибках.
+        /// </summary>
+        /// <param name="funcAction">Функция, которая должна быть выполнена.</param>
+        /// <param name="needInvoke">Значение <see langword="true" /> в случае необходимости выполнить функцию в основном потоке.</param>
+        void SafeExecute(Action funcAction, bool needInvoke = false)
+        {
+            if (funcAction == null)
+            {
+                string s = $@"{nameof(SafeExecute)}(1): Выполняемая функция отсутствует.";
+
+                WriteLogMessage(s);
+
+                throw new ArgumentNullException(nameof(funcAction), s);
+            }
+
+            try
+            {
+                void Act()
+                {
+                    try
+                    {
+                        funcAction.Invoke();
+                    }
+                    catch (Exception ex)
+                    {
+                        try
+                        {
+                            ResetAbort();
+
+                            WriteLogMessage($@"{nameof(SafeExecute)}(2): {ex.Message}.");
+                        }
+                        catch
+                        {
+                            throw ex;
+                        }
+                    }
+                }
+
+                if (needInvoke && InvokeRequired)
+                    Invoke((Action)Act);
+                else
+                    Act();
+            }
+            catch (Exception ex)
+            {
+                ResetAbort();
+
+                WriteLogMessage($@"{nameof(SafeExecute)}(3): {ex.Message}.");
+            }
+        }
+
+        static void ResetAbort()
+        {
+            if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)
+                Thread.ResetAbort();
         }
 
         /// <summary>
@@ -785,7 +857,7 @@ namespace DynamicMosaicExample
             /// <param name="e">Данные о событии.</param>
             internal void CriticalChange(object sender, EventArgs e)
             {
-                _curForm.InvokeAction(() => _curForm.pbSuccess.Image = Resources.Result_Unknown);
+                _curForm.SafeExecute(() => _curForm.pbSuccess.Image = Resources.Result_Unknown, true);
                 _state = RecognizeState.UNKNOWN;
             }
 

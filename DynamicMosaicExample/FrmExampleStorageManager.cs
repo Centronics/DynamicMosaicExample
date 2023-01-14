@@ -107,7 +107,7 @@ namespace DynamicMosaicExample
             }
         }
 
-        void RenamedThreadFunction(string oldFullPath, string newFullPath, SourceChanged source, ConcurrentProcessorStorage oldStorage, ConcurrentProcessorStorage newStorage) => SafetyExecute(() =>
+        void RenamedThreadFunction(string oldFullPath, string newFullPath, SourceChanged source, ConcurrentProcessorStorage oldStorage, ConcurrentProcessorStorage newStorage) => SafeExecute(() =>
         {
             if (source != SourceChanged.WORKDIR)
             {
@@ -129,7 +129,7 @@ namespace DynamicMosaicExample
             EnqueueCreate(newFullPath, newStorage);
         });
 
-        void ChangedThreadFunction(WatcherChangeTypes type, string fullPath, ConcurrentProcessorStorage storage, SourceChanged source) => SafetyExecute(() =>
+        void ChangedThreadFunction(WatcherChangeTypes type, string fullPath, ConcurrentProcessorStorage storage, SourceChanged source) => SafeExecute(() =>
         {
             switch (type)
             {
@@ -157,7 +157,7 @@ namespace DynamicMosaicExample
             }
         });
 
-        void OnChanged(FileSystemEventArgs e, SourceChanged source) => SafetyExecute(() =>
+        void OnChanged(FileSystemEventArgs e, SourceChanged source) => SafeExecute(() =>
         {
             if (string.IsNullOrWhiteSpace(e.FullPath))
                 return;
@@ -177,7 +177,7 @@ namespace DynamicMosaicExample
             RefreshRecognizer();
         });
 
-        void OnRenamed(RenamedEventArgs e, SourceChanged source) => SafetyExecute(() =>
+        void OnRenamed(RenamedEventArgs e, SourceChanged source) => SafeExecute(() =>
         {
             if (string.IsNullOrWhiteSpace(e.FullPath) || string.IsNullOrWhiteSpace(e.OldFullPath))
                 return;
@@ -201,14 +201,14 @@ namespace DynamicMosaicExample
             RefreshRecognizer();
         });
 
-        void IntRecognizeOnChanged(object _, FileSystemEventArgs e) => SafetyExecute(() => OnChanged(e, SourceChanged.RECOGNIZE));
-        void IntRecognizeOnRenamed(object _, RenamedEventArgs e) => SafetyExecute(() => OnRenamed(e, SourceChanged.RECOGNIZE));
+        void IntRecognizeOnChanged(object _, FileSystemEventArgs e) => SafeExecute(() => OnChanged(e, SourceChanged.RECOGNIZE));
+        void IntRecognizeOnRenamed(object _, RenamedEventArgs e) => SafeExecute(() => OnRenamed(e, SourceChanged.RECOGNIZE));
 
-        void IntImagesOnChanged(object _, FileSystemEventArgs e) => SafetyExecute(() => OnChanged(e, SourceChanged.IMAGES));
-        void IntImagesOnRenamed(object _, RenamedEventArgs e) => SafetyExecute(() => OnRenamed(e, SourceChanged.IMAGES));
+        void IntImagesOnChanged(object _, FileSystemEventArgs e) => SafeExecute(() => OnChanged(e, SourceChanged.IMAGES));
+        void IntImagesOnRenamed(object _, RenamedEventArgs e) => SafeExecute(() => OnRenamed(e, SourceChanged.IMAGES));
 
-        void IntWorkDirOnChanged(object _, FileSystemEventArgs e) => SafetyExecute(() => OnChanged(e, SourceChanged.WORKDIR));
-        void IntWorkDirOnRenamed(object _, RenamedEventArgs e) => SafetyExecute(() => OnRenamed(e, SourceChanged.WORKDIR));
+        void IntWorkDirOnChanged(object _, FileSystemEventArgs e) => SafeExecute(() => OnChanged(e, SourceChanged.WORKDIR));
+        void IntWorkDirOnRenamed(object _, RenamedEventArgs e) => SafeExecute(() => OnRenamed(e, SourceChanged.WORKDIR));
 
         void CreateRecognizeWatcher()
         {

@@ -112,6 +112,7 @@
             this.Name = "FrmSymbol";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Образ";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmSymbol_FormClosing);
             this.Shown += new System.EventHandler(this.FrmSymbol_Shown);
             ((System.ComponentModel.ISupportInitialize)(this.pbBox)).EndInit();
             this.ResumeLayout(false);

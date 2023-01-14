@@ -33,7 +33,7 @@
             this.txtWord = new System.Windows.Forms.TextBox();
             this.grpImages = new System.Windows.Forms.GroupBox();
             this.txtImagesCount = new System.Windows.Forms.TextBox();
-            this.label4 = new System.Windows.Forms.Label();
+            this.lblImagesCount = new System.Windows.Forms.Label();
             this.btnImageUpToQueries = new System.Windows.Forms.Button();
             this.txtSymbolPath = new System.Windows.Forms.TextBox();
             this.txtImagesNumber = new System.Windows.Forms.TextBox();
@@ -45,7 +45,7 @@
             this.grpResults = new System.Windows.Forms.GroupBox();
             this.txtConSymbolNumber = new System.Windows.Forms.TextBox();
             this.label3 = new System.Windows.Forms.Label();
-            this.label1 = new System.Windows.Forms.Label();
+            this.lblConSymbolCount = new System.Windows.Forms.Label();
             this.txtConSymbolTag = new System.Windows.Forms.TextBox();
             this.txtConSymbolCount = new System.Windows.Forms.TextBox();
             this.btnConSaveAllImages = new System.Windows.Forms.Button();
@@ -55,7 +55,7 @@
             this.btnConPrevious = new System.Windows.Forms.Button();
             this.grpSourceImage = new System.Windows.Forms.GroupBox();
             this.txtRecogCount = new System.Windows.Forms.TextBox();
-            this.label2 = new System.Windows.Forms.Label();
+            this.lblSourceCount = new System.Windows.Forms.Label();
             this.txtRecogPath = new System.Windows.Forms.TextBox();
             this.txtRecogNumber = new System.Windows.Forms.TextBox();
             this.pbSuccess = new System.Windows.Forms.PictureBox();
@@ -109,7 +109,7 @@
             // 
             this.grpImages.BackColor = System.Drawing.SystemColors.Control;
             this.grpImages.Controls.Add(this.txtImagesCount);
-            this.grpImages.Controls.Add(this.label4);
+            this.grpImages.Controls.Add(this.lblImagesCount);
             this.grpImages.Controls.Add(this.btnImageUpToQueries);
             this.grpImages.Controls.Add(this.txtSymbolPath);
             this.grpImages.Controls.Add(this.txtImagesNumber);
@@ -136,15 +136,15 @@
             this.txtImagesCount.Size = new System.Drawing.Size(26, 20);
             this.txtImagesCount.TabIndex = 27;
             // 
-            // label4
+            // lblImagesCount
             // 
-            this.label4.AutoSize = true;
-            this.label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label4.Location = new System.Drawing.Point(223, 16);
-            this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(13, 13);
-            this.label4.TabIndex = 26;
-            this.label4.Text = "/";
+            this.lblImagesCount.AutoSize = true;
+            this.lblImagesCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.lblImagesCount.Location = new System.Drawing.Point(223, 16);
+            this.lblImagesCount.Name = "lblImagesCount";
+            this.lblImagesCount.Size = new System.Drawing.Size(13, 13);
+            this.lblImagesCount.TabIndex = 26;
+            this.lblImagesCount.Text = "/";
             // 
             // btnImageUpToQueries
             // 
@@ -235,7 +235,7 @@
             this.grpResults.BackColor = System.Drawing.SystemColors.Control;
             this.grpResults.Controls.Add(this.txtConSymbolNumber);
             this.grpResults.Controls.Add(this.label3);
-            this.grpResults.Controls.Add(this.label1);
+            this.grpResults.Controls.Add(this.lblConSymbolCount);
             this.grpResults.Controls.Add(this.txtConSymbolTag);
             this.grpResults.Controls.Add(this.txtConSymbolCount);
             this.grpResults.Controls.Add(this.btnConSaveAllImages);
@@ -273,15 +273,16 @@
             this.label3.TabIndex = 26;
             this.label3.Text = "=";
             // 
-            // label1
+            // lblConSymbolCount
             // 
-            this.label1.AutoSize = true;
-            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label1.Location = new System.Drawing.Point(30, 152);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(13, 13);
-            this.label1.TabIndex = 25;
-            this.label1.Text = "/";
+            this.lblConSymbolCount.AutoSize = true;
+            this.lblConSymbolCount.Enabled = false;
+            this.lblConSymbolCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.lblConSymbolCount.Location = new System.Drawing.Point(30, 152);
+            this.lblConSymbolCount.Name = "lblConSymbolCount";
+            this.lblConSymbolCount.Size = new System.Drawing.Size(13, 13);
+            this.lblConSymbolCount.TabIndex = 25;
+            this.lblConSymbolCount.Text = "/";
             // 
             // txtConSymbolTag
             // 
@@ -361,7 +362,7 @@
             // 
             this.grpSourceImage.BackColor = System.Drawing.SystemColors.Control;
             this.grpSourceImage.Controls.Add(this.txtRecogCount);
-            this.grpSourceImage.Controls.Add(this.label2);
+            this.grpSourceImage.Controls.Add(this.lblSourceCount);
             this.grpSourceImage.Controls.Add(this.txtRecogPath);
             this.grpSourceImage.Controls.Add(this.txtRecogNumber);
             this.grpSourceImage.Controls.Add(this.pbSuccess);
@@ -394,15 +395,15 @@
             this.txtRecogCount.Size = new System.Drawing.Size(26, 20);
             this.txtRecogCount.TabIndex = 31;
             // 
-            // label2
+            // lblSourceCount
             // 
-            this.label2.AutoSize = true;
-            this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label2.Location = new System.Drawing.Point(223, 17);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(13, 13);
-            this.label2.TabIndex = 30;
-            this.label2.Text = "/";
+            this.lblSourceCount.AutoSize = true;
+            this.lblSourceCount.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.lblSourceCount.Location = new System.Drawing.Point(223, 17);
+            this.lblSourceCount.Name = "lblSourceCount";
+            this.lblSourceCount.Size = new System.Drawing.Size(13, 13);
+            this.lblSourceCount.TabIndex = 30;
+            this.lblSourceCount.Text = "/";
             // 
             // txtRecogPath
             // 
@@ -623,11 +624,11 @@
         private System.Windows.Forms.TextBox txtConSymbolTag;
         private System.Windows.Forms.TextBox txtConSymbolCount;
         private System.Windows.Forms.Label label3;
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label lblConSymbolCount;
         private System.Windows.Forms.TextBox txtImagesCount;
-        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Label lblImagesCount;
         private System.Windows.Forms.TextBox txtRecogCount;
-        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label lblSourceCount;
         private System.Windows.Forms.TextBox txtRecogPath;
         private System.Windows.Forms.TextBox txtRecogNumber;
     }

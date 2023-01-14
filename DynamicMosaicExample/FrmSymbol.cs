@@ -49,7 +49,9 @@ namespace DynamicMosaicExample
         internal FrmSymbol(ImageProcessorStorage imageProcessorStorage)
         {
             _imagesProcessorStorage = imageProcessorStorage ?? throw new ArgumentNullException(nameof(imageProcessorStorage), @"Хранилище карт должно быть указано.");
+
             InitializeComponent();
+
             _btmFront = new Bitmap(pbBox.Width, pbBox.Height);
             _grFront = Graphics.FromImage(_btmFront);
             pbBox.Image = _btmFront;
@@ -239,6 +241,13 @@ namespace DynamicMosaicExample
             }
 
             txtSymbol.Text = string.Empty;
+        });
+
+        void FrmSymbol_FormClosing(object sender, FormClosingEventArgs e) => RunAction(() =>
+        {
+            _grFront?.Dispose();
+
+            FrmExample.DisposeImage(pbBox);
         });
     }
 }
