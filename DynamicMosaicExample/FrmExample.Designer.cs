@@ -44,7 +44,7 @@
             this.pbBrowse = new System.Windows.Forms.PictureBox();
             this.grpResults = new System.Windows.Forms.GroupBox();
             this.txtConSymbolNumber = new System.Windows.Forms.TextBox();
-            this.label3 = new System.Windows.Forms.Label();
+            this.lblConSymbolEqual = new System.Windows.Forms.Label();
             this.lblConSymbolCount = new System.Windows.Forms.Label();
             this.txtConSymbolTag = new System.Windows.Forms.TextBox();
             this.txtConSymbolCount = new System.Windows.Forms.TextBox();
@@ -234,7 +234,7 @@
             // 
             this.grpResults.BackColor = System.Drawing.SystemColors.Control;
             this.grpResults.Controls.Add(this.txtConSymbolNumber);
-            this.grpResults.Controls.Add(this.label3);
+            this.grpResults.Controls.Add(this.lblConSymbolEqual);
             this.grpResults.Controls.Add(this.lblConSymbolCount);
             this.grpResults.Controls.Add(this.txtConSymbolTag);
             this.grpResults.Controls.Add(this.txtConSymbolCount);
@@ -263,15 +263,15 @@
             this.txtConSymbolNumber.Size = new System.Drawing.Size(26, 20);
             this.txtConSymbolNumber.TabIndex = 23;
             // 
-            // label3
+            // lblConSymbolEqual
             // 
-            this.label3.AutoSize = true;
-            this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label3.Location = new System.Drawing.Point(74, 151);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(14, 13);
-            this.label3.TabIndex = 26;
-            this.label3.Text = "=";
+            this.lblConSymbolEqual.AutoSize = true;
+            this.lblConSymbolEqual.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.lblConSymbolEqual.Location = new System.Drawing.Point(74, 151);
+            this.lblConSymbolEqual.Name = "lblConSymbolEqual";
+            this.lblConSymbolEqual.Size = new System.Drawing.Size(14, 13);
+            this.lblConSymbolEqual.TabIndex = 26;
+            this.lblConSymbolEqual.Text = "=";
             // 
             // lblConSymbolCount
             // 
@@ -623,7 +623,7 @@
         private System.Windows.Forms.Button btnImageUpToQueries;
         private System.Windows.Forms.TextBox txtConSymbolTag;
         private System.Windows.Forms.TextBox txtConSymbolCount;
-        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label lblConSymbolEqual;
         private System.Windows.Forms.Label lblConSymbolCount;
         private System.Windows.Forms.TextBox txtImagesCount;
         private System.Windows.Forms.Label lblImagesCount;

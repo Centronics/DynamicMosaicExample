@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using DynamicParser;
 
@@ -42,8 +43,35 @@ namespace DynamicMosaicExample
             }
         }
 
-        public void SaveToFile(Processor processor, string folderName, string fileName) => SaveToFile(processor, CombinePaths(folderName, fileName));
+        public void SaveToFile(string folderName, IEnumerable<Processor> processors)
+        {
+            if (string.IsNullOrWhiteSpace(folderName))
+                throw new ArgumentNullException(nameof(folderName), $@"{nameof(SaveToFile)}: Имя папки не указано.");
 
-        public void SaveToFile(Processor processor) => SaveToFile(processor, string.Empty);
+            if (processors == null)
+                throw new ArgumentNullException(nameof(processors), $@"{nameof(SaveToFile)}: Необходимо указать карты, которые требуется сохранить.");
+
+            string path = CombinePaths(folderName);
+
+            CreateFolder(path);
+
+            foreach (Processor p in processors)
+                SaveToFile(p, CreateImagePath(path, p.Tag));
+        }
+
+        public void SaveToFile(string folderName, Processor processor)
+        {
+            if (processor == null)
+                throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
+
+            SaveToFile(folderName, new[] { processor });
+        }
+
+        public void SaveToFile(Processor processor)
+        {
+            CreateFolder();
+
+            SaveToFile(processor, string.Empty);
+        }
     }
 }

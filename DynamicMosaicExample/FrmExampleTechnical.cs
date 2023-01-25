@@ -221,7 +221,9 @@ namespace DynamicMosaicExample
 
         int _currentRecognizeProcIndex;
 
-        bool _needInitRecognizeImage;
+        bool _needInitImage = true;
+
+        bool _needInitRecognizeImage = true;
 
         /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
@@ -309,8 +311,10 @@ namespace DynamicMosaicExample
 
                 _imagesProcessorStorage = new ImageProcessorStorage(ExtImg);
                 _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, WidthStep, pbDraw.Height, ExtImg);
-                CreateFolder(SearchImagesPath);
-                CreateFolder(RecognizeImagesPath);
+
+                _imagesProcessorStorage.CreateFolder();
+                _recognizeProcessorStorage.CreateFolder();
+
                 _unknownSymbolName = txtSymbolPath.Text;
                 _imgSearchDefault = btnRecognizeImage.Image;
                 ImageWidth = pbBrowse.Width;
@@ -354,8 +358,6 @@ namespace DynamicMosaicExample
         internal static string SearchImagesPath { get; } = Path.Combine(WorkingDirectory, ImagesFolder);
 
         internal static string RecognizeImagesPath { get; } = Path.Combine(WorkingDirectory, RecognizeFolder);
-
-        internal static void CreateFolder(string path) => Directory.CreateDirectory(path);
 
         /// <summary>
         ///     Расширение изображений, которые интерпретируются как карты <see cref="Processor" />.
@@ -427,7 +429,7 @@ namespace DynamicMosaicExample
 
             for (int x = 0; x < bitmap1.Width; x++)
                 for (int y = 0; y < bitmap1.Height; y++)
-                    if (bitmap1.GetPixel(x, y) != bitmap2.GetPixel(x, y))
+                    if (bitmap1.GetPixel(x, y).ToArgb() != bitmap2.GetPixel(x, y).ToArgb())
                         return false;
 
             return true;

@@ -117,9 +117,8 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            FrmExample.CreateFolder(_imagesProcessorStorage.ImagesPath);
-
             _imagesProcessorStorage.SaveToFile(new Processor(_btmFront, txtSymbol.Text[0].ToString()));
+
             DialogResult = DialogResult.OK;
         });
 

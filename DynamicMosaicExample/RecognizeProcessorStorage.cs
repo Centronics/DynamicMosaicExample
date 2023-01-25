@@ -49,6 +49,7 @@ namespace DynamicMosaicExample
 
             lock (SyncObject)
             {
+                CreateFolder();
                 (Processor p, string path) = GetUniqueProcessor(NamesToSave, processor, (processor.Tag, 0), relativeFolderPath);
                 SaveToFile(ImageRect.GetBitmap(p), path);
                 SavedRecognizePath = path;

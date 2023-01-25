@@ -63,6 +63,8 @@ namespace DynamicMosaicExample
 
         public string CombinePaths(string folderName, string fileName) => Path.Combine(ImagesPath, ReplaceInvalidPathChars(folderName), ReplaceInvalidPathChars(fileName));
 
+        public string CombinePaths(string folderName) => CombinePaths(folderName, string.Empty);
+
         static string ReplaceInvalidPathChars(string path)
         {
             HashSet<char> lstChars = new HashSet<char>(Path.GetInvalidFileNameChars());
@@ -82,6 +84,10 @@ namespace DynamicMosaicExample
         ///     Коллекция карт, идентифицируемых по путям.
         /// </summary>
         protected readonly Dictionary<string, ProcPath> DictionaryByKey = new Dictionary<string, ProcPath>();
+
+        public static void CreateFolder(string path) => Directory.CreateDirectory(path);
+
+        public void CreateFolder() => Directory.CreateDirectory(ImagesPath);
 
         /// <summary>
         ///     Объект для синхронизации доступа к экземпляру класса <see cref="ConcurrentProcessorStorage" />, с использованием
@@ -475,17 +481,20 @@ namespace DynamicMosaicExample
                 if (IsEmpty)
                 {
                     index = 0;
-                    return (null, string.Empty, 0);
+                    return (null, SavedRecognizePath, 0);
                 }
+
+                int count = Count;
 
                 if (useLastIndex)
                 {
                     int lastIndex = LastProcessorIndex;
-                    if (lastIndex > -1)
-                        index = lastIndex;
-                }
 
-                int count = Count;
+                    if (lastIndex < 0)
+                        return (null, SavedRecognizePath, count);
+
+                    index = lastIndex;
+                }
 
                 if (index < 0 || index >= count)
                     index = 0;
@@ -518,6 +527,8 @@ namespace DynamicMosaicExample
             }
         }
 
+        public bool IsSelectedOne => !string.IsNullOrEmpty(SavedRecognizePath);
+
         public int LastProcessorIndex
         {
             get
@@ -534,7 +545,11 @@ namespace DynamicMosaicExample
 
                     string findKey = GetStringKey(savedRecognizePath);
 
-                    return DictionaryByKey.Keys.TakeWhile(key => key != findKey).Count();
+                    int index = DictionaryByKey.Keys.TakeWhile(key => key != findKey).Count();
+
+                    _lastProcessorIndex = index < DictionaryByKey.Count ? index : -1;
+
+                    return _lastProcessorIndex;
                 }
             }
 

@@ -8,6 +8,7 @@ using System.Threading;
 using System.Windows.Forms;
 using DynamicMosaic;
 using DynamicParser;
+using Microsoft.VisualBasic.FileIO;
 using ThreadState = System.Threading.ThreadState;
 
 namespace DynamicMosaicExample
@@ -22,8 +23,16 @@ namespace DynamicMosaicExample
             NEXT,
             PREV,
             LOAD,
-            LOADFROMSTORE,
+            LOADDIRECTLY,
             REFRESH
+        }
+
+        void ImageActualize(Processor loadingProcessor)
+        {
+            if (loadingProcessor == null)
+                return;
+
+            ImageActualize(ImageActualizeAction.LOADDIRECTLY, null, loadingProcessor);
         }
 
         /// <summary>
@@ -33,7 +42,8 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="action"></param>
         /// <param name="btmPath">Путь к файлу исходного изображения.</param>
-        void ImageActualize(ImageActualizeAction action, string btmPath = null)
+        /// <param name="loadingProcessor"></param>
+        void ImageActualize(ImageActualizeAction action, string btmPath = null, Processor loadingProcessor = null)
         {
             void CommonMethod()
             {
@@ -99,16 +109,17 @@ namespace DynamicMosaicExample
                         btmAddingProcessor = ImageRect.GetBitmap(recogProcessor);
                     }
                     break;
-                case ImageActualizeAction.LOADFROMSTORE:
+                case ImageActualizeAction.LOADDIRECTLY:
                     {
-                        Processor recogProcessor = _recognizeProcessorStorage[btmPath].processor;
+                        if (btmPath != null)
+                            throw new ArgumentOutOfRangeException(nameof(btmPath), btmPath, @"В этом случае путь не должен быть указан.");
 
-                        if (recogProcessor == null)
-                            throw new InvalidOperationException($@"В коллекции отсутствует элемент ""{btmPath}"".");
+                        if (loadingProcessor == null)
+                            throw new ArgumentNullException(nameof(loadingProcessor), $@"{nameof(ImageActualize)}: {nameof(loadingProcessor)} = null.");
 
-                        tag = recogProcessor.Tag;
+                        tag = loadingProcessor.Tag;
 
-                        btmAddingProcessor = ImageRect.GetBitmap(recogProcessor);
+                        btmAddingProcessor = ImageRect.GetBitmap(loadingProcessor);
                     }
                     break;
                 case ImageActualizeAction.REFRESH:
@@ -146,9 +157,12 @@ namespace DynamicMosaicExample
                 _btmRecognizeImage = btmAddingProcessor;
 
                 if (action != ImageActualizeAction.LOAD || _recognizeProcessorStorage.IsWorkingPath(btmPath))
+                {
                     _btmSavedRecognizeCopy = RecognizeBitmapCopy;
+                    _savedRecognizeQuery = tag;
+                }
 
-                _savedRecognizeQuery = tag;
+                txtWord.Text = tag;
             }
             catch (Exception ex)
             {
@@ -160,7 +174,6 @@ namespace DynamicMosaicExample
             pbDraw.Width = _btmRecognizeImage.Width;
             btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
             btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
-            txtWord.Text = _savedRecognizeQuery;
 
             if (countMain != null)
                 SetRedoRecognizeImage(countMain.Value);
@@ -180,7 +193,7 @@ namespace DynamicMosaicExample
                 if (_btmSavedRecognizeCopy == null)
                     return false;
 
-                return txtWord.Text != _savedRecognizeQuery || !CompareBitmaps(_btmRecognizeImage, _btmSavedRecognizeCopy);
+                return !_recognizeProcessorStorage.IsSelectedOne || txtWord.Text != _savedRecognizeQuery || !CompareBitmaps(_btmRecognizeImage, _btmSavedRecognizeCopy);
             }
         }
 
@@ -328,10 +341,10 @@ namespace DynamicMosaicExample
                 fs.ShowDialog();
         });
 
-        void SavedPathInfoActualize(int count, string recogPath) => SavedPathInfoActualize(count, recogPath, IsQueryChanged);
-
-        void SavedPathInfoActualize(int count, string recogPath, bool changed)
+        void SavedPathInfoActualize(int count, string recogPath)
         {
+            bool changed = IsQueryChanged;
+
             if (count > 0)
             {
                 int lpi = _recognizeProcessorStorage.LastProcessorIndex;
@@ -386,7 +399,11 @@ namespace DynamicMosaicExample
         /// </summary>
         void RefreshImagesCount() => SafeExecute(() =>
         {
-            int imageCount = ShowCurrentImage(_imagesProcessorStorage.GetFirstProcessor(ref _currentImageIndex, true));
+            bool needInitImage = _needInitImage;
+
+            int imageCount = ShowCurrentImage(_imagesProcessorStorage.GetFirstProcessor(ref _currentImageIndex, _imagesProcessorStorage.IsSelectedOne && !needInitImage));
+
+            _needInitImage = imageCount <= 0;
 
             btnImageUpToQueries.Enabled = btnImageDelete.Enabled = ButtonsEnabled && imageCount > 0;
             btnImageNext.Enabled = imageCount > 1;
@@ -397,68 +414,48 @@ namespace DynamicMosaicExample
             pbBrowse.Enabled = imageCount > 0;
             lblImagesCount.Enabled = imageCount > 0;
 
-            (Processor recogProcessor, string recogPath, int recogCount) = _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex, true);
+            bool needInitRecognizeImage = _needInitRecognizeImage;
 
-            try
+            (Processor recogProcessor, string recogPath, int recogCount) = _recognizeProcessorStorage.GetFirstProcessor(ref _currentRecognizeProcIndex, !needInitRecognizeImage);
+
+            _needInitRecognizeImage = recogCount <= 0;
+
+            bool isQueryChanged = IsQueryChanged;
+
+            switch (needInitRecognizeImage)
             {
-                bool isQueryChanged = IsQueryChanged;
+                case true when recogCount > 0 && !isQueryChanged:
 
-                switch (_needInitRecognizeImage)
-                {
-                    case true when recogCount > 0 && !isQueryChanged:
+                    ImageActualize(recogProcessor);
 
-                        if (recogProcessor != null)
-                            ImageActualize(ImageActualizeAction.LOADFROMSTORE, recogPath);
+                    btnRecogNext.Enabled = recogCount > 1;
+                    btnRecogPrev.Enabled = recogCount > 1;
+                    txtRecogNumber.Enabled = true;
+                    txtRecogCount.Enabled = true;
+                    txtRecogPath.Enabled = true;
+                    lblSourceCount.Enabled = true;
+                    btnDeleteRecognizeImage.Enabled = true;
 
-                        btnRecogNext.Enabled = recogCount > 1;
-                        btnRecogPrev.Enabled = recogCount > 1;
-                        txtRecogNumber.Enabled = true;
-                        txtRecogCount.Enabled = true;
-                        txtRecogPath.Enabled = true;
-                        lblSourceCount.Enabled = true;
+                    SavedPathInfoActualize(recogCount, recogPath);
 
-                        SavedPathInfoActualize(recogCount, recogPath);
+                    return;
 
-                        return;
+                case false when recogCount > 0 && !isQueryChanged:
 
-                    case false when recogCount < 1 && !isQueryChanged:
+                    ImageActualize(recogProcessor);
 
-                        _savedRecognizeQuery = string.Empty;
-                        txtWord.Text = string.Empty;
-
-                        _currentState.CriticalChange(null, null);
-                        ImageActualize(ImageActualizeAction.REFRESH);
-
-                        _grRecognizeImageGraphics.Clear(DefaultColor);
-                        btnClearImage.Enabled = IsPainting;
-                        _btmSavedRecognizeCopy = RecognizeBitmapCopy;
-
-                        break;
-                    case false when recogCount > 0 && !isQueryChanged:
-
-                        if (recogProcessor != null)
-                            ImageActualize(ImageActualizeAction.LOADFROMSTORE, recogPath);
-
-                        break;
-                }
-
-                bool recognizeImageChanged = recogProcessor != null && !CompareBitmaps(_btmRecognizeImage, ImageRect.GetBitmap(recogProcessor));
-
-                bool changed = (recogCount > 0 && IsQueryChanged) || recognizeImageChanged;
-
-                btnRecogNext.Enabled = recogCount > 1 || changed;
-                btnRecogPrev.Enabled = recogCount > 1;
-                txtRecogNumber.Enabled = recogCount > 1;
-                txtRecogCount.Enabled = recogCount > 1;
-                txtRecogPath.Enabled = recogCount > 1;
-                lblSourceCount.Enabled = recogCount > 1;
-
-                SavedPathInfoActualize(recogCount, recogPath, changed);
+                    break;
             }
-            finally
-            {
-                _needInitRecognizeImage = recogCount <= 0;
-            }
+
+            btnRecogNext.Enabled = recogCount > 1 || (recogCount > 0 && isQueryChanged);
+            btnRecogPrev.Enabled = recogCount > 1;
+            txtRecogNumber.Enabled = recogCount > 0;
+            txtRecogCount.Enabled = recogCount > 0;
+            txtRecogPath.Enabled = recogCount > 0;
+            lblSourceCount.Enabled = recogCount > 0;
+            btnDeleteRecognizeImage.Enabled = !_recognizeProcessorStorage.IsEmpty;
+
+            SavedPathInfoActualize(recogCount, recogPath);
         }, true);
 
         /// <summary>
@@ -863,7 +860,7 @@ namespace DynamicMosaicExample
             btnRecogNext.Enabled = (changed && count > 0) || count > 1;
             btnDeleteRecognizeImage.Enabled = !changed && count > 0;
 
-            SavedPathInfoActualize(count, _recognizeProcessorStorage.SavedRecognizePath, changed);
+            SavedPathInfoActualize(count, _recognizeProcessorStorage.SavedRecognizePath);
 
             if (!needPaintCheck)
                 return;
@@ -951,9 +948,10 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            CreateFolder(_recognizeProcessorStorage.ImagesPath);
-
             txtRecogPath.Text = _recognizeProcessorStorage.SaveToFile(new Processor(_btmRecognizeImage, tag), rewrite ? savedRecognizePath : string.Empty);
+
+            _btmSavedRecognizeCopy = RecognizeBitmapCopy;
+            _savedRecognizeQuery = tag;
         }
 
         /// <summary>
@@ -994,6 +992,7 @@ namespace DynamicMosaicExample
                 btnConSaveImage.Enabled = false;
                 btnConSaveAllImages.Enabled = false;
                 lblConSymbolCount.Enabled = false;
+                lblConSymbolEqual.Enabled = false;
                 return;
             }
 
@@ -1016,6 +1015,7 @@ namespace DynamicMosaicExample
             btnConSaveImage.Enabled = true;
             btnConSaveAllImages.Enabled = true;
             lblConSymbolCount.Enabled = true;
+            lblConSymbolEqual.Enabled = true;
         }
 
         /// <summary>
@@ -1061,12 +1061,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnConSaveImage_Click(object sender, EventArgs e) => SafeExecute(() =>
-        {
-            CreateFolder(_imagesProcessorStorage.ImagesPath);
-
-            _imagesProcessorStorage.SaveToFile(SelectedResult.processors[SelectedResult.reflexMapIndex], SelectedResult.systemName, SelectedResult.reflexMapIndex.ToString());
-        });
+        void BtnConSaveImage_Click(object sender, EventArgs e) => SafeExecute(() => _imagesProcessorStorage.SaveToFile(SelectedResult.systemName, SelectedResult.processors[SelectedResult.reflexMapIndex]));
 
         /// <summary>
         ///     Сохраняет все карты <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.
@@ -1075,10 +1070,8 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafeExecute(() =>
         {
-            CreateFolder(_imagesProcessorStorage.ImagesPath);
-
-            for (int k = 0; k < SelectedResult.processors.Length; k++)
-                _imagesProcessorStorage.SaveToFile(SelectedResult.processors[k], SelectedResult.systemName, k.ToString());
+            foreach (Processor p in SelectedResult.processors)
+                _imagesProcessorStorage.SaveToFile(SelectedResult.systemName, p);
         });
 
         /// <summary>
@@ -1190,15 +1183,13 @@ namespace DynamicMosaicExample
                 return;
 
             DeleteFile(recogPath);
-
-            btnSaveRecognizeImage.Enabled = true;
         });
 
         void DeleteFile(string path)
         {
             try
             {
-                File.Delete(path);
+                FileSystem.DeleteFile(path, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin, UICancelOption.ThrowException);
             }
             catch (DirectoryNotFoundException ex)
             {
