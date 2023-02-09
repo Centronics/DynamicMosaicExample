@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using DynamicParser;
 
 namespace DynamicMosaicExample
@@ -15,9 +13,7 @@ namespace DynamicMosaicExample
 
         readonly int _height;
 
-        readonly int _widthStep;
-
-        public RecognizeProcessorStorage(int minWidth, int maxWidth, int widthStep, int height, string extImg) : base(extImg)
+        public RecognizeProcessorStorage(int minWidth, int maxWidth, int height, string extImg) : base(extImg)
         {
             if (string.IsNullOrWhiteSpace(extImg))
                 throw new ArgumentNullException(nameof(extImg), $@"Расширение загружаемых изображений должно быть указано ({extImg ?? @"null"}).");
@@ -25,12 +21,9 @@ namespace DynamicMosaicExample
             _minWidth = minWidth;
             _maxWidth = maxWidth;
             _height = height;
-            _widthStep = widthStep;
         }
 
         protected override Processor GetAddingProcessor(string fullPath) => new Processor(LoadRecognizeBitmap(fullPath), GetProcessorTag(fullPath));
-
-        public string GetProcessorTag(string fullPath) => $@"{GetQueryFromPath(fullPath)}";
 
         public override string ImagesPath => FrmExample.RecognizeImagesPath;
 
@@ -42,7 +35,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
         /// <param name="relativeFolderPath"></param>
-        public override string SaveToFile(Processor processor, string relativeFolderPath)
+        public string SaveToFile(Processor processor, string relativeFolderPath)
         {
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
@@ -50,41 +43,19 @@ namespace DynamicMosaicExample
             lock (SyncObject)
             {
                 CreateFolder();
-                (Processor p, string path) = GetUniqueProcessor(NamesToSave, processor, (processor.Tag, 0), relativeFolderPath);
+                (Processor p, string path) = GetUniqueProcessorWithMask(processor, relativeFolderPath);
                 SaveToFile(ImageRect.GetBitmap(p), path);
                 SavedRecognizePath = path;
                 return path;
             }
         }
 
-        static string GetQueryFromPath(string fullPath)
+        static string GetProcessorTag(string fullPath)
         {
             if (string.IsNullOrWhiteSpace(fullPath))
-                throw new ArgumentException($@"{nameof(GetQueryFromPath)}: Обнаружен пустой параметр, значение ({fullPath ?? @"<null>"}).", nameof(fullPath));
+                throw new ArgumentException($@"{nameof(GetProcessorTag)}: Обнаружен пустой параметр, значение ({fullPath ?? @"<null>"}).", nameof(fullPath));
 
-            fullPath = Path.GetFileNameWithoutExtension(fullPath);
-
-            for (int k = fullPath.Length - 1; k >= 0; k--)
-                if (fullPath[k] == ImageRect.TagSeparatorChar)
-                    return fullPath.Substring(0, k);
-
-            return fullPath;
-        }
-
-        /// <summary>
-        ///     Перечисляет возможные значения ширины поля создания сканируемого изображения.
-        /// </summary>
-        IEnumerable<int> WidthSizes
-        {
-            get
-            {
-                unchecked
-                {
-                    for (int k = _minWidth; k < _maxWidth; k += _widthStep)
-                        yield return k;
-                    yield return _maxWidth;
-                }
-            }
+            return ParseName(Path.GetFileNameWithoutExtension(fullPath)).name;
         }
 
         Bitmap LoadRecognizeBitmap(string fullPath)
@@ -104,11 +75,11 @@ namespace DynamicMosaicExample
                 throw new Exception($@"Ошибка при загрузке изображения по пути: {fullPath}{Environment.NewLine}Текст ошибки: ""{ex.Message}"".", ex);
             }
 
-            if (WidthSizes.All(s => s != btm.Width))
+            if (btm.Width < _minWidth || btm.Width > _maxWidth)
             {
                 int w = btm.Width;
                 btm.Dispose();
-                throw new Exception($@"Загружаемое изображение не подходит по ширине: {w}. Она выходит за рамки допустимого. Попробуйте создать изображение и сохранить его заново. Путь: {fullPath}.");
+                throw new Exception($@"Загружаемое изображение не подходит по ширине: {w}. Она выходит за рамки допустимого ({_minWidth};{_maxWidth}). Путь: {fullPath}.");
             }
 
             if (btm.Height != _height)

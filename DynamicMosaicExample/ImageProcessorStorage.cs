@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using DynamicParser;
 
 namespace DynamicMosaicExample
@@ -17,9 +18,10 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="fullPath"></param>
         /// <returns>Возвращает строку, содержащую имя и количество символов '0' в конце названия карты <see cref="Processor" />.</returns>
-        public string GetProcessorTag(string fullPath) => Path.GetFileNameWithoutExtension(fullPath);
+        public static string GetProcessorTag(string fullPath) => Path.GetFileNameWithoutExtension(fullPath);
 
         public override string ImagesPath => FrmExample.SearchImagesPath;
+
         public override ProcessorStorageType StorageType => ProcessorStorageType.IMAGE;
 
         /// <summary>
@@ -28,18 +30,16 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
         /// <param name="relativeFolderPath"></param>
-        public override string SaveToFile(Processor processor, string relativeFolderPath)
+        void IntSaveToFile(Processor processor, string relativeFolderPath)
         {
             if (processor == null)
-                throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
+                throw new ArgumentNullException(nameof(processor), $@"{nameof(IntSaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
 
             lock (SyncObject)
             {
-                (uint? count, string name) = ImageRect.GetFileNumberByName(processor.Tag);
-                (Processor p, string path) = GetUniqueProcessor(NamesToSave, processor, (name, count ?? 0), relativeFolderPath);
+                (Processor p, string path) = GetUniqueProcessorWithMask(processor, relativeFolderPath);
                 SaveToFile(ImageRect.GetBitmap(p), path);
                 SavedRecognizePath = path;
-                return path;
             }
         }
 
@@ -51,12 +51,17 @@ namespace DynamicMosaicExample
             if (processors == null)
                 throw new ArgumentNullException(nameof(processors), $@"{nameof(SaveToFile)}: Необходимо указать карты, которые требуется сохранить.");
 
+            IEnumerable<Processor> procs = processors.ToList();
+
+            if (procs.Any(p => p == null))
+                throw new ArgumentNullException(nameof(processors), $@"{nameof(SaveToFile)}: Сохраняемая карта не может быть равна null.");
+
             string path = CombinePaths(folderName);
 
             CreateFolder(path);
 
-            foreach (Processor p in processors)
-                SaveToFile(p, CreateImagePath(path, p.Tag));
+            foreach (Processor p in procs)
+                IntSaveToFile(p, CreateImagePath(path, p.Tag));
         }
 
         public void SaveToFile(string folderName, Processor processor)
@@ -71,7 +76,32 @@ namespace DynamicMosaicExample
         {
             CreateFolder();
 
-            SaveToFile(processor, string.Empty);
+            IntSaveToFile(processor, string.Empty);
+        }
+
+        public void SaveSystemToFile(string folderName, IEnumerable<Processor> processors)
+        {
+            if (processors == null)
+                throw new ArgumentNullException(nameof(processors), $@"{nameof(SaveToFile)}: Необходимо указать карты, которые требуется сохранить.");
+
+            string folder = CombinePaths(folderName);
+
+            folder = AddEndingSlash(folder);
+
+            CreateFolder(folder);
+
+            lock (SyncObject)
+            {
+                foreach ((Processor p, string path) in GetUniqueProcessor(processors.Select(proc =>
+                         {
+                             (ulong count, string name) = ImageRect.GetFileNumberByName(proc.Tag, 1);
+                             return ((Processor, (ulong?, string), string)?)(proc, (count, ParseName(name).name), folder);
+                         })))
+                {
+                    SaveToFile(ImageRect.GetBitmap(p), path);
+                    SavedRecognizePath = path;
+                }
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -57,7 +58,7 @@ namespace DynamicMosaicExample
         ///     Определяет шаг (в пикселях), на который изменяется ширина сканируемого (создаваемого) изображения при нажатии
         ///     кнопок сужения или расширения.
         /// </summary>
-        const int WidthStep = 20;
+        readonly int _widthStep;
 
         /// <summary>
         ///     Синхронизирует потоки, пытающиеся записать сообщение в лог-файл.
@@ -309,11 +310,10 @@ namespace DynamicMosaicExample
                 ThreadPool.GetMaxThreads(out _, out int comPortMax);
                 ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
 
-                _imagesProcessorStorage = new ImageProcessorStorage(ExtImg);
-                _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, WidthStep, pbDraw.Height, ExtImg);
+                _widthStep = pbBrowse.Width;
 
-                _imagesProcessorStorage.CreateFolder();
-                _recognizeProcessorStorage.CreateFolder();
+                _imagesProcessorStorage = new ImageProcessorStorage(ExtImg);
+                _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, pbDraw.Height, ExtImg);
 
                 _unknownSymbolName = txtSymbolPath.Text;
                 _imgSearchDefault = btnRecognizeImage.Image;
@@ -510,6 +510,10 @@ namespace DynamicMosaicExample
             {
                 act?.Invoke();
             }
+            catch (AggregateException ex)
+            {
+                throw new AggregateException($@"{name}: {ex.Message}", ex.InnerExceptions);
+            }
             catch (Exception ex)
             {
                 throw new Exception($@"{name}: {ex.Message}", ex);
@@ -579,6 +583,20 @@ namespace DynamicMosaicExample
                                         default:
                                             throw new ArgumentOutOfRangeException(nameof(task), task.Type, UnknownFSChangeType);
                                     }
+                                }
+                                catch (AggregateException ex)
+                                {
+                                    StringBuilder sb = new StringBuilder($@"{ex.Message}{Environment.NewLine}Список возникших исключений:");
+
+                                    int index = 1;
+
+                                    foreach (Exception e in ex.Flatten().InnerExceptions)
+                                    {
+                                        sb.Append(Environment.NewLine);
+                                        sb.Append($@"{index++}) {e.Message}");
+                                    }
+
+                                    WriteLogMessage($@"{nameof(CreateFileRefreshThread)}: {sb}");
                                 }
                                 catch (Exception ex)
                                 {

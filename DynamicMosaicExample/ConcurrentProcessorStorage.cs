@@ -37,33 +37,87 @@ namespace DynamicMosaicExample
 
         protected string CreateImagePath(string sourcePath, string name) => $@"{Path.Combine(sourcePath ?? throw new InvalidOperationException($@"{nameof(CreateImagePath)}: Исходный путь образа не указан."), name)}.{ExtImg}";
 
-        public abstract string SaveToFile(Processor processor, string relativeFolderPath);
-
-        protected (Processor processor, string path) GetUniqueProcessor(ISet<string> tagSet, Processor p, (string tag, ulong number) tn, string pathToSave = null)
+        protected static (ulong? number, string name) ParseName(string name)
         {
-            unchecked
+            if (string.IsNullOrEmpty(name))
+                throw new ArgumentNullException(nameof(name), nameof(ParseName));
+
+            if (name.Length == 1)
+                return (null, name);
+
+            for (int k = name.Length - 1; k > 0; k--)
+                if (name[k] == ImageRect.TagSeparatorChar)
+                    return ulong.TryParse(name.Substring(k + 1), out ulong number) ?
+                        (number, name.Substring(0, k)) :
+                        ((ulong?)null, name);
+
+            return (null, name);
+        }
+
+        protected IEnumerable<(Processor processor, string path)> GetUniqueProcessor(IEnumerable<(Processor p, (ulong? number, string name) t, string pathToSave)?> args)
+        {
+            (Processor processor, string path) IntGetUniqueProcessor(ISet<string> maskedTagSet, Processor intP, (ulong? number, string name) intT, string pathToSave)
             {
-                if (GetImagePath(ref pathToSave))
-                    return (p, pathToSave);
-
-                ulong k = tn.number, mk = k;
-
-                do
+                unchecked
                 {
-                    string t = $@"{tn.tag}{ImageRect.TagSeparatorChar}{k}";
+                    (Processor, string) GetResult(string fileName) => (ProcessorHandler.ChangeProcessorTag(intP, fileName), CreateImagePath(pathToSave, fileName));
 
-                    if (tagSet.Add(t))
-                        return (ProcessorHandler.ChangeProcessorTag(p, t), CreateImagePath(pathToSave, t));
+                    if (intT.number == null && maskedTagSet.Add(intT.name))
+                        return GetResult(intT.name);
 
-                } while (++k != mk);
+                    ulong k = intT.number ?? 0, mk = k;
 
-                throw new Exception($@"Нет свободного места для добавления карты в коллекцию: {p.Tag} по пути {ImagesPath}, изначальное имя карты {tn.tag}, номер {tn.number}.");
+                    do
+                    {
+                        string att = $@"{intT.name}{ImageRect.TagSeparatorChar}{k}";
+
+                        if (maskedTagSet.Add(att))
+                            return GetResult(att);
+
+                    } while (++k != mk);
+
+                    throw new Exception(
+                        $@"Нет свободного места для добавления карты в коллекцию: {intP.Tag} по пути {ImagesPath}, изначальное имя карты {intT.name}{ImageRect.TagSeparatorChar}{intT.number}.");
+                }
+            }
+
+            HashSet<string> tagSet = null;
+
+            foreach ((Processor p, (ulong? number, string name) t, string pathToSave)? arg in args)
+            {
+                string argPath = string.Empty;
+
+                if (arg.HasValue)
+                {
+                    argPath = arg.Value.pathToSave;
+
+                    if (GetImagePath(ref argPath))
+                    {
+                        yield return (arg.Value.p, argPath);
+                        yield break;
+                    }
+                }
+
+                if (tagSet == null)
+                {
+                    tagSet = new HashSet<string>();
+
+                    lock (SyncObject)
+                        foreach ((Processor, string) result in DictionaryByKey.Values.Select(pp => IntGetUniqueProcessor(tagSet, pp.CurrentProcessor, ParseName(pp.CurrentProcessor.Tag), pp.CurrentPath)).Where(_ => !arg.HasValue))
+                            yield return result;
+                }
+
+                if (arg.HasValue)
+                    yield return IntGetUniqueProcessor(tagSet, arg.Value.p, arg.Value.t, argPath);
+                else
+                    yield break;
             }
         }
 
-        public string CombinePaths(string folderName, string fileName) => Path.Combine(ImagesPath, ReplaceInvalidPathChars(folderName), ReplaceInvalidPathChars(fileName));
+        protected (Processor processor, string path) GetUniqueProcessorWithMask(Processor p, string pathToSave) =>
+             GetUniqueProcessor(new[] { ((Processor, (ulong?, string), string)?)(p, (ParseName(p.Tag).number == null ? (ulong?)null : 0, p.Tag), pathToSave) }).Single();
 
-        public string CombinePaths(string folderName) => CombinePaths(folderName, string.Empty);
+        public string CombinePaths(string folderName) => Path.Combine(ImagesPath, ReplaceInvalidPathChars(folderName));
 
         static string ReplaceInvalidPathChars(string path)
         {
@@ -106,50 +160,39 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
-        public IEnumerable<(Processor processor, string sourcePath)> Elements
+        public IEnumerable<Processor> Elements
+        {
+            get
+            {
+                lock (SyncObject)
+                    return DictionaryByKey.Values.Select(p => p.CurrentProcessor);
+            }
+        }
+
+        public IEnumerable<Processor> UniqueElements
         {
             get
             {
                 lock (SyncObject)
                 {
-                    foreach (ProcPath p in DictionaryByKey.Values)
-                        yield return (p.CurrentProcessor, p.CurrentPath);
+                    IEnumerable<(Processor p, (ulong? number, string name) t, string pathToSave)?> GetArgs() =>
+                        DictionaryByKey.Values.Select(pp =>
+                        {
+                            switch (StorageType)
+                            {
+                                case ProcessorStorageType.IMAGE:
+                                    return ((Processor p, (ulong? number, string name) t, string pathToSave)?)null;
+                                case ProcessorStorageType.RECOGNIZE:
+                                    throw new NotImplementedException($@"{nameof(UniqueElements)}: {nameof(ProcessorStorageType.RECOGNIZE)}");
+                                default:
+                                    throw new ArgumentOutOfRangeException(nameof(StorageType), nameof(UniqueElements));
+                            }
+                        });
+
+                    return GetUniqueProcessor(GetArgs()).Select(pp => pp.processor);
                 }
             }
         }
-
-        public IEnumerable<(Processor processor, string sourcePath)> UniqueElements
-        {
-            get
-            {
-                lock (SyncObject)
-                {
-                    HashSet<string> tagSet = new HashSet<string>();
-
-                    foreach ((Processor processor, string sourcePath) in Elements)
-                        yield return GetUniqueProcessor(tagSet, processor, sourcePath);
-                }
-            }
-        }
-
-        protected HashSet<string> NamesToSave
-        {
-            get
-            {
-                lock (SyncObject)
-                {
-                    HashSet<string> tagSet = new HashSet<string>();
-
-                    foreach ((Processor processor, string sourcePath) in Elements)
-                        GetUniqueProcessor(tagSet, processor, sourcePath);
-
-                    return tagSet;
-                }
-            }
-        }
-
-        (Processor processor, string path) GetUniqueProcessor(ISet<string> tagSet, Processor processor, string sourcePath) =>
-            GetUniqueProcessor(tagSet, processor, ImageRect.NameParser(Path.GetFileNameWithoutExtension(sourcePath)));
 
         public bool IsWorkingPath(string path, bool isEqual = false)
         {
@@ -185,15 +228,10 @@ namespace DynamicMosaicExample
             if (!IsWorkingPath(relativeFolderPath))
                 throw new ArgumentException($@"Необходимо нахождение пути в рабочем каталоге ({ImagesPath})", nameof(relativeFolderPath));
 
-            string ext = Path.GetExtension(relativeFolderPath);
-
-            if (string.IsNullOrEmpty(ext))
-            {
-                relativeFolderPath = ImagesPath;
+            if (IsDirectory(relativeFolderPath))
                 return false;
-            }
 
-            if (string.Compare(ext, $".{ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
+            if (string.Compare(Path.GetExtension(relativeFolderPath), $".{ExtImg}", StringComparison.OrdinalIgnoreCase) != 0)
                 throw new ArgumentException($@"Необходимо, чтобы путь вёл к файлу с требуемым расширением ({ExtImg})", nameof(relativeFolderPath));
 
             return true;
@@ -285,6 +323,8 @@ namespace DynamicMosaicExample
 
         public IEnumerable<Processor> AddProcessor(string fullPath)
         {
+            List<Exception> lstExceptions = new List<Exception>();
+
             IEnumerable<Processor> IntAdd()
             {
                 if (IsProcessorFile(fullPath))
@@ -297,10 +337,25 @@ namespace DynamicMosaicExample
                     yield break;
 
                 foreach (string pFile in GetFiles(fullPath))
-                    yield return IntAddProcessor(pFile);
+                {
+                    Processor p = IntAddProcessor(pFile, lstExceptions);
+
+                    if (p != null)
+                        yield return p;
+                }
             }
 
-            return IntAdd().ToList();
+            IEnumerable<Processor> result = IntAdd().ToList();
+
+            int count = lstExceptions.Count;
+
+            if (count > 1)
+                throw new AggregateException($@"{nameof(AddProcessor)}: При загрузке группы карт возникли исключения ({count}).", lstExceptions);
+
+            if (count == 1)
+                throw lstExceptions[0];
+
+            return result;
         }
 
         /// <summary>
@@ -310,34 +365,47 @@ namespace DynamicMosaicExample
         ///     Если карта уже присутствовала в коллекции, то она будет перезагружена в неё.
         /// </summary>
         /// <param name="fullPath">Полный путь к изображению, которое будет интерпретировано как карта <see cref="Processor" />.</param>
-        Processor IntAddProcessor(string fullPath)
+        /// <param name="lstExceptions"></param>
+        Processor IntAddProcessor(string fullPath, ICollection<Exception> lstExceptions = null)
         {
-            fullPath = Path.GetFullPath(fullPath);
-
-            bool needAdd = IsWorkingPath(fullPath);
-
-            Processor addingProcessor;
-
             try
             {
-                addingProcessor = GetAddingProcessor(fullPath);
-            }
-            catch
-            {
-                if (needAdd)
-                    RemoveProcessor(fullPath);
-                throw;
-            }
+                fullPath = Path.GetFullPath(fullPath);
 
-            if (!needAdd)
+                bool needAdd = IsWorkingPath(fullPath);
+
+                Processor addingProcessor;
+
+                try
+                {
+                    addingProcessor = GetAddingProcessor(fullPath);
+                }
+                catch
+                {
+                    if (needAdd)
+                        RemoveProcessor(fullPath);
+                    throw;
+                }
+
+                if (!needAdd)
+                    return addingProcessor;
+
+                int hashCode = GetHashCode(addingProcessor);
+
+                lock (SyncObject)
+                    ReplaceElement(hashCode, fullPath, addingProcessor);
+
                 return addingProcessor;
+            }
+            catch (Exception ex)
+            {
+                if (lstExceptions == null)
+                    throw;
 
-            int hashCode = GetHashCode(addingProcessor);
+                lstExceptions.Add(ex);
 
-            lock (SyncObject)
-                ReplaceElement(hashCode, fullPath, addingProcessor);
-
-            return addingProcessor;
+                return null;
+            }
         }
 
         static Bitmap CheckBitmapByAlphaColor(Bitmap btm)
