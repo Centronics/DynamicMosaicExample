@@ -62,17 +62,19 @@ namespace DynamicMosaicExample
                 {
                     (Processor, string) GetResult(string fileName) => (ProcessorHandler.ChangeProcessorTag(intP, fileName), CreateImagePath(pathToSave, fileName));
 
-                    if (intT.number == null && maskedTagSet.Add(intT.name))
+                    string name = intT.name.ToLower();
+
+                    if (intT.number == null && maskedTagSet.Add(name))
                         return GetResult(intT.name);
 
                     ulong k = intT.number ?? 0, mk = k;
 
                     do
                     {
-                        string att = $@"{intT.name}{ImageRect.TagSeparatorChar}{k}";
+                        string att = $@"{name}{ImageRect.TagSeparatorChar}{k}";
 
                         if (maskedTagSet.Add(att))
-                            return GetResult(att);
+                            return GetResult($@"{intT.name}{ImageRect.TagSeparatorChar}{k}");
 
                     } while (++k != mk);
 
@@ -119,15 +121,7 @@ namespace DynamicMosaicExample
 
         public string CombinePaths(string folderName) => Path.Combine(ImagesPath, ReplaceInvalidPathChars(folderName));
 
-        static string ReplaceInvalidPathChars(string path)
-        {
-            HashSet<char> lstChars = new HashSet<char>(Path.GetInvalidFileNameChars());
-
-            foreach (char c in Path.GetInvalidPathChars())
-                lstChars.Add(c);
-
-            return lstChars.Aggregate(path, (current, c) => current.Replace(c, '_'));
-        }
+        static string ReplaceInvalidPathChars(string path) => FrmExample.InvalidCharSet.Aggregate(path, (current, c) => current.Replace(c, '_'));
 
         /// <summary>
         ///     Коллекция карт, идентифицируемых по хешу.
@@ -420,16 +414,6 @@ namespace DynamicMosaicExample
             return btm;
         }
 
-        static Bitmap CheckImageFormat(Bitmap btm)
-        {
-            ImageFormat iformat = btm.RawFormat;
-
-            if (!iformat.Equals(ImageFormat.Bmp))
-                throw new FormatException($@"Загружаемое изображение не подходит по формату: {iformat}; необходимо: {ImageFormat.Bmp}.");
-
-            return btm;
-        }
-
         protected static Bitmap LoadBitmap(string fullPath)
         {
             FileStream fs = null;
@@ -460,7 +444,7 @@ namespace DynamicMosaicExample
 
                 try
                 {
-                    return CheckImageFormat(CheckBitmapByAlphaColor(btm));
+                    return CheckBitmapByAlphaColor(btm);
                 }
                 catch
                 {
@@ -492,7 +476,7 @@ namespace DynamicMosaicExample
                 _dictionaryByHash.Add(hashCode, new ProcHash(new ProcPath(processor, fullPath)));
 
             if (needReplace)
-                SavedRecognizePath = fullPath;
+                LastRecognizePath = fullPath;
         }
 
         /// <summary>
@@ -523,7 +507,7 @@ namespace DynamicMosaicExample
                     index = count - 1;
                 (Processor processor, string path, _) = this[index];
 
-                SavedRecognizePath = path;
+                LastRecognizePath = path;
 
                 return (processor, path, count);
             }
@@ -549,7 +533,7 @@ namespace DynamicMosaicExample
                 if (IsEmpty)
                 {
                     index = 0;
-                    return (null, SavedRecognizePath, 0);
+                    return (null, LastRecognizePath, 0);
                 }
 
                 int count = Count;
@@ -559,7 +543,7 @@ namespace DynamicMosaicExample
                     int lastIndex = LastProcessorIndex;
 
                     if (lastIndex < 0)
-                        return (null, SavedRecognizePath, count);
+                        return (null, LastRecognizePath, count);
 
                     index = lastIndex;
                 }
@@ -569,13 +553,13 @@ namespace DynamicMosaicExample
 
                 (Processor processor, string path, _) = this[index];
 
-                SavedRecognizePath = path;
+                LastRecognizePath = path;
 
                 return (processor, path, count);
             }
         }
 
-        public string SavedRecognizePath
+        public string LastRecognizePath
         {
             get
             {
@@ -595,7 +579,14 @@ namespace DynamicMosaicExample
             }
         }
 
-        public bool IsSelectedOne => !string.IsNullOrEmpty(SavedRecognizePath);
+        public (string path, bool isExists) IsLastPathExists()
+        {
+            string path = LastRecognizePath;
+
+            return (path, !string.IsNullOrEmpty(path) && new FileInfo(path).Exists);
+        }
+
+        public bool IsSelectedOne => !string.IsNullOrEmpty(LastRecognizePath);
 
         public int LastProcessorIndex
         {
@@ -606,12 +597,12 @@ namespace DynamicMosaicExample
                     if (_lastProcessorIndex > -1)
                         return _lastProcessorIndex;
 
-                    string savedRecognizePath = SavedRecognizePath;
+                    string lastRecognizePath = LastRecognizePath;
 
-                    if (string.IsNullOrEmpty(savedRecognizePath))
+                    if (string.IsNullOrEmpty(lastRecognizePath))
                         return -1;
 
-                    string findKey = GetStringKey(savedRecognizePath);
+                    string findKey = GetStringKey(lastRecognizePath);
 
                     int index = DictionaryByKey.Keys.TakeWhile(key => key != findKey).Count();
 
@@ -713,8 +704,8 @@ namespace DynamicMosaicExample
                         string path = ph[index].CurrentPath;
                         result = DictionaryByKey.Remove(GetStringKey(path));
                         result &= ph.RemoveProcessor(index);
-                        if (string.Compare(path, SavedRecognizePath, StringComparison.OrdinalIgnoreCase) == 0)
-                            SavedRecognizePath = string.Empty;
+                        if (string.Compare(path, LastRecognizePath, StringComparison.OrdinalIgnoreCase) == 0)
+                            LastRecognizePath = string.Empty;
                         LastProcessorIndex = -1;
                         break;
                     }
@@ -734,7 +725,7 @@ namespace DynamicMosaicExample
             {
                 DictionaryByKey.Clear();
                 _dictionaryByHash.Clear();
-                SavedRecognizePath = string.Empty;
+                LastRecognizePath = string.Empty;
             }
         }
 

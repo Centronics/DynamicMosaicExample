@@ -34,8 +34,7 @@ namespace DynamicMosaicExample
         ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
-        /// <param name="relativeFolderPath"></param>
-        public string SaveToFile(Processor processor, string relativeFolderPath)
+        public string SaveToFile(Processor processor)
         {
             if (processor == null)
                 throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
@@ -43,9 +42,9 @@ namespace DynamicMosaicExample
             lock (SyncObject)
             {
                 CreateFolder();
-                (Processor p, string path) = GetUniqueProcessorWithMask(processor, relativeFolderPath);
+                (Processor p, string path) = GetUniqueProcessorWithMask(processor, string.Empty);
                 SaveToFile(ImageRect.GetBitmap(p), path);
-                SavedRecognizePath = path;
+                LastRecognizePath = path;
                 return path;
             }
         }

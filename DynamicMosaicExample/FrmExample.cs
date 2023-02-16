@@ -322,12 +322,10 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnImageDelete_Click(object sender, EventArgs e) => SafeExecute(() =>
         {
-            string recogPath = _imagesProcessorStorage.SavedRecognizePath;
+            (string path, bool isExists) = _imagesProcessorStorage.IsLastPathExists();
 
-            if (string.IsNullOrEmpty(recogPath))
-                return;
-
-            DeleteFile(recogPath);
+            if (isExists)
+                DeleteFile(path);
         });
 
         /// <summary>
@@ -613,11 +611,19 @@ namespace DynamicMosaicExample
             get
             {
                 Bitmap btm = new Bitmap(_btmRecognizeImage.Width, _btmRecognizeImage.Height);
+
                 for (int y = 0; y < _btmRecognizeImage.Height; y++)
                     for (int x = 0; x < _btmRecognizeImage.Width; x++)
                         btm.SetPixel(x, y, _btmRecognizeImage.GetPixel(x, y));
+
                 return btm;
             }
+        }
+
+        static void ResetLogWriteMessage()
+        {
+            lock (ErrorMessageLocker)
+                _errorMessageIsShowed = false;
         }
 
         /// <summary>
@@ -628,24 +634,16 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnRecognizeImage_Click(object sender, EventArgs e) => SafeExecute(() =>
         {
-            if (!StopRecognize())
-            {
-                WriteLogMessage($@"{nameof(BtnRecognizeImage_Click)}: Ошибка при остановке потока перед запуском новой сессии поиска.");
-                return;
-            }
+            ResetLogWriteMessage();
 
-            if (string.IsNullOrEmpty(txtWord.Text))
-            {
-                ErrorMessageInOtherThread(
-                    @"Напишите какое-нибудь слово, которое можно составить из одного или нескольких образов.");
-                return;
-            }
+            if (!StopRecognize())
+                throw new Exception(@"Ошибка при остановке потока перед запуском новой сессии поиска.");
 
             if (IsQueryChanged)
-                SaveRecognizeImage(true);
-
-            lock (ErrorMessageLocker)
-                _errorMessageIsShowed = false;
+            {
+                MessageBox.Show(this, NeedSaveQuery, @"Уведомление", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
 
             ButtonsEnabled = false;
             lstHistory.SelectedIndex = -1;
@@ -663,8 +661,6 @@ namespace DynamicMosaicExample
             t.Start();
 
             RecognizerThread = t;
-
-            _recogPreparing.WaitOne();
         });
 
         void RecognizerFunction()
@@ -868,7 +864,7 @@ namespace DynamicMosaicExample
             btnRecogNext.Enabled = (changed && count > 0) || count > 1;
             btnDeleteRecognizeImage.Enabled = !changed && count > 0;
 
-            SavedPathInfoActualize(count, _recognizeProcessorStorage.SavedRecognizePath);
+            SavedPathInfoActualize(count, _recognizeProcessorStorage.LastRecognizePath);
 
             if (!needPaintCheck)
                 return;
@@ -940,27 +936,29 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnSaveRecognizeImage_Click(object sender, EventArgs e) => SafeExecute(() => SaveRecognizeImage(false));
-
-        void SaveRecognizeImage(bool rewrite)
+        void BtnSaveRecognizeImage_Click(object sender, EventArgs e) => SafeExecute(() =>
         {
             string tag = txtWord.Text;
 
-            rewrite &= tag == _savedRecognizeQuery;
-
-            string savedRecognizePath = _recognizeProcessorStorage.SavedRecognizePath;
-
-            if ((!rewrite && string.IsNullOrEmpty(tag)) || (rewrite && string.IsNullOrEmpty(savedRecognizePath)))
+            if (string.IsNullOrWhiteSpace(tag))
             {
-                MessageBox.Show(this, SaveImageQueryError, @"Уведомление", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(this, SaveImageQueryError, @"Уведомление", MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
                 return;
             }
 
-            txtRecogPath.Text = _recognizeProcessorStorage.SaveToFile(new Processor(_btmRecognizeImage, tag), rewrite ? savedRecognizePath : string.Empty);
+            if (InvalidCharSet.Overlaps(tag))
+            {
+                MessageBox.Show(this, QueryErrorSymbols, @"Уведомление", MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            txtRecogPath.Text = _recognizeProcessorStorage.SaveToFile(new Processor(_btmRecognizeImage, tag));
 
             _btmSavedRecognizeCopy = RecognizeBitmapCopy;
             _savedRecognizeQuery = tag;
-        }
+        });
 
         /// <summary>
         ///     Обрабатывает событие нажатие кнопки загрузки созданного изображения.
@@ -1069,7 +1067,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnConSaveImage_Click(object sender, EventArgs e) => SafeExecute(() => _imagesProcessorStorage.SaveSystemToFile(SelectedResult.systemName, new[]{ SelectedResult.processors[SelectedResult.reflexMapIndex] }));
+        void BtnConSaveImage_Click(object sender, EventArgs e) => SafeExecute(() => _imagesProcessorStorage.SaveSystemToFile(SelectedResult.systemName, new[] { SelectedResult.processors[SelectedResult.reflexMapIndex] }));
 
         /// <summary>
         ///     Сохраняет все карты <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.
@@ -1181,12 +1179,10 @@ namespace DynamicMosaicExample
 
         void BtnDeleteRecognizeImage_Click(object sender, EventArgs e) => SafeExecute(() =>
         {
-            string recogPath = _recognizeProcessorStorage.SavedRecognizePath;
+            (string path, bool isExists) = _recognizeProcessorStorage.IsLastPathExists();
 
-            if (string.IsNullOrEmpty(recogPath))
-                return;
-
-            DeleteFile(recogPath);
+            if (isExists)
+                DeleteFile(path);
         });
 
         void DeleteFile(string path)

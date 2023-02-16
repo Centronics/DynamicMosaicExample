@@ -39,7 +39,7 @@ namespace DynamicMosaicExample
             {
                 (Processor p, string path) = GetUniqueProcessorWithMask(processor, relativeFolderPath);
                 SaveToFile(ImageRect.GetBitmap(p), path);
-                SavedRecognizePath = path;
+                LastRecognizePath = path;
             }
         }
 
@@ -99,7 +99,7 @@ namespace DynamicMosaicExample
                          })))
                 {
                     SaveToFile(ImageRect.GetBitmap(p), path);
-                    SavedRecognizePath = path;
+                    LastRecognizePath = path;
                 }
             }
         }

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -44,7 +43,11 @@ namespace DynamicMosaicExample
         /// </summary>
         const string StrLoading3 = @"Загрузка(/)";
 
+        const string NeedSaveQuery = @"Перед запуском процедуры поиска необходимо сохранить текущий запрос.";
+
         const string SaveImageQueryError = @"Необходимо написать какой-либо запрос, который будет использоваться в качестве имени файла изображения.";
+
+        const string QueryErrorSymbols = @"Запрос содержит недопустимые символы.";
 
         const string LogRefreshedMessage = @"Содержимое лог-файла обновлено. Есть новые сообщения.";
 
@@ -295,6 +298,16 @@ namespace DynamicMosaicExample
         public static byte DefaultOpacity => 0xFF;
 
         internal static Color CheckAlphaColor(Color c) => c.A == DefaultOpacity ? c : throw new InvalidOperationException($@"Значение прозрачности не может быть задано 0x{c.A:X2}. Должно быть задано как 0x{DefaultOpacity:X2}.");
+
+        internal static HashSet<char> InvalidCharSet { get; }
+
+        static FrmExample()
+        {
+            InvalidCharSet = new HashSet<char>(Path.GetInvalidFileNameChars());
+
+            foreach (char c in Path.GetInvalidPathChars())
+                InvalidCharSet.Add(c);
+        }
 
         /// <summary>
         ///     Конструктор основной формы приложения.

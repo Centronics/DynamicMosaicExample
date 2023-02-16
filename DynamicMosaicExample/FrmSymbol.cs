@@ -43,6 +43,10 @@ namespace DynamicMosaicExample
         /// </summary>
         readonly ImageProcessorStorage _imagesProcessorStorage;
 
+        const string SymbolNameIsEmpty = @"Необходимо вписать название искомого символа. Оно не может быть более одного знака или состоять из невидимых символов.";
+
+        const string IncorrectSymbolName = @"Недопустимое название искомого символа.";
+
         /// <summary>
         ///     Конструктор формы ввода нового искомого символа.
         /// </summary>
@@ -111,13 +115,21 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnOK_Click(object sender, EventArgs e) => RunAction(() =>
         {
-            if (string.IsNullOrWhiteSpace(txtSymbol.Text))
+            string tag = txtSymbol.Text;
+
+            if (string.IsNullOrWhiteSpace(tag))
             {
-                MessageBox.Show(this, @"Необходимо вписать название символа. Оно не может быть более одного знака и состоять из невидимых символов.");
+                MessageBox.Show(this, SymbolNameIsEmpty);
                 return;
             }
 
-            _imagesProcessorStorage.SaveToFile(new Processor(_btmFront, txtSymbol.Text[0].ToString()));
+            if (FrmExample.InvalidCharSet.Overlaps(tag))
+            {
+                MessageBox.Show(this, IncorrectSymbolName, @"Уведомление", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            _imagesProcessorStorage.SaveToFile(new Processor(_btmFront, tag[0].ToString()));
 
             DialogResult = DialogResult.OK;
         });
