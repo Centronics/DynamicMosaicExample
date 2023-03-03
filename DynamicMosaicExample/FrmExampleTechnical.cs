@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -58,6 +59,35 @@ namespace DynamicMosaicExample
         const string UnknownFSChangeType = @"Неизвестный тип изменения файловой системы.";
 
         /// <summary>
+        ///     Состояние программы после поиска символов на изображении.
+        /// </summary>
+        internal enum UndoRedoState
+        {
+            /// <summary>
+            ///     Неизвестно.
+            ///     Этот статус означает, что процесс поиска ещё не был запущен.
+            /// </summary>
+            UNKNOWN,
+
+            /// <summary>
+            ///     Ошибка, условия не изменялись.
+            /// </summary>
+            ERROR,
+
+            /// <summary>
+            ///     Успех, условия не изменялись.
+            /// </summary>
+            SUCCESS
+        }
+
+        /// <summary>
+        ///     Текущее состояние программы.
+        /// </summary>
+        UndoRedoState _currentUndoRedoState = UndoRedoState.UNKNOWN;
+
+        string _currentUndoRedoWord = string.Empty;
+
+        /// <summary>
         ///     Определяет шаг (в пикселях), на который изменяется ширина сканируемого (создаваемого) изображения при нажатии
         ///     кнопок сужения или расширения.
         /// </summary>
@@ -100,11 +130,6 @@ namespace DynamicMosaicExample
         ///     Предназначена для хранения задач, связанных с изменениями в файловой системе.
         /// </summary>
         readonly ConcurrentQueue<FileTask> _concurrentFileTasks = new ConcurrentQueue<FileTask>();
-
-        /// <summary>
-        ///     Объект, наблюдающий за состоянием основной формы приложения.
-        /// </summary>
-        readonly CurrentState _currentState;
 
         readonly object _recognizerSync = new object();
 
@@ -328,16 +353,11 @@ namespace DynamicMosaicExample
                 _imagesProcessorStorage = new ImageProcessorStorage(ExtImg);
                 _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, pbDraw.Height, ExtImg);
 
+                _savedRecognizeQuery = txtWord.Text;
                 _unknownSymbolName = txtSymbolPath.Text;
                 _imgSearchDefault = btnRecognizeImage.Image;
                 ImageWidth = pbBrowse.Width;
                 ImageHeight = pbBrowse.Height;
-                _currentState = new CurrentState(this);
-                btnNarrow.Click += _currentState.CriticalChange;
-                btnWide.Click += _currentState.CriticalChange;
-                btnClearImage.Click += _currentState.CriticalChange;
-                btnLoadRecognizeImage.Click += _currentState.CriticalChange;
-                txtWord.TextChanged += _currentState.WordChange;
                 txtWord.TextChanged += TxtWordTextCheck;
             }
             catch (Exception ex)
@@ -488,15 +508,31 @@ namespace DynamicMosaicExample
             if (t == null)
                 return true;
 
+            DynamicReflex r = Recognizer;
+
             try
             {
-                t.Abort();
+                string errMsg = @"UNK";
 
-                if (t.Join(5000))
+                try
                 {
-                    RecognizerThread = null;
+                    t.Abort();
 
-                    return true;
+                    if (t.Join(5000))
+                    {
+                        RecognizerThread = null;
+
+                        errMsg = @"STP";
+
+                        return true;
+                    }
+
+                    errMsg = @"TCK";
+                }
+                finally
+                {
+                    if (r != null)
+                        OutHistory(null, r.Processors.ToArray(), errMsg);
                 }
 
                 WriteLogMessage($@"{nameof(StopRecognize)}: {ThreadStuck}");
@@ -790,139 +826,56 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Состояние программы после поиска символов на изображении.
+        ///     Искомое слово, написанное пользователем в момент запуска процедуры поиска символов на распознаваемом изображении.
         /// </summary>
-        enum RecognizeState
+        internal string CurrentUndoRedoWord
         {
-            /// <summary>
-            ///     Неизвестно.
-            ///     Этот статус означает, что процесс поиска ещё не был запущен.
-            /// </summary>
-            UNKNOWN,
+            get => _currentUndoRedoWord;
 
-            /// <summary>
-            ///     Ошибка, слово изменено.
-            ///     Вернуться из этого статуса в статус <see cref="ERROR" /> можно путём возвращения слова в предыдущее состояние,
-            ///     какое оно было при выполнении процедуры поиска.
-            ///     Регистр не учитывается.
-            /// </summary>
-            ERRORWORD,
+            set
+            {
+                if (_currentUndoRedoState == UndoRedoState.UNKNOWN)
+                {
+                    _currentUndoRedoWord = value ?? string.Empty;
+                    return;
+                }
 
-            /// <summary>
-            ///     Успех, слово изменено.
-            ///     Вернуться из этого статуса в статус <see cref="SUCCESS" /> можно путём возвращения слова в предыдущее состояние,
-            ///     какое оно было при выполнении процедуры поиска.
-            ///     Регистр не учитывается.
-            /// </summary>
-            SUCCESSWORD,
-
-            /// <summary>
-            ///     Ошибка, условия не изменялись.
-            /// </summary>
-            ERROR,
-
-            /// <summary>
-            ///     Успех, условия не изменялись.
-            /// </summary>
-            SUCCESS
+                pbSuccess.Image = txtWord.Text == _currentUndoRedoWord
+                    ? _currentUndoRedoState == UndoRedoState.ERROR
+                    ? Resources.Result_Error
+                    : Resources.Result_OK
+                    : Resources.Result_Unknown;
+            }
         }
 
         /// <summary>
-        ///     Предназначен для отображения статуса программы.
+        ///     Устанавливает текущее состояние программы.
+        ///     Оно может быть установлено только, если текущее состояние равно <see cref="UndoRedoState.UNKNOWN" />.
+        ///     В других случаях новое состояние будет игнорироваться.
+        ///     Установить можно либо <see cref="UndoRedoState.ERROR" />, либо <see cref="UndoRedoState.SUCCESS" />.
         /// </summary>
-        sealed class CurrentState
+        internal UndoRedoState CurrentUndoRedoState
         {
-            /// <summary>
-            ///     Форма, за которой производится наблюдение.
-            /// </summary>
-            readonly FrmExample _curForm;
+            get => _currentUndoRedoState;
 
-            /// <summary>
-            ///     Текущее состояние программы.
-            /// </summary>
-            RecognizeState _state = RecognizeState.UNKNOWN;
-
-            /// <summary>
-            ///     Инициализирует объект-наблюдатель с указанием формы, за которой требуется наблюдение.
-            ///     Форма не может быть равна <see langword="null" />.
-            /// </summary>
-            /// <param name="frm">Форма, за которой требуется наблюдение.</param>
-            internal CurrentState(FrmExample frm)
+            set
             {
-                _curForm = frm ?? throw new ArgumentNullException(nameof(frm));
-            }
-
-            /// <summary>
-            ///     Искомое слово, написанное пользователем в момент запуска процедуры поиска символов на распознаваемом изображении.
-            /// </summary>
-            internal string CurWord { get; private set; } = string.Empty;
-
-            /// <summary>
-            ///     Устанавливает текущее состояние программы.
-            ///     Оно может быть установлено только, если текущее состояние равно <see cref="RecognizeState.UNKNOWN" />.
-            ///     В других случаях новое состояние будет игнорироваться.
-            ///     Установить можно либо <see cref="RecognizeState.ERROR" />, либо <see cref="RecognizeState.SUCCESS" />.
-            /// </summary>
-            internal RecognizeState State
-            {
-                set
+                switch (value)
                 {
-                    if (_state != RecognizeState.UNKNOWN)
-                        return;
-                    switch (value)
-                    {
-                        case RecognizeState.ERROR:
-                            _curForm.pbSuccess.Image = Resources.Result_Error;
-                            _state = RecognizeState.ERROR;
-                            return;
-                        case RecognizeState.SUCCESS:
-                            _curForm.pbSuccess.Image = Resources.Result_OK;
-                            _state = RecognizeState.SUCCESS;
-                            return;
-                    }
-                }
-            }
-
-            /// <summary>
-            ///     Используется для подписи на событие изменения критических данных, относящихся к поиску символов на распознаваемом изображении.
-            /// </summary>
-            /// <param name="sender">Вызывающий объект.</param>
-            /// <param name="e">Данные о событии.</param>
-            internal void CriticalChange(object sender, EventArgs e)
-            {
-                _curForm.SafeExecute(() => _curForm.pbSuccess.Image = Resources.Result_Unknown, true);
-                _state = RecognizeState.UNKNOWN;
-            }
-
-            /// <summary>
-            ///     Используется для подписи на событие изменения искомого слова.
-            /// </summary>
-            /// <param name="sender">Вызывающий объект.</param>
-            /// <param name="e">Данные о событии.</param>
-            internal void WordChange(object sender, EventArgs e)
-            {
-                switch (_state)
-                {
-                    case RecognizeState.ERROR:
-                    case RecognizeState.SUCCESS:
-                        if (string.Compare(CurWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) == 0)
-                            return;
-                        _curForm.pbSuccess.Image = Resources.Result_Unknown;
-                        _state = _state == RecognizeState.ERROR ? RecognizeState.ERRORWORD : RecognizeState.SUCCESSWORD;
-                        return;
-                    case RecognizeState.ERRORWORD:
-                    case RecognizeState.SUCCESSWORD:
-                        if (string.Compare(CurWord, _curForm.txtWord.Text, StringComparison.OrdinalIgnoreCase) != 0)
-                            return;
-                        _curForm.pbSuccess.Image = _state == RecognizeState.ERRORWORD ? Resources.Result_Error : Resources.Result_OK;
-                        _state = _state == RecognizeState.ERRORWORD ? RecognizeState.ERROR : RecognizeState.SUCCESS;
-                        return;
-                    case RecognizeState.UNKNOWN:
-                        CurWord = _curForm.txtWord.Text;
-                        return;
+                    case UndoRedoState.ERROR:
+                        pbSuccess.Image = Resources.Result_Error;
+                        break;
+                    case UndoRedoState.SUCCESS:
+                        pbSuccess.Image = Resources.Result_OK;
+                        break;
+                    case UndoRedoState.UNKNOWN:
+                        pbSuccess.Image = Resources.Result_Unknown;
+                        break;
                     default:
-                        throw new Exception($@"Неизвестное состояние программы ({_state}).");
+                        throw new ArgumentOutOfRangeException(nameof(value), value, $@"{nameof(UndoRedoState)} {nameof(CurrentUndoRedoState)}");
                 }
+
+                _currentUndoRedoState = value;
             }
         }
     }

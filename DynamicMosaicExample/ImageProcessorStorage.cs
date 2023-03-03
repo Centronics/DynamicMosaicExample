@@ -24,6 +24,22 @@ namespace DynamicMosaicExample
 
         public override ProcessorStorageType StorageType => ProcessorStorageType.IMAGE;
 
+        public override bool IsSelectedOne
+        {
+            get
+            {
+                lock (SyncObject)
+                {
+                    if (IntLastProcessorIndex > -1)
+                        return true;
+
+                    string lastRecognizePath = LastRecognizePath;
+
+                    return !string.IsNullOrEmpty(lastRecognizePath) && DictionaryByKey.ContainsKey(GetStringKey(lastRecognizePath));
+                }
+            }
+        }
+
         /// <summary>
         ///     Сохраняет указанную карту <see cref="Processor" /> на жёсткий диск в формате BMP.
         ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
@@ -43,35 +59,6 @@ namespace DynamicMosaicExample
             }
         }
 
-        public void SaveToFile(string folderName, IEnumerable<Processor> processors)
-        {
-            if (string.IsNullOrWhiteSpace(folderName))
-                throw new ArgumentNullException(nameof(folderName), $@"{nameof(SaveToFile)}: Имя папки не указано.");
-
-            if (processors == null)
-                throw new ArgumentNullException(nameof(processors), $@"{nameof(SaveToFile)}: Необходимо указать карты, которые требуется сохранить.");
-
-            IEnumerable<Processor> procs = processors.ToList();
-
-            if (procs.Any(p => p == null))
-                throw new ArgumentNullException(nameof(processors), $@"{nameof(SaveToFile)}: Сохраняемая карта не может быть равна null.");
-
-            string path = CombinePaths(folderName);
-
-            CreateFolder(path);
-
-            foreach (Processor p in procs)
-                IntSaveToFile(p, CreateImagePath(path, p.Tag));
-        }
-
-        public void SaveToFile(string folderName, Processor processor)
-        {
-            if (processor == null)
-                throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
-
-            SaveToFile(folderName, new[] { processor });
-        }
-
         public void SaveToFile(Processor processor)
         {
             CreateFolder();
@@ -79,7 +66,7 @@ namespace DynamicMosaicExample
             IntSaveToFile(processor, string.Empty);
         }
 
-        public void SaveSystemToFile(string folderName, IEnumerable<Processor> processors)
+        public void SaveToFile(string folderName, IEnumerable<Processor> processors)
         {
             if (processors == null)
                 throw new ArgumentNullException(nameof(processors), $@"{nameof(SaveToFile)}: Необходимо указать карты, которые требуется сохранить.");
@@ -92,15 +79,12 @@ namespace DynamicMosaicExample
 
             lock (SyncObject)
             {
-                foreach ((Processor p, string path) in GetUniqueProcessor(processors.Select(proc =>
+                foreach ((Processor p, string path) in GetUniqueProcessor(processors.Where(pc => pc != null).Select(proc =>
                          {
                              (ulong count, string name) = ImageRect.GetFileNumberByName(proc.Tag, 1);
                              return ((Processor, (ulong?, string), string)?)(proc, (count, ParseName(name).name), folder);
                          })))
-                {
                     SaveToFile(ImageRect.GetBitmap(p), path);
-                    LastRecognizePath = path;
-                }
             }
         }
     }

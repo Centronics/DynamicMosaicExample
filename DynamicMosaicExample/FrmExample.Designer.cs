@@ -266,6 +266,7 @@
             // lblConSymbolEqual
             // 
             this.lblConSymbolEqual.AutoSize = true;
+            this.lblConSymbolEqual.Enabled = false;
             this.lblConSymbolEqual.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.lblConSymbolEqual.Location = new System.Drawing.Point(74, 151);
             this.lblConSymbolEqual.Name = "lblConSymbolEqual";

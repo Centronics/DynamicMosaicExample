@@ -126,7 +126,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Коллекция карт, идентифицируемых по хешу.
         /// </summary>
-        readonly Dictionary<int, ProcHash> _dictionaryByHash = new Dictionary<int, ProcHash>();
+        protected readonly Dictionary<int, ProcHash> DictionaryByHash = new Dictionary<int, ProcHash>();
 
         /// <summary>
         ///     Коллекция карт, идентифицируемых по путям.
@@ -143,7 +143,7 @@ namespace DynamicMosaicExample
         /// </summary>
         protected readonly object SyncObject = new object();
 
-        int _lastProcessorIndex = -1;
+        protected int IntLastProcessorIndex = -1;
 
         string _savedRecognizePath = string.Empty;
 
@@ -464,19 +464,21 @@ namespace DynamicMosaicExample
         /// <param name="hashCode">Хеш добавляемой карты.</param>
         /// <param name="fullPath">Полный путь к добавляемой карте.</param>
         /// <param name="processor">Добавляемая карта <see cref="Processor" />.</param>
-        void ReplaceElement(int hashCode, string fullPath, Processor processor)
+        protected virtual void ReplaceElement(int hashCode, string fullPath, Processor processor)
         {
-            bool needReplace = RemoveProcessor(fullPath);
+            RemoveProcessor(fullPath);
 
+            BaseAddElement(hashCode, fullPath, processor);
+        }
+
+        protected void BaseAddElement(int hashCode, string fullPath, Processor processor)
+        {
             DictionaryByKey.Add(GetStringKey(fullPath), new ProcPath(processor, fullPath));
 
-            if (_dictionaryByHash.TryGetValue(hashCode, out ProcHash ph))
+            if (DictionaryByHash.TryGetValue(hashCode, out ProcHash ph))
                 ph.AddProcessor(new ProcPath(processor, fullPath));
             else
-                _dictionaryByHash.Add(hashCode, new ProcHash(new ProcPath(processor, fullPath)));
-
-            if (needReplace)
-                LastRecognizePath = fullPath;
+                DictionaryByHash.Add(hashCode, new ProcHash(new ProcPath(processor, fullPath)));
         }
 
         /// <summary>
@@ -564,9 +566,7 @@ namespace DynamicMosaicExample
             get
             {
                 lock (SyncObject)
-                {
                     return _savedRecognizePath;
-                }
             }
 
             protected set
@@ -586,7 +586,7 @@ namespace DynamicMosaicExample
             return (path, !string.IsNullOrEmpty(path) && new FileInfo(path).Exists);
         }
 
-        public bool IsSelectedOne => !string.IsNullOrEmpty(LastRecognizePath);
+        public virtual bool IsSelectedOne => !string.IsNullOrEmpty(LastRecognizePath);
 
         public int LastProcessorIndex
         {
@@ -594,8 +594,8 @@ namespace DynamicMosaicExample
             {
                 lock (SyncObject)
                 {
-                    if (_lastProcessorIndex > -1)
-                        return _lastProcessorIndex;
+                    if (IntLastProcessorIndex > -1)
+                        return IntLastProcessorIndex;
 
                     string lastRecognizePath = LastRecognizePath;
 
@@ -606,16 +606,16 @@ namespace DynamicMosaicExample
 
                     int index = DictionaryByKey.Keys.TakeWhile(key => key != findKey).Count();
 
-                    _lastProcessorIndex = index < DictionaryByKey.Count ? index : -1;
+                    IntLastProcessorIndex = index < DictionaryByKey.Count ? index : -1;
 
-                    return _lastProcessorIndex;
+                    return IntLastProcessorIndex;
                 }
             }
 
             private set
             {
                 lock (SyncObject)
-                    _lastProcessorIndex = value;
+                    IntLastProcessorIndex = value;
             }
         }
 
@@ -662,7 +662,7 @@ namespace DynamicMosaicExample
 
         static bool IsDirectory(string path) => !string.IsNullOrEmpty(path) && (IsDirectorySeparatorSymbol(path[path.Length - 1]) || string.IsNullOrEmpty(Path.GetExtension(path)));
 
-        static string GetStringKey(string path) => string.IsNullOrEmpty(path) ? string.Empty : path.ToLower();
+        protected static string GetStringKey(string path) => string.IsNullOrEmpty(path) ? string.Empty : path.ToLower();
 
         public static bool LongOperationsAllowed
         {
@@ -695,7 +695,7 @@ namespace DynamicMosaicExample
             bool result = false;
             lock (SyncObject)
             {
-                if (!_dictionaryByHash.TryGetValue(hashCode, out ProcHash ph))
+                if (!DictionaryByHash.TryGetValue(hashCode, out ProcHash ph))
                     return false;
                 int index = 0;
                 foreach (ProcPath px in ph.Elements)
@@ -713,7 +713,7 @@ namespace DynamicMosaicExample
                         index++;
 
                 if (!ph.Elements.Any())
-                    _dictionaryByHash.Remove(hashCode);
+                    DictionaryByHash.Remove(hashCode);
             }
 
             return result;
@@ -724,7 +724,8 @@ namespace DynamicMosaicExample
             lock (SyncObject)
             {
                 DictionaryByKey.Clear();
-                _dictionaryByHash.Clear();
+                DictionaryByHash.Clear();
+
                 LastRecognizePath = string.Empty;
             }
         }
@@ -797,7 +798,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Хранит карты, которые соответствуют одному значению хеша.
         /// </summary>
-        readonly struct ProcHash
+        protected readonly struct ProcHash
         {
             /// <summary>
             ///     Список хранимых карт, дающих одно значение хеша.

@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using DynamicMosaic;
 using DynamicParser;
 using Microsoft.VisualBasic.FileIO;
+using Processor = DynamicParser.Processor;
 using ThreadState = System.Threading.ThreadState;
 
 namespace DynamicMosaicExample
@@ -51,7 +52,6 @@ namespace DynamicMosaicExample
                 _grRecognizeImageGraphics = Graphics.FromImage(_btmRecognizeImage);
 
                 pbDraw.Image = _btmRecognizeImage;
-                pbSuccess.Image = Resources.Result_Unknown;
             }
 
             string tag;
@@ -235,11 +235,7 @@ namespace DynamicMosaicExample
             switch (e.Button)
             {
                 case MouseButtons.Left:
-                    _currentState.CriticalChange(sender, e);
                     btnClearImage.Enabled = true;
-                    break;
-                case MouseButtons.Right:
-                    _currentState.CriticalChange(sender, e);
                     break;
             }
         });
@@ -258,6 +254,7 @@ namespace DynamicMosaicExample
                 btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
                 btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                 ImageActualize(ImageActualizeAction.REFRESH);
+                CurrentUndoRedoState = UndoRedoState.UNKNOWN;
             });
 
             SafeExecute(SetRedoRecognizeImage);
@@ -280,6 +277,7 @@ namespace DynamicMosaicExample
                 btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
                 btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
                 ImageActualize(ImageActualizeAction.REFRESH);
+                CurrentUndoRedoState = UndoRedoState.UNKNOWN;
             });
 
             SafeExecute(SetRedoRecognizeImage);
@@ -648,8 +646,8 @@ namespace DynamicMosaicExample
             ButtonsEnabled = false;
             lstHistory.SelectedIndex = -1;
 
-            _currentState.CriticalChange(sender, e);
-            _currentState.WordChange(sender, e);
+            CurrentUndoRedoState = UndoRedoState.UNKNOWN;
+            CurrentUndoRedoWord = txtWord.Text;
 
             Thread t = new Thread(RecognizerFunction)
             {
@@ -667,35 +665,12 @@ namespace DynamicMosaicExample
         {
             SafeExecute(() =>
             {
-                _recogPreparing.Set();
-
-                bool? result = null;
-                bool resultShowed = false;
-
-                void ShowResult(DynamicReflex reflex)
-                {
-                    if (resultShowed || !result.HasValue)
-                        return;
-
-                    resultShowed = true;
-
-                    OutHistory(result, reflex.Processors.ToArray());
-
-                    if (result.Value)
-                    {
-                        pbSuccess.Image = Resources.Result_OK;
-                        _currentState.State = RecognizeState.SUCCESS;
-                        return;
-                    }
-
-                    pbSuccess.Image = Resources.Result_Error;
-                    _currentState.State = RecognizeState.ERROR;
-                }
-
-                DynamicReflex recognizer = Recognizer;
-
                 try
                 {
+                    _recogPreparing.Set();
+
+                    DynamicReflex recognizer = Recognizer;
+
                     if (recognizer == null)
                     {
                         List<Processor> processors = _imagesProcessorStorage.UniqueElements.ToList();
@@ -723,51 +698,63 @@ namespace DynamicMosaicExample
 
                     _recognizerActivity.Set();
 
-                    _stwRecognize.Restart();
-                    result = recognizer.FindRelation(query);
-                    _stwRecognize.Stop();
+                    try
+                    {
+                        _stwRecognize.Restart();
 
-                    ShowResult(recognizer);
+                        bool? result;
+
+                        try
+                        {
+                            result = recognizer.FindRelation(query);
+                        }
+                        finally
+                        {
+                            _stwRecognize.Stop();
+                        }
+
+                        OutHistory(result, recognizer.Processors.ToArray());
+                    }
+                    catch (ThreadAbortException)
+                    {
+                        throw;
+                    }
+                    catch
+                    {
+                        OutHistory(null, recognizer.Processors.ToArray(), @"EXCP");
+                        throw;
+                    }
                 }
                 catch (ThreadAbortException)
                 {
-                    _stwRecognize.Stop();
                     ResetAbort();
-                }
-                catch (Exception ex)
-                {
-                    _stwRecognize.Stop();
-                    ErrorMessageInOtherThread(ex.Message);
                 }
                 finally
                 {
-                    _stwRecognize.Stop();
-                    ShowResult(recognizer);
+                    _recogPreparing.Reset();
+                    _recognizerActivity.Reset();
+
+                    RecognizerThread = null;
                 }
-            });
-
-            SafeExecute(() =>
-            {
-                _recogPreparing.Reset();
-                _recognizerActivity.Reset();
-
-                RecognizerThread = null;
             });
         }
 
         void OutHistory(bool? result, Processor[] ps, string comment = null) => SafeExecute(() =>
         {
-            string GetSystemName(int count)
+            string GetSystemName(int position)
             {
                 string strCount = string.IsNullOrEmpty(comment)
-                    ? lstHistory.Items.Count < 10 ? ps.Length > 99999 ? "∞" : ps.Length.ToString() :
-                    ps.Length > 9999 ? "∞" : ps.Length.ToString()
+                    ? position < 10 ? ps.Length > 9999 ? "∞" : ps.Length.ToString() :
+                    ps.Length > 999 ? "∞" : ps.Length.ToString()
                     : comment;
 
-                char r = result != null ? result.Value ? 'T' : 'F' : ' ';
+                char r = result.HasValue ? result == true ? 'T' : 'F' : ' ';
 
-                return $@"№{count}{r}{DateTime.Now:HH:mm:ss} ({strCount})";
+                return $@"№{position} {r} {DateTime.Now:HH:mm:ss} ({strCount})";
             }
+
+            if (result.HasValue)
+                CurrentUndoRedoState = result == true ? UndoRedoState.SUCCESS : UndoRedoState.ERROR;
 
             if (lstHistory.Items.Count < 100)
             {
@@ -811,9 +798,10 @@ namespace DynamicMosaicExample
                     BtnRecognizeImage_Click(btnRecognizeImage, EventArgs.Empty);
                     break;
                 case Keys.Z when e.Control && txtWord.Focused:
-                    if (string.IsNullOrEmpty(_currentState.CurWord))
+                    if (CurrentUndoRedoState == UndoRedoState.UNKNOWN)
                         return;
-                    txtWord.Text = _currentState.CurWord;
+
+                    txtWord.Text = CurrentUndoRedoWord;
                     txtWord.Select(txtWord.Text.Length, 0);
                     return;
                 case Keys.Escape:
@@ -837,6 +825,7 @@ namespace DynamicMosaicExample
                 case Keys.Pause:
                 case Keys.XButton1:
                 case Keys.RButton | Keys.Enter:
+                case Keys.RButton | Keys.FinalMode:
                     e.Handled = true;
                     return;
             }
@@ -926,6 +915,7 @@ namespace DynamicMosaicExample
             {
                 _grRecognizeImageGraphics.Clear(DefaultColor);
                 SetRedoRecognizeImage();
+                CurrentUndoRedoState = UndoRedoState.UNKNOWN;
             });
 
             SafeExecute(() => pbDraw.Refresh());
@@ -967,8 +957,11 @@ namespace DynamicMosaicExample
         /// <param name="e">Данные о событии.</param>
         void BtnLoadRecognizeImage_Click(object sender, EventArgs e) => SafeExecute(() =>
         {
-            if (dlgOpenImage.ShowDialog(this) == DialogResult.OK)
-                ImageActualize(ImageActualizeAction.LOAD, dlgOpenImage.FileName);
+            if (dlgOpenImage.ShowDialog(this) != DialogResult.OK)
+                return;
+
+            ImageActualize(ImageActualizeAction.LOAD, dlgOpenImage.FileName);
+            CurrentUndoRedoState = UndoRedoState.UNKNOWN;
         });
 
         /// <summary>
@@ -981,7 +974,7 @@ namespace DynamicMosaicExample
 
         void ChangeSystemSelectedIndex()
         {
-            if (lstHistory.SelectedIndex < 0)
+            void ResetConSymbol()
             {
                 txtConSymbolNumber.Text = string.Empty;
                 txtConSymbolCount.Text = string.Empty;
@@ -999,29 +992,64 @@ namespace DynamicMosaicExample
                 btnConSaveAllImages.Enabled = false;
                 lblConSymbolCount.Enabled = false;
                 lblConSymbolEqual.Enabled = false;
+            }
+
+            if (lstHistory.SelectedIndex < 0)
+            {
+                ResetConSymbol();
                 return;
             }
 
-            (Processor[] processors, int reflexMapIndex, string _) = SelectedResult;
+            try
+            {
+                (Processor[] processors, int reflexMapIndex, string _) = SelectedResult;
 
-            Processor p = processors[reflexMapIndex];
+                bool anyProcs = processors != null && processors.Any();
 
-            txtConSymbolNumber.Text = checked(reflexMapIndex + 1).ToString();
-            txtConSymbolCount.Text = processors.Length.ToString();
-            txtConSymbolTag.Text = p.Tag;
+                Processor p = anyProcs ? processors[reflexMapIndex] : null;
 
-            pbConSymbol.Image = ImageRect.GetBitmap(p);
+                txtConSymbolNumber.Text = anyProcs ? checked(reflexMapIndex + 1).ToString() : string.Empty;
+                txtConSymbolCount.Text = anyProcs ? processors.Length.ToString() : string.Empty;
 
-            txtConSymbolNumber.Enabled = true;
-            txtConSymbolCount.Enabled = true;
-            txtConSymbolTag.Enabled = true;
-            pbConSymbol.Enabled = true;
-            btnConNext.Enabled = true;
-            btnConPrevious.Enabled = true;
-            btnConSaveImage.Enabled = true;
-            btnConSaveAllImages.Enabled = true;
-            lblConSymbolCount.Enabled = true;
-            lblConSymbolEqual.Enabled = true;
+                if (p != null)
+                {
+                    txtConSymbolTag.Text = p.Tag;
+                    txtConSymbolTag.Enabled = true;
+
+                    if (p.Width == pbConSymbol.Width && p.Height == pbConSymbol.Height)
+                    {
+                        pbConSymbol.Image = ImageRect.GetBitmap(p);
+                        pbConSymbol.Enabled = true;
+                    }
+                    else
+                    {
+                        pbConSymbol.Image = Resources.IncorrSize;
+                        pbConSymbol.Enabled = false;
+                    }
+                }
+                else
+                {
+                    txtConSymbolTag.Text = string.Empty;
+                    txtConSymbolTag.Enabled = false;
+
+                    pbConSymbol.Image = new Bitmap(pbConSymbol.Width, pbConSymbol.Height);
+                    pbConSymbol.Enabled = false;
+                }
+
+                txtConSymbolNumber.Enabled = anyProcs && p != null;
+                txtConSymbolCount.Enabled = anyProcs;
+                btnConNext.Enabled = anyProcs && processors.Length > 1;
+                btnConPrevious.Enabled = anyProcs && processors.Length > 1;
+                btnConSaveImage.Enabled = anyProcs && p != null;
+                btnConSaveAllImages.Enabled = anyProcs && processors.Length > 1;
+                lblConSymbolCount.Enabled = anyProcs;
+                lblConSymbolEqual.Enabled = anyProcs;
+            }
+            catch
+            {
+                ResetConSymbol();
+                throw;
+            }
         }
 
         /// <summary>
@@ -1067,14 +1095,14 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnConSaveImage_Click(object sender, EventArgs e) => SafeExecute(() => _imagesProcessorStorage.SaveSystemToFile(SelectedResult.systemName, new[] { SelectedResult.processors[SelectedResult.reflexMapIndex] }));
+        void BtnConSaveImage_Click(object sender, EventArgs e) => SafeExecute(() => _imagesProcessorStorage.SaveToFile(SelectedResult.systemName, new[] { SelectedResult.processors[SelectedResult.reflexMapIndex] }));
 
         /// <summary>
         ///     Сохраняет все карты <see cref="Processor" /> выбранной системы <see cref="DynamicReflex" /> на жёсткий диск.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafeExecute(() => _imagesProcessorStorage.SaveSystemToFile(SelectedResult.systemName, SelectedResult.processors));
+        void BtnConSaveAllImages_Click(object sender, EventArgs e) => SafeExecute(() => _imagesProcessorStorage.SaveToFile(SelectedResult.systemName, SelectedResult.processors));
 
         /// <summary>
         ///     Обрабатывает событие завершения работы программы.
@@ -1197,7 +1225,12 @@ namespace DynamicMosaicExample
             }
         }
 
-        void TxtWord_TextChanged(object sender, EventArgs e) => SafeExecute(() => SetRedoRecognizeImage(false));
+        void TxtWord_TextChanged(object sender, EventArgs e) => SafeExecute(() =>
+        {
+            CurrentUndoRedoWord = txtWord.Text;
+
+            SetRedoRecognizeImage(false);
+        });
 
         /// <summary>
         ///     Вызывается во время первого отображения формы.
@@ -1215,7 +1248,6 @@ namespace DynamicMosaicExample
                 _grpImagesGraphics = Graphics.FromHwnd(grpImages.Handle);
                 _grpSourceImageGraphics = Graphics.FromHwnd(grpSourceImage.Handle);
 
-                _savedRecognizeQuery = txtWord.Text;
                 ImageActualize(ImageActualizeAction.REFRESH);
                 _btmSavedRecognizeCopy = RecognizeBitmapCopy;
 

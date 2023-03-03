@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.IO;
-using DynamicParser;
+using Processor = DynamicParser.Processor;
 
 namespace DynamicMosaicExample
 {
@@ -91,6 +91,26 @@ namespace DynamicMosaicExample
             btm.SetPixel(0, 0, btm.GetPixel(0, 0)); // Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
 
             return btm;
+        }
+
+        /// <summary>
+        ///     Добавляет указанную карту <see cref="Processor" /> в <see cref="ConcurrentProcessorStorage" />.
+        ///     Добавляет её в массив, содержащий хеши, и в массив, содержащий пути.
+        ///     Хеш добавляемой карты может совпадать с хешами других карт.
+        ///     Полный путь к добавляемой карте на достоверность не проверяется.
+        ///     Если карта уже присутствовала в коллекции, то она будет перезагружена в неё.
+        /// </summary>
+        /// <param name="hashCode">Хеш добавляемой карты.</param>
+        /// <param name="fullPath">Полный путь к добавляемой карте.</param>
+        /// <param name="processor">Добавляемая карта <see cref="Processor" />.</param>
+        protected override void ReplaceElement(int hashCode, string fullPath, Processor processor)
+        {
+            bool needReplace = RemoveProcessor(fullPath);
+
+            BaseAddElement(hashCode, fullPath, processor);
+
+            if (needReplace)
+                LastRecognizePath = fullPath;
         }
     }
 }
