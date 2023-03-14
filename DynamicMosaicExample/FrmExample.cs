@@ -599,9 +599,9 @@ namespace DynamicMosaicExample
                 Name = "WaitThread"
             };
 
-            thread.Start();
-
             _userInterfaceThread = thread;
+
+            thread.Start();
         }
 
         Bitmap RecognizeBitmapCopy
@@ -618,9 +618,9 @@ namespace DynamicMosaicExample
             }
         }
 
-        static void ResetLogWriteMessage()
+        void ResetLogWriteMessage()
         {
-            lock (ErrorMessageLocker)
+            lock (_commonLocker)
                 _errorMessageIsShowed = false;
         }
 
@@ -634,8 +634,8 @@ namespace DynamicMosaicExample
         {
             ResetLogWriteMessage();
 
-            if (!StopRecognize())
-                throw new Exception(@"Ошибка при остановке потока перед запуском новой сессии поиска.");
+            if (StopRecognize())
+                return;
 
             if (IsQueryChanged)
             {
@@ -656,88 +656,89 @@ namespace DynamicMosaicExample
                 Name = "Recognizer"
             };
 
-            t.Start();
-
             RecognizerThread = t;
+
+            t.Start();
         });
 
-        void RecognizerFunction()
+        void RecognizerFunction() => SafeExecute(() =>
         {
-            SafeExecute(() =>
+            try
             {
-                try
+                _recogPreparing.Set();
+
+                (Processor, string)[] query = _recognizeProcessorStorage.Elements.Select(t => (t, t.Tag)).ToArray();
+
+                if (!query.Any())
                 {
-                    _recogPreparing.Set();
+                    ErrorMessageInOtherThread(@"Поисковые запросы отсутствуют. Создайте хотя бы один.");
+                    return;
+                }
 
-                    DynamicReflex recognizer = Recognizer;
+                DynamicReflex recognizer = Recognizer;
 
-                    if (recognizer == null)
+                if (recognizer == null)
+                {
+                    List<Processor> processors = _imagesProcessorStorage.UniqueElements.ToList();
+
+                    if (!processors.Any())
                     {
-                        List<Processor> processors = _imagesProcessorStorage.UniqueElements.ToList();
-
-                        if (!processors.Any())
-                        {
-                            ErrorMessageInOtherThread(@"Образы для поиска отсутствуют. Создайте хотя бы два.");
-                            return;
-                        }
-
-                        recognizer = new DynamicReflex(new ProcessorContainer(processors));
-
-                        Recognizer = recognizer;
-
-                        OutHistory(null, recognizer.Processors.ToArray(), @"start");
-                    }
-
-                    (Processor, string)[] query = _recognizeProcessorStorage.Elements.Select(t => (t, t.Tag)).ToArray();
-
-                    if (!query.Any())
-                    {
-                        ErrorMessageInOtherThread(@"Поисковые запросы отсутствуют. Создайте хотя бы один.");
+                        ErrorMessageInOtherThread(@"Образы для поиска отсутствуют. Создайте хотя бы два.");
                         return;
                     }
 
-                    _recognizerActivity.Set();
+                    recognizer = new DynamicReflex(new ProcessorContainer(processors));
+
+                    OutHistory(null, recognizer.Processors.ToArray(), @"start");
+
+                    Recognizer = recognizer;
+                }
+
+                _recognizerActivity.Set();
+
+                try
+                {
+                    _stwRecognize.Restart();
+
+                    bool? result;
 
                     try
                     {
-                        _stwRecognize.Restart();
-
-                        bool? result;
-
-                        try
-                        {
-                            result = recognizer.FindRelation(query);
-                        }
-                        finally
-                        {
-                            _stwRecognize.Stop();
-                        }
-
-                        OutHistory(result, recognizer.Processors.ToArray());
+                        result = recognizer.FindRelation(query);
                     }
-                    catch (ThreadAbortException)
+                    finally
                     {
-                        throw;
+                        _stwRecognize.Stop();
                     }
-                    catch
-                    {
-                        OutHistory(null, recognizer.Processors.ToArray(), @"EXCP");
-                        throw;
-                    }
+
+                    OutHistory(result, recognizer.Processors.ToArray());
                 }
                 catch (ThreadAbortException)
                 {
-                    ResetAbort();
-                }
-                finally
-                {
-                    _recogPreparing.Reset();
-                    _recognizerActivity.Reset();
+                    Recognizer = null;
 
-                    RecognizerThread = null;
+                    throw;
                 }
-            });
-        }
+                catch
+                {
+                    Recognizer = null;
+
+                    OutHistory(null, recognizer.Processors.ToArray(), @"EXCP");
+                    throw;
+                }
+            }
+            catch (ThreadAbortException)
+            {
+                ResetAbort();
+            }
+            finally
+            {
+                _recogPreparing.Reset();
+                _recognizerActivity.Reset();
+
+                RecognizerThread = null;
+            }
+        });
 
         void OutHistory(bool? result, Processor[] ps, string comment = null) => SafeExecute(() =>
         {
@@ -1110,45 +1111,51 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void FrmExample_FormClosing(object sender, FormClosingEventArgs e) => SafeExecute(() =>
+        void FrmExample_FormClosing(object sender, FormClosingEventArgs e)
         {
             try
             {
+                if (IsExited)
+                {
+                    _exitingThread.Join();
+
+                    return;
+                }
+
+                e.Cancel = true;
+
                 DisposeWorkDirWatcher();
                 DisposeRecognizeWatcher();
                 DisposeImageWatcher();
 
-                if (!StopRecognize())
-                    WriteLogMessage($@"{nameof(FrmExample_FormClosing)}: Ошибка остановки поиска, в процессе завершения работы программы.");
+                _exitingThread = new Thread(() => SafeExecute(() =>
+                {
+                    ConcurrentProcessorStorage.LongOperationsAllowed = false;
 
-                _stopBackground.Set();
+                    _stopBackground.Set();
 
-                ConcurrentProcessorStorage.LongOperationsAllowed = false;
+                    StopRecognize(false);
 
-                _fileRefreshThread?.Join();
-                _userInterfaceThread?.Join();
+                    _fileRefreshThread?.Join();
+                    _userInterfaceThread?.Join();
 
-                _grRecognizeImageGraphics?.Dispose();
-                _grpResultsGraphics?.Dispose();
-                _grpImagesGraphics?.Dispose();
-                _grpSourceImageGraphics?.Dispose();
+                    IsExited = true;
 
-                BlackPen.Dispose();
-                ImageFramePen.Dispose();
-                WhitePen.Dispose();
-                _imageFrameResetPen?.Dispose();
+                    BeginInvoke(new Action(() => SafeExecute(Close)));
+                }))
+                {
+                    IsBackground = true,
+                    Name = "ExitingThread"
+                };
 
-                DisposeImage(pbDraw);
-                DisposeImage(pbBrowse);
-                DisposeImage(pbConSymbol);
+                _exitingThread.Start();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($@"{ex.Message}{Environment.NewLine}Программа будет завершена.", @"Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Process.GetCurrentProcess().Kill();
             }
-        });
+        }
 
         public static void DisposeImage(PictureBox pb)
         {
@@ -1266,5 +1273,30 @@ namespace DynamicMosaicExample
         void PbConSymbol_Paint(object sender, PaintEventArgs e) => SafeExecute(() => DrawFieldFrame(pbConSymbol, _grpResultsGraphics, true));
 
         void PbBrowse_Paint(object sender, PaintEventArgs e) => SafeExecute(() => DrawFieldFrame(pbBrowse, _grpImagesGraphics, true));
+
+        void FrmExample_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            try
+            {
+                _grRecognizeImageGraphics?.Dispose();
+                _grpResultsGraphics?.Dispose();
+                _grpImagesGraphics?.Dispose();
+                _grpSourceImageGraphics?.Dispose();
+
+                BlackPen.Dispose();
+                ImageFramePen.Dispose();
+                WhitePen.Dispose();
+                _imageFrameResetPen?.Dispose();
+
+                DisposeImage(pbDraw);
+                DisposeImage(pbBrowse);
+                DisposeImage(pbConSymbol);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Process.GetCurrentProcess().Kill();
+            }
+        }
     }
 }

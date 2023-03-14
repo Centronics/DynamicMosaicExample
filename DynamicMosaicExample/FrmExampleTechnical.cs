@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -52,9 +51,9 @@ namespace DynamicMosaicExample
 
         const string LogRefreshedMessage = @"Содержимое лог-файла обновлено. Есть новые сообщения.";
 
-        const string ThreadStuck = @"Во время остановки процесса поиска произошла ошибка: поток, отвечающий за поиск, завис. Рекомендуется перезапустить программу.";
+        const string ThreadStuck = @"Во время остановки процесса поиска произошла ошибка: поток, отвечающий за поиск, завис. Программа будет завершена.";
 
-        const string SearchStopError = @"Во время остановки процесса поиска произошла ошибка.";
+        const string SearchStopError = @"Во время остановки процесса поиска произошла ошибка. Программа будет завершена.";
 
         const string UnknownFSChangeType = @"Неизвестный тип изменения файловой системы.";
 
@@ -109,7 +108,7 @@ namespace DynamicMosaicExample
         /// </summary>
         static volatile bool _errorMessageIsShowed;
 
-        static readonly object ErrorMessageLocker = new object();
+        readonly object _commonLocker = new object();
 
         /// <summary>
         ///     Задаёт цвет и ширину для рисования в окне создания распознаваемого изображения.
@@ -126,12 +125,12 @@ namespace DynamicMosaicExample
 
         Graphics _grpImagesGraphics;
 
+        Thread _exitingThread;
+
         /// <summary>
         ///     Предназначена для хранения задач, связанных с изменениями в файловой системе.
         /// </summary>
         readonly ConcurrentQueue<FileTask> _concurrentFileTasks = new ConcurrentQueue<FileTask>();
-
-        readonly object _recognizerSync = new object();
 
         DynamicReflex _recognizer;
 
@@ -139,13 +138,13 @@ namespace DynamicMosaicExample
         {
             get
             {
-                lock (_recognizerSync)
+                lock (_commonLocker)
                     return _recognizer;
             }
 
             set
             {
-                lock (_recognizerSync)
+                lock (_commonLocker)
                 {
                     if (value != null && _recognizer != null)
                         throw new ArgumentException($@"Нельзя создать новый экземпляр {nameof(DynamicReflex)}, когда предыдущий ещё существует.", nameof(value));
@@ -241,8 +240,6 @@ namespace DynamicMosaicExample
         /// </summary>
         bool _buttonsEnabled = true;
 
-        readonly object _buttonsEnabledSync = new object();
-
         /// <summary>
         ///     Индекс <see cref="ImageRect" />, рассматриваемый в данный момент.
         /// </summary>
@@ -253,6 +250,23 @@ namespace DynamicMosaicExample
         bool _needInitImage = true;
 
         bool _needInitRecognizeImage = true;
+
+        bool _isExited;
+
+        bool IsExited
+        {
+            get
+            {
+                lock (_commonLocker)
+                    return _isExited;
+            }
+
+            set
+            {
+                lock (_commonLocker)
+                    _isExited = value;
+            }
+        }
 
         /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
@@ -278,8 +292,6 @@ namespace DynamicMosaicExample
             set => _recognizeResults[lstHistory.SelectedIndex] = value;
         }
 
-        readonly object _recognizerThreadSyncObject = new object();
-
         /// <summary>
         ///     Поток, отвечающий за выполнение процедуры поиска символов на распознаваемом изображении.
         /// </summary>
@@ -289,13 +301,13 @@ namespace DynamicMosaicExample
         {
             get
             {
-                lock (_recognizerThreadSyncObject)
+                lock (_commonLocker)
                     return _recognizerThread;
             }
 
             set
             {
-                lock (_recognizerThreadSyncObject)
+                lock (_commonLocker)
                     _recognizerThread = value;
             }
         }
@@ -343,6 +355,8 @@ namespace DynamicMosaicExample
             {
                 InitializeComponent();
 
+                LogPath = Path.Combine(WorkingDirectory, "log.log");
+
                 ThreadPool.GetMinThreads(out _, out int comPortMin);
                 ThreadPool.SetMinThreads(Environment.ProcessorCount * 3, comPortMin);
                 ThreadPool.GetMaxThreads(out _, out int comPortMax);
@@ -384,6 +398,8 @@ namespace DynamicMosaicExample
 
         public static string WorkingDirectory { get; } = Application.StartupPath;
 
+        public string LogPath { get; }
+
         /// <summary>
         ///     Путь, по которому ищутся изображения, которые интерпретируются как карты <see cref="Processor" />, поиск которых
         ///     будет осуществляться на основной карте.
@@ -404,13 +420,13 @@ namespace DynamicMosaicExample
         {
             get
             {
-                lock (_buttonsEnabledSync)
+                lock (_commonLocker)
                     return _buttonsEnabled;
             }
 
             set
             {
-                lock (_buttonsEnabledSync)
+                lock (_commonLocker)
                 {
                     if (value == _buttonsEnabled)
                         return;
@@ -501,50 +517,44 @@ namespace DynamicMosaicExample
         ///     Возвращает значение <see langword="true" /> в случае успешной остановки процесса распознавания, в противном случае
         ///     возвращает значение <see langword="false" />, в том числе, если процесс распознавания не был запущен.
         /// </returns>
-        bool StopRecognize()
+        bool StopRecognize(bool userNotify = true)
         {
-            Thread t = RecognizerThread;
-
-            if (t == null)
-                return true;
-
-            DynamicReflex r = Recognizer;
-
             try
             {
-                string errMsg = @"UNK";
+                Thread t = RecognizerThread;
 
-                try
+                if (t == null)
+                    return false;
+
+                t.Abort();
+
+                if (t.Join(5000))
                 {
-                    t.Abort();
+                    RecognizerThread = null;
 
-                    if (t.Join(5000))
-                    {
-                        RecognizerThread = null;
-
-                        errMsg = @"STP";
-
-                        return true;
-                    }
-
-                    errMsg = @"TCK";
+                    return true;
                 }
-                finally
-                {
-                    if (r != null)
-                        OutHistory(null, r.Processors.ToArray(), errMsg);
-                }
+
+                if (!userNotify)
+                    return false;
 
                 WriteLogMessage($@"{nameof(StopRecognize)}: {ThreadStuck}");
                 MessageBox.Show(this, ThreadStuck, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                Process.GetCurrentProcess().Kill();
+
+                return false;
             }
             catch (Exception ex)
             {
+                if (!userNotify)
+                    return false;
+
                 WriteLogMessage($@"{nameof(StopRecognize)}: {SearchStopError}{Environment.NewLine}{ex.Message}");
                 MessageBox.Show(this, SearchStopError, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
 
-            return false;
+                return false;
+            }
         }
 
         /// <summary>
@@ -669,9 +679,9 @@ namespace DynamicMosaicExample
                 Name = "FileRefreshThread"
             };
 
-            thread.Start();
-
             _fileRefreshThread = thread;
+
+            thread.Start();
         }
 
         /// <summary>
@@ -688,7 +698,7 @@ namespace DynamicMosaicExample
 
                 try
                 {
-                    lock (ErrorMessageLocker)
+                    lock (_commonLocker)
                     {
                         if (_errorMessageIsShowed)
                             return;
@@ -734,9 +744,8 @@ namespace DynamicMosaicExample
             try
             {
                 logstr = $@"{DateTime.Now:dd.MM.yyyy HH:mm:ss} {logstr}";
-                string path = Path.Combine(WorkingDirectory, "log.log");
                 lock (LogLockerObject)
-                    using (FileStream fs = new FileStream(path, FileMode.Append, FileAccess.Write,
+                    using (FileStream fs = new FileStream(LogPath, FileMode.Append, FileAccess.Write,
                         FileShare.ReadWrite | FileShare.Delete))
                     using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8))
                         sw.WriteLine(logstr);

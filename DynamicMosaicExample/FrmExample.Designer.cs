@@ -573,6 +573,7 @@
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Тестовый стенд";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmExample_FormClosing);
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.FrmExample_FormClosed);
             this.Shown += new System.EventHandler(this.FrmExample_Shown);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FrmExample_KeyDown);
             this.grpImages.ResumeLayout(false);
