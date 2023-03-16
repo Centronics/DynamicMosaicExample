@@ -51,8 +51,6 @@ namespace DynamicMosaicExample
 
         const string LogRefreshedMessage = @"Содержимое лог-файла обновлено. Есть новые сообщения.";
 
-        const string ThreadStuck = @"Во время остановки процесса поиска произошла ошибка: поток, отвечающий за поиск, завис. Программа будет завершена.";
-
         const string SearchStopError = @"Во время остановки процесса поиска произошла ошибка. Программа будет завершена.";
 
         const string UnknownFSChangeType = @"Неизвестный тип изменения файловой системы.";
@@ -150,6 +148,7 @@ namespace DynamicMosaicExample
                         throw new ArgumentException($@"Нельзя создать новый экземпляр {nameof(DynamicReflex)}, когда предыдущий ещё существует.", nameof(value));
 
                     _recognizer = value;
+                    CurrentUndoRedoState = UndoRedoState.UNKNOWN;
                 }
             }
         }
@@ -528,22 +527,11 @@ namespace DynamicMosaicExample
 
                 t.Abort();
 
-                if (t.Join(5000))
-                {
-                    RecognizerThread = null;
+                t.Join();
 
-                    return true;
-                }
+                RecognizerThread = null;
 
-                if (!userNotify)
-                    return false;
-
-                WriteLogMessage($@"{nameof(StopRecognize)}: {ThreadStuck}");
-                MessageBox.Show(this, ThreadStuck, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-                Process.GetCurrentProcess().Kill();
-
-                return false;
+                return true;
             }
             catch (Exception ex)
             {
@@ -843,14 +831,11 @@ namespace DynamicMosaicExample
 
             set
             {
-                if (_currentUndoRedoState == UndoRedoState.UNKNOWN)
-                {
-                    _currentUndoRedoWord = value ?? string.Empty;
+                if (CurrentUndoRedoState == UndoRedoState.UNKNOWN)
                     return;
-                }
 
-                pbSuccess.Image = txtWord.Text == _currentUndoRedoWord
-                    ? _currentUndoRedoState == UndoRedoState.ERROR
+                pbSuccess.Image = value == _currentUndoRedoWord
+                    ? CurrentUndoRedoState == UndoRedoState.ERROR
                     ? Resources.Result_Error
                     : Resources.Result_OK
                     : Resources.Result_Unknown;

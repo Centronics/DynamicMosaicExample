@@ -162,6 +162,7 @@ namespace DynamicMosaicExample
                     _savedRecognizeQuery = tag;
                 }
 
+                _currentUndoRedoWord = tag;
                 txtWord.Text = tag;
             }
             catch (Exception ex)
@@ -647,7 +648,6 @@ namespace DynamicMosaicExample
             lstHistory.SelectedIndex = -1;
 
             CurrentUndoRedoState = UndoRedoState.UNKNOWN;
-            CurrentUndoRedoWord = txtWord.Text;
 
             Thread t = new Thread(RecognizerFunction)
             {
@@ -799,7 +799,7 @@ namespace DynamicMosaicExample
                     BtnRecognizeImage_Click(btnRecognizeImage, EventArgs.Empty);
                     break;
                 case Keys.Z when e.Control && txtWord.Focused:
-                    if (CurrentUndoRedoState == UndoRedoState.UNKNOWN)
+                    if (txtWord.Text == CurrentUndoRedoWord)
                         return;
 
                     txtWord.Text = CurrentUndoRedoWord;
