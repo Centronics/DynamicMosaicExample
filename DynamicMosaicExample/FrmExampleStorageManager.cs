@@ -40,7 +40,10 @@ namespace DynamicMosaicExample
 
             _concurrentFileTasks.Enqueue(new FileTask(FileTaskAction.CLEARED, storage));
 
-            RefreshRecognizer();
+            if (storage.StorageType == ProcStorType.IMAGE)
+                RefreshRecognizer();
+
+            _refreshEvent.Set();
         }
 
         void EnqueueRemove(string fullPath, ConcurrentProcessorStorage storage)
@@ -50,7 +53,10 @@ namespace DynamicMosaicExample
 
             _concurrentFileTasks.Enqueue(new Common(FileTaskAction.REMOVED, storage, ConcurrentProcessorStorage.AddEndingSlash(fullPath)));
 
-            RefreshRecognizer();
+            if (storage.StorageType == ProcStorType.IMAGE)
+                RefreshRecognizer();
+
+            _refreshEvent.Set();
         }
 
         void EnqueueCreate(string fullPath, ConcurrentProcessorStorage storage)
@@ -60,7 +66,10 @@ namespace DynamicMosaicExample
 
             _concurrentFileTasks.Enqueue(new Common(FileTaskAction.CREATED, storage, fullPath));
 
-            RefreshRecognizer();
+            if (storage.StorageType == ProcStorType.IMAGE)
+                RefreshRecognizer();
+
+            _refreshEvent.Set();
         }
 
         static FileTaskAction ConvertWatcherChangeTypes(WatcherChangeTypes c)
@@ -174,7 +183,11 @@ namespace DynamicMosaicExample
             }
 
             _concurrentFileTasks.Enqueue(new Common(ConvertWatcherChangeTypes(e.ChangeType), storage, e.FullPath));
-            RefreshRecognizer();
+
+            if (storage.StorageType == ProcStorType.IMAGE)
+                RefreshRecognizer();
+
+            _refreshEvent.Set();
         });
 
         void OnRenamed(RenamedEventArgs e, SourceChanged source) => SafeExecute(() =>
@@ -198,7 +211,11 @@ namespace DynamicMosaicExample
             }
 
             _concurrentFileTasks.Enqueue(new Renamed(ConvertWatcherChangeTypes(e.ChangeType), oldStorage, e.FullPath, e.OldFullPath, true, true));
-            RefreshRecognizer();
+
+            if (oldStorage.StorageType == ProcStorType.IMAGE || newStorage.StorageType == ProcStorType.IMAGE)
+                RefreshRecognizer();
+
+            _refreshEvent.Set();
         });
 
         void IntRecognizeOnChanged(object _, FileSystemEventArgs e) => SafeExecute(() => OnChanged(e, SourceChanged.RECOGNIZE));

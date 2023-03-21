@@ -483,11 +483,7 @@ namespace DynamicMosaicExample
             return true;
         }
 
-        void RefreshRecognizer()
-        {
-            Recognizer = null;
-            _refreshEvent.Set();
-        }
+        void RefreshRecognizer() => Recognizer = null;
 
         /// <summary>
         ///     Возвращает значение <see langword="true" /> в случае, если пользователь нарисовал что-либо в окне создания

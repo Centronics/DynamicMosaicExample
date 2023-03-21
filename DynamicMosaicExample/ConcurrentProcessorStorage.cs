@@ -102,10 +102,10 @@ namespace DynamicMosaicExample
 
                 if (tagSet == null)
                 {
-                    tagSet = new HashSet<string>();
+                    tagSet = new HashSet<string>(DictionaryByKey.Values.Select(pp => Path.GetFileNameWithoutExtension(pp.CurrentPath).ToLower()));
 
-                    lock (SyncObject)
-                        foreach ((Processor, string) result in DictionaryByKey.Values.Select(pp => IntGetUniqueProcessor(tagSet, pp.CurrentProcessor, ParseName(pp.CurrentProcessor.Tag), pp.CurrentPath)).Where(_ => !arg.HasValue))
+                    if (!arg.HasValue)
+                        foreach ((Processor, string) result in DictionaryByKey.Values.Select(pp => (pp.CurrentProcessor, pp.CurrentPath)))
                             yield return result;
                 }
 
