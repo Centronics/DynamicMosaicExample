@@ -1,33 +1,36 @@
 ﻿using System;
 using System.Drawing;
 using System.IO;
-using Processor = DynamicParser.Processor;
+using DynamicParser;
 
 namespace DynamicMosaicExample
 {
     public sealed class RecognizeProcessorStorage : ConcurrentProcessorStorage
     {
-        readonly int _minWidth;
+        readonly int _height;
 
         readonly int _maxWidth;
-
-        readonly int _height;
+        readonly int _minWidth;
 
         public RecognizeProcessorStorage(int minWidth, int maxWidth, int height, string extImg) : base(extImg)
         {
             if (string.IsNullOrWhiteSpace(extImg))
-                throw new ArgumentNullException(nameof(extImg), $@"Расширение загружаемых изображений должно быть указано ({extImg ?? @"null"}).");
+                throw new ArgumentNullException(nameof(extImg),
+                    $@"Расширение загружаемых изображений должно быть указано ({extImg ?? @"null"}).");
 
             _minWidth = minWidth;
             _maxWidth = maxWidth;
             _height = height;
         }
 
-        protected override Processor GetAddingProcessor(string fullPath) => new Processor(LoadRecognizeBitmap(fullPath), GetProcessorTag(fullPath));
-
-        public override string ImagesPath => FrmExample.RecognizeImagesPath;
+        public override string WorkingDirectory => FrmExample.RecognizeImagesPath;
 
         public override ProcessorStorageType StorageType => ProcessorStorageType.RECOGNIZE;
+
+        protected override Processor GetAddingProcessor(string fullPath)
+        {
+            return new Processor(LoadRecognizeBitmap(fullPath), GetProcessorTag(fullPath));
+        }
 
         /// <summary>
         ///     Сохраняет указанную карту <see cref="Processor" /> на жёсткий диск в формате BMP.
@@ -37,14 +40,15 @@ namespace DynamicMosaicExample
         public string SaveToFile(Processor processor)
         {
             if (processor == null)
-                throw new ArgumentNullException(nameof(processor), $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
+                throw new ArgumentNullException(nameof(processor),
+                    $@"{nameof(SaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
 
             lock (SyncObject)
             {
-                CreateFolder();
-                (Processor p, string path) = GetUniqueProcessorWithMask(processor, string.Empty);
-                SaveToFile(ImageRect.GetBitmap(p), path);
-                LastRecognizePath = path;
+                CreateWorkingDirectory();
+                string path = GetUniquePath(processor.Tag);
+                SaveToFile(ImageRect.GetBitmap(processor), path);
+                SelectedPath = path;
                 return path;
             }
         }
@@ -52,7 +56,9 @@ namespace DynamicMosaicExample
         static string GetProcessorTag(string fullPath)
         {
             if (string.IsNullOrWhiteSpace(fullPath))
-                throw new ArgumentException($@"{nameof(GetProcessorTag)}: Обнаружен пустой параметр, значение ({fullPath ?? @"<null>"}).", nameof(fullPath));
+                throw new ArgumentException(
+                    $@"{nameof(GetProcessorTag)}: Обнаружен пустой параметр, значение ({fullPath ?? @"<null>"}).",
+                    nameof(fullPath));
 
             return ParseName(Path.GetFileNameWithoutExtension(fullPath)).name;
         }
@@ -71,24 +77,30 @@ namespace DynamicMosaicExample
             }
             catch (Exception ex)
             {
-                throw new Exception($@"Ошибка при загрузке изображения по пути: {fullPath}{Environment.NewLine}Текст ошибки: ""{ex.Message}"".", ex);
+                throw new Exception(
+                    $@"Ошибка при загрузке изображения по пути: {fullPath}{Environment.NewLine}Текст ошибки: ""{ex.Message}"".",
+                    ex);
             }
 
             if (btm.Width < _minWidth || btm.Width > _maxWidth)
             {
                 int w = btm.Width;
                 btm.Dispose();
-                throw new Exception($@"Загружаемое изображение не подходит по ширине: {w}. Она выходит за рамки допустимого ({_minWidth};{_maxWidth}). Путь: {fullPath}.");
+                throw new Exception(
+                    $@"Загружаемое изображение не подходит по ширине: {w}. Она выходит за рамки допустимого ({_minWidth};{_maxWidth}). Путь: {fullPath}.");
             }
 
             if (btm.Height != _height)
             {
                 int h = btm.Height;
                 btm.Dispose();
-                throw new Exception($@"Загружаемое изображение не подходит по высоте: {h}; необходимо: {_height}. Путь: {fullPath}.");
+                throw new Exception(
+                    $@"Загружаемое изображение не подходит по высоте: {h}; необходимо: {_height}. Путь: {fullPath}.");
             }
 
-            btm.SetPixel(0, 0, btm.GetPixel(0, 0)); // Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
+            btm.SetPixel(0, 0,
+                btm.GetPixel(0,
+                    0)); // Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
 
             return btm;
         }
@@ -110,7 +122,7 @@ namespace DynamicMosaicExample
             BaseAddElement(hashCode, fullPath, processor);
 
             if (needReplace)
-                LastRecognizePath = fullPath;
+                SelectedPath = fullPath;
         }
     }
 }

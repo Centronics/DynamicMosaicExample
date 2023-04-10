@@ -6,11 +6,34 @@ namespace DynamicMosaicExample
 {
     internal sealed partial class FrmExample
     {
-        enum SourceChanged
+        public enum FileTaskAction
         {
-            IMAGES,
-            RECOGNIZE,
-            WORKDIR
+            /// <summary>
+            ///     Создание файла или папки.
+            /// </summary>
+            CREATED,
+
+            /// <summary>
+            ///     Удаление файла или папки.
+            /// </summary>
+            REMOVED,
+
+            /// <summary>
+            ///     Изменение файла или папки.
+            ///     Типы изменений включают: изменения размера, атрибутов, параметры безопасности, последняя запись и время последнего
+            ///     доступа.
+            /// </summary>
+            CHANGED,
+
+            /// <summary>
+            ///     Переименование файла или папки.
+            /// </summary>
+            RENAMED,
+
+            /// <summary>
+            ///     Удаление всех файлов.
+            /// </summary>
+            CLEARED
         }
 
         ConcurrentProcessorStorage GetStorage(SourceChanged source, string fullPath)
@@ -22,15 +45,17 @@ namespace DynamicMosaicExample
                 case SourceChanged.RECOGNIZE:
                     return _recognizeProcessorStorage;
                 case SourceChanged.WORKDIR:
-                    if (_imagesProcessorStorage.IsWorkingPath(fullPath, true))
+                    if (_imagesProcessorStorage.IsWorkingDirectory(fullPath, true))
                         return _imagesProcessorStorage;
 
-                    return _recognizeProcessorStorage.IsWorkingPath(fullPath, true)
+                    return _recognizeProcessorStorage.IsWorkingDirectory(fullPath, true)
                         ? _recognizeProcessorStorage
                         : null;
             }
 
-            throw new ArgumentException($@"Неизвестно, в каком хранилище требуется произвести изменение {nameof(SourceChanged)}: {source}", nameof(source));
+            throw new ArgumentException(
+                $@"Неизвестно, в каком хранилище требуется произвести изменение {nameof(SourceChanged)}: {source}",
+                nameof(source));
         }
 
         void EnqueueRemoveStorage(ConcurrentProcessorStorage storage)
@@ -51,7 +76,8 @@ namespace DynamicMosaicExample
             if (storage == null)
                 return;
 
-            _concurrentFileTasks.Enqueue(new Common(FileTaskAction.REMOVED, storage, ConcurrentProcessorStorage.AddEndingSlash(fullPath)));
+            _concurrentFileTasks.Enqueue(new Common(FileTaskAction.REMOVED, storage,
+                ConcurrentProcessorStorage.AddEndingSlash(fullPath)));
 
             if (storage.StorageType == ProcStorType.IMAGE)
                 RefreshRecognizer();
@@ -116,116 +142,156 @@ namespace DynamicMosaicExample
             }
         }
 
-        void RenamedThreadFunction(string oldFullPath, string newFullPath, SourceChanged source, ConcurrentProcessorStorage oldStorage, ConcurrentProcessorStorage newStorage) => SafeExecute(() =>
+        void RenamedThreadFunction(string oldFullPath, string newFullPath, SourceChanged source,
+            ConcurrentProcessorStorage oldStorage, ConcurrentProcessorStorage newStorage)
         {
-            if (source != SourceChanged.WORKDIR)
+            SafeExecute(() =>
             {
-                EnqueueRemove(oldFullPath, oldStorage);
-                EnqueueCreate(newFullPath, oldStorage);
-                return;
-            }
-
-            if (oldStorage != null)
-            {
-                TrackStorage(oldStorage, false);
-                EnqueueRemoveStorage(oldStorage);
-            }
-
-            if (newStorage == null)
-                return;
-
-            TrackStorage(newStorage, true);
-            EnqueueCreate(newFullPath, newStorage);
-        });
-
-        void ChangedThreadFunction(WatcherChangeTypes type, string fullPath, ConcurrentProcessorStorage storage, SourceChanged source) => SafeExecute(() =>
-        {
-            switch (type)
-            {
-                case WatcherChangeTypes.Deleted:
-                    if (source == SourceChanged.WORKDIR)
-                    {
-                        TrackStorage(storage, false);
-                        EnqueueRemoveStorage(storage);
-                    }
-                    else
-                        EnqueueRemove(fullPath, storage);
+                if (source != SourceChanged.WORKDIR)
+                {
+                    EnqueueRemove(oldFullPath, oldStorage);
+                    EnqueueCreate(newFullPath, oldStorage);
                     return;
-                case WatcherChangeTypes.Created:
-                    if (source == SourceChanged.WORKDIR)
-                        TrackStorage(storage, true);
+                }
 
-                    EnqueueCreate(fullPath, storage);
+                if (oldStorage != null)
+                {
+                    TrackStorage(oldStorage, false);
+                    EnqueueRemoveStorage(oldStorage);
+                }
+
+                if (newStorage == null)
                     return;
-                case WatcherChangeTypes.Changed:
-                case WatcherChangeTypes.Renamed:
-                case WatcherChangeTypes.All:
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(type), type, $@"{nameof(ChangedThreadFunction)}: Неизвестный тип изменения.");
-            }
-        });
 
-        void OnChanged(FileSystemEventArgs e, SourceChanged source) => SafeExecute(() =>
+                TrackStorage(newStorage, true);
+                EnqueueCreate(newFullPath, newStorage);
+            });
+        }
+
+        void ChangedThreadFunction(WatcherChangeTypes type, string fullPath, ConcurrentProcessorStorage storage,
+            SourceChanged source)
         {
-            if (string.IsNullOrWhiteSpace(e.FullPath))
-                return;
-
-            ConcurrentProcessorStorage storage = GetStorage(source, e.FullPath);
-
-            if (storage == null)
-                return;
-
-            if (!storage.IsProcessorFile(e.FullPath))
+            SafeExecute(() =>
             {
-                ChangedThreadFunction(e.ChangeType, e.FullPath, storage, source);
-                return;
-            }
+                switch (type)
+                {
+                    case WatcherChangeTypes.Deleted:
+                        if (source == SourceChanged.WORKDIR)
+                        {
+                            TrackStorage(storage, false);
+                            EnqueueRemoveStorage(storage);
+                        }
+                        else
+                        {
+                            EnqueueRemove(fullPath, storage);
+                        }
 
-            _concurrentFileTasks.Enqueue(new Common(ConvertWatcherChangeTypes(e.ChangeType), storage, e.FullPath));
+                        return;
+                    case WatcherChangeTypes.Created:
+                        if (source == SourceChanged.WORKDIR)
+                            TrackStorage(storage, true);
 
-            if (storage.StorageType == ProcStorType.IMAGE)
-                RefreshRecognizer();
+                        EnqueueCreate(fullPath, storage);
+                        return;
+                    case WatcherChangeTypes.Changed:
+                    case WatcherChangeTypes.Renamed:
+                    case WatcherChangeTypes.All:
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(type), type,
+                            $@"{nameof(ChangedThreadFunction)}: Неизвестный тип изменения.");
+                }
+            });
+        }
 
-            _refreshEvent.Set();
-        });
-
-        void OnRenamed(RenamedEventArgs e, SourceChanged source) => SafeExecute(() =>
+        void OnChanged(FileSystemEventArgs e, SourceChanged source)
         {
-            if (string.IsNullOrWhiteSpace(e.FullPath) || string.IsNullOrWhiteSpace(e.OldFullPath))
-                return;
-
-            ConcurrentProcessorStorage oldStorage = GetStorage(source, e.OldFullPath);
-            ConcurrentProcessorStorage newStorage = GetStorage(source, e.FullPath);
-
-            bool renamedFrom = oldStorage != null;
-            bool renamedTo = newStorage != null;
-
-            if (!renamedTo && !renamedFrom)
-                return;
-
-            if (!renamedTo || !renamedFrom)
+            SafeExecute(() =>
             {
-                RenamedThreadFunction(e.OldFullPath, e.FullPath, source, oldStorage, newStorage);
-                return;
-            }
+                if (string.IsNullOrWhiteSpace(e.FullPath))
+                    return;
 
-            _concurrentFileTasks.Enqueue(new Renamed(ConvertWatcherChangeTypes(e.ChangeType), oldStorage, e.FullPath, e.OldFullPath, true, true));
+                ConcurrentProcessorStorage storage = GetStorage(source, e.FullPath);
 
-            if (oldStorage.StorageType == ProcStorType.IMAGE || newStorage.StorageType == ProcStorType.IMAGE)
-                RefreshRecognizer();
+                if (storage == null)
+                    return;
 
-            _refreshEvent.Set();
-        });
+                if (!storage.IsProcessorFile(e.FullPath))
+                {
+                    ChangedThreadFunction(e.ChangeType, e.FullPath, storage, source);
+                    return;
+                }
 
-        void IntRecognizeOnChanged(object _, FileSystemEventArgs e) => SafeExecute(() => OnChanged(e, SourceChanged.RECOGNIZE));
-        void IntRecognizeOnRenamed(object _, RenamedEventArgs e) => SafeExecute(() => OnRenamed(e, SourceChanged.RECOGNIZE));
+                _concurrentFileTasks.Enqueue(new Common(ConvertWatcherChangeTypes(e.ChangeType), storage, e.FullPath));
 
-        void IntImagesOnChanged(object _, FileSystemEventArgs e) => SafeExecute(() => OnChanged(e, SourceChanged.IMAGES));
-        void IntImagesOnRenamed(object _, RenamedEventArgs e) => SafeExecute(() => OnRenamed(e, SourceChanged.IMAGES));
+                if (storage.StorageType == ProcStorType.IMAGE)
+                    RefreshRecognizer();
 
-        void IntWorkDirOnChanged(object _, FileSystemEventArgs e) => SafeExecute(() => OnChanged(e, SourceChanged.WORKDIR));
-        void IntWorkDirOnRenamed(object _, RenamedEventArgs e) => SafeExecute(() => OnRenamed(e, SourceChanged.WORKDIR));
+                _refreshEvent.Set();
+            });
+        }
+
+        void OnRenamed(RenamedEventArgs e, SourceChanged source)
+        {
+            SafeExecute(() =>
+            {
+                if (string.IsNullOrWhiteSpace(e.FullPath) || string.IsNullOrWhiteSpace(e.OldFullPath))
+                    return;
+
+                ConcurrentProcessorStorage oldStorage = GetStorage(source, e.OldFullPath);
+                ConcurrentProcessorStorage newStorage = GetStorage(source, e.FullPath);
+
+                bool renamedFrom = oldStorage != null;
+                bool renamedTo = newStorage != null;
+
+                if (!renamedTo && !renamedFrom)
+                    return;
+
+                if (!renamedTo || !renamedFrom)
+                {
+                    RenamedThreadFunction(e.OldFullPath, e.FullPath, source, oldStorage, newStorage);
+                    return;
+                }
+
+                _concurrentFileTasks.Enqueue(new Renamed(ConvertWatcherChangeTypes(e.ChangeType), oldStorage,
+                    e.FullPath, e.OldFullPath, true, true));
+
+                if (oldStorage.StorageType == ProcStorType.IMAGE || newStorage.StorageType == ProcStorType.IMAGE)
+                    RefreshRecognizer();
+
+                _refreshEvent.Set();
+            });
+        }
+
+        void IntRecognizeOnChanged(object _, FileSystemEventArgs e)
+        {
+            SafeExecute(() => OnChanged(e, SourceChanged.RECOGNIZE));
+        }
+
+        void IntRecognizeOnRenamed(object _, RenamedEventArgs e)
+        {
+            SafeExecute(() => OnRenamed(e, SourceChanged.RECOGNIZE));
+        }
+
+        void IntImagesOnChanged(object _, FileSystemEventArgs e)
+        {
+            SafeExecute(() => OnChanged(e, SourceChanged.IMAGES));
+        }
+
+        void IntImagesOnRenamed(object _, RenamedEventArgs e)
+        {
+            SafeExecute(() => OnRenamed(e, SourceChanged.IMAGES));
+        }
+
+        void IntWorkDirOnChanged(object _, FileSystemEventArgs e)
+        {
+            SafeExecute(() => OnChanged(e, SourceChanged.WORKDIR));
+        }
+
+        void IntWorkDirOnRenamed(object _, RenamedEventArgs e)
+        {
+            SafeExecute(() => OnRenamed(e, SourceChanged.WORKDIR));
+        }
 
         void CreateRecognizeWatcher()
         {
@@ -316,33 +382,11 @@ namespace DynamicMosaicExample
             _fswWorkDirChanged = null;
         }
 
-        public enum FileTaskAction
+        enum SourceChanged
         {
-            /// <summary>
-            /// Создание файла или папки.
-            /// </summary>
-            CREATED,
-
-            /// <summary>
-            /// Удаление файла или папки.
-            /// </summary>
-            REMOVED,
-
-            /// <summary>
-            ///   Изменение файла или папки.
-            ///   Типы изменений включают: изменения размера, атрибутов, параметры безопасности, последняя запись и время последнего доступа.
-            /// </summary>
-            CHANGED,
-
-            /// <summary>
-            /// Переименование файла или папки.
-            /// </summary>
-            RENAMED,
-
-            /// <summary>
-            /// Удаление всех файлов.
-            /// </summary>
-            CLEARED
+            IMAGES,
+            RECOGNIZE,
+            WORKDIR
         }
 
         /// <summary>
@@ -350,13 +394,6 @@ namespace DynamicMosaicExample
         /// </summary>
         public class FileTask
         {
-            /// <summary>
-            ///     Изменения, возникшие в файле или папке.
-            /// </summary>
-            public FileTaskAction Type { get; }
-
-            public ConcurrentProcessorStorage Storage { get; }
-
             /// <summary>
             ///     Инициализирует новый экземпляр параметрами добавляемой задачи.
             ///     Параметры предназначены только для чтения.
@@ -368,11 +405,19 @@ namespace DynamicMosaicExample
                 Type = changes;
                 Storage = storage;
             }
+
+            /// <summary>
+            ///     Изменения, возникшие в файле или папке.
+            /// </summary>
+            public FileTaskAction Type { get; }
+
+            public ConcurrentProcessorStorage Storage { get; }
         }
 
         public class Common : FileTask
         {
-            public Common(FileTaskAction changes, ConcurrentProcessorStorage storage, string path) : base(changes, storage)
+            public Common(FileTaskAction changes, ConcurrentProcessorStorage storage, string path) : base(changes,
+                storage)
             {
                 Path = path;
             }
@@ -395,7 +440,8 @@ namespace DynamicMosaicExample
             /// <param name="oldFilePath">Исходный путь к файлу или папке, в которой произошли изменения.</param>
             /// <param name="renamedTo">Указывает, был ли файл переименован в требуемуе для программы расширение.</param>
             /// <param name="renamedFrom">Указывает, был ли файл переименован из требуемуемого для программы расширения.</param>
-            public Renamed(FileTaskAction changes, ConcurrentProcessorStorage storage, string path, string oldFilePath, bool renamedTo,
+            public Renamed(FileTaskAction changes, ConcurrentProcessorStorage storage, string path, string oldFilePath,
+                bool renamedTo,
                 bool renamedFrom) : base(changes, storage, path)
             {
                 OldPath = oldFilePath;

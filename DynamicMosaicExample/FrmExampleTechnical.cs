@@ -45,68 +45,27 @@ namespace DynamicMosaicExample
 
         const string NeedSaveQuery = @"Перед запуском процедуры поиска необходимо сохранить текущий запрос.";
 
-        const string SaveImageQueryError = @"Необходимо написать какой-либо запрос, который будет использоваться в качестве имени файла изображения.";
+        const string SaveImageQueryError =
+            @"Необходимо написать какой-либо запрос, который будет использоваться в качестве имени файла изображения.";
 
         const string QueryErrorSymbols = @"Запрос содержит недопустимые символы.";
 
         const string LogRefreshedMessage = @"Содержимое лог-файла обновлено. Есть новые сообщения.";
 
-        const string SearchStopError = @"Во время остановки процесса поиска произошла ошибка. Программа будет завершена.";
+        const string SearchStopError =
+            @"Во время остановки процесса поиска произошла ошибка. Программа будет завершена.";
 
         const string UnknownFSChangeType = @"Неизвестный тип изменения файловой системы.";
-
-        /// <summary>
-        ///     Состояние программы после поиска символов на изображении.
-        /// </summary>
-        internal enum UndoRedoState
-        {
-            /// <summary>
-            ///     Неизвестно.
-            ///     Этот статус означает, что процесс поиска ещё не был запущен.
-            /// </summary>
-            UNKNOWN,
-
-            /// <summary>
-            ///     Ошибка, условия не изменялись.
-            /// </summary>
-            ERROR,
-
-            /// <summary>
-            ///     Успех, условия не изменялись.
-            /// </summary>
-            SUCCESS
-        }
-
-        /// <summary>
-        ///     Текущее состояние программы.
-        /// </summary>
-        UndoRedoState _currentUndoRedoState = UndoRedoState.UNKNOWN;
-
-        string _currentUndoRedoWord = string.Empty;
-
-        /// <summary>
-        ///     Определяет шаг (в пикселях), на который изменяется ширина сканируемого (создаваемого) изображения при нажатии
-        ///     кнопок сужения или расширения.
-        /// </summary>
-        readonly int _widthStep;
 
         /// <summary>
         ///     Синхронизирует потоки, пытающиеся записать сообщение в лог-файл.
         /// </summary>
         static readonly object LogLockerObject = new object();
 
-        FileSystemWatcher _fswRecognizeChanged;
-
-        FileSystemWatcher _fswImageChanged;
-
-        FileSystemWatcher _fswWorkDirChanged;
-
         /// <summary>
         ///     Указывает, было ли просмотрено сообщение о том, что в процессе работы программы уже произошла ошибка.
         /// </summary>
         static volatile bool _errorMessageIsShowed;
-
-        readonly object _commonLocker = new object();
 
         /// <summary>
         ///     Задаёт цвет и ширину для рисования в окне создания распознаваемого изображения.
@@ -115,46 +74,6 @@ namespace DynamicMosaicExample
 
         public static readonly Pen ImageFramePen = new Pen(Color.Black);
 
-        Pen _imageFrameResetPen;
-
-        Graphics _grpSourceImageGraphics;
-
-        Graphics _grpResultsGraphics;
-
-        Graphics _grpImagesGraphics;
-
-        Thread _exitingThread;
-
-        /// <summary>
-        ///     Предназначена для хранения задач, связанных с изменениями в файловой системе.
-        /// </summary>
-        readonly ConcurrentQueue<FileTask> _concurrentFileTasks = new ConcurrentQueue<FileTask>();
-
-        DynamicReflex _recognizer;
-
-        DynamicReflex Recognizer
-        {
-            get
-            {
-                lock (_commonLocker)
-                    return _recognizer;
-            }
-
-            set
-            {
-                lock (_commonLocker)
-                {
-                    if (value != null && _recognizer != null)
-                        throw new ArgumentException($@"Нельзя создать новый экземпляр {nameof(DynamicReflex)}, когда предыдущий ещё существует.", nameof(value));
-
-                    _recognizer = value;
-                    CurrentUndoRedoState = UndoRedoState.UNKNOWN;
-                }
-            }
-        }
-
-        int _currentHistoryPos;
-
         /// <summary>
         ///     Цвет, который считается изначальным. Определяет изначальный цвет, отображаемый на поверхности для рисования.
         ///     Используется для стирания изображения.
@@ -162,15 +81,50 @@ namespace DynamicMosaicExample
         public static Color DefaultColor = CheckAlphaColor(Color.White);
 
         /// <summary>
-        ///     Поток, отвечающий за актуализацию содержимого карт <see cref="Processor" />.
+        ///     Задаёт цвет и ширину для стирания в окне создания распознаваемого изображения.
         /// </summary>
-        Thread _fileRefreshThread;
+        public static readonly Pen WhitePen = new Pen(DefaultColor, 2.0f);
+
+        readonly object _commonLocker = new object();
+
+        /// <summary>
+        ///     Предназначена для хранения задач, связанных с изменениями в файловой системе.
+        /// </summary>
+        readonly ConcurrentQueue<FileTask> _concurrentFileTasks = new ConcurrentQueue<FileTask>();
 
         /// <summary>
         ///     Отражает статус работы потока, который служит для получения всех имеющихся на данный момент образов букв для
         ///     поиска их на распознаваемом изображении, в том числе, для актуализации их содержимого.
         /// </summary>
         readonly ManualResetEvent _fileActivity = new ManualResetEvent(false);
+
+        /// <summary>
+        ///     Хранит загруженные карты, которые требуется искать на основной карте.
+        ///     Предназначена для использования несколькими потоками одновременно.
+        /// </summary>
+        readonly ImageProcessorStorage _imagesProcessorStorage;
+
+        /// <summary>
+        ///     Текст кнопки "Найти". Сохраняет исходное значение свойства <see cref="Button.Text" /> кнопки
+        ///     <see cref="btnRecognizeImage" />.
+        /// </summary>
+        readonly Image _imgSearchDefault;
+
+
+        readonly RecognizeProcessorStorage _recognizeProcessorStorage;
+
+        /// <summary>
+        ///     Отражает статус работы потока, отвечающего за поиск символов на распознаваемом изображении.
+        /// </summary>
+        readonly ManualResetEvent _recognizerActivity = new ManualResetEvent(false);
+
+        /// <summary>
+        ///     Коллекция задействованных элементов <see cref="DynamicReflex" />.
+        ///     Содержит <see cref="DynamicReflex" />, запрос, статус выполнения запроса, номер просматриваемой карты на данный
+        ///     момент.
+        /// </summary>
+        readonly List<(Processor[] processors, int reflexMapIndex, string systemName)> _recognizeResults =
+            new List<(Processor[] processors, int reflexMapIndex, string systemName)>();
 
         readonly ManualResetEvent _recogPreparing = new ManualResetEvent(false);
 
@@ -180,19 +134,9 @@ namespace DynamicMosaicExample
         readonly AutoResetEvent _refreshEvent = new AutoResetEvent(false);
 
         /// <summary>
-        ///     Хранит загруженные карты, которые требуется искать на основной карте.
-        ///     Предназначена для использования несколькими потоками одновременно.
+        ///     Сигнал остановки потокам, работающим на фоне.
         /// </summary>
-        readonly ImageProcessorStorage _imagesProcessorStorage;
-
-
-        readonly RecognizeProcessorStorage _recognizeProcessorStorage;
-
-        /// <summary>
-        ///     Текст кнопки "Найти". Сохраняет исходное значение свойства <see cref="Button.Text" /> кнопки
-        ///     <see cref="btnRecognizeImage" />.
-        /// </summary>
-        readonly Image _imgSearchDefault;
+        readonly ManualResetEvent _stopBackground = new ManualResetEvent(false);
 
         /// <summary>
         ///     Таймер для измерения времени, затраченного на поиск символов на распознаваемой карте.
@@ -205,25 +149,10 @@ namespace DynamicMosaicExample
         readonly string _unknownSymbolName;
 
         /// <summary>
-        ///     Задаёт цвет и ширину для стирания в окне создания распознаваемого изображения.
+        ///     Определяет шаг (в пикселях), на который изменяется ширина сканируемого (создаваемого) изображения при нажатии
+        ///     кнопок сужения или расширения.
         /// </summary>
-        public static readonly Pen WhitePen = new Pen(DefaultColor, 2.0f);
-
-        /// <summary>
-        ///     Коллекция задействованных элементов <see cref="DynamicReflex" />.
-        ///     Содержит <see cref="DynamicReflex" />, запрос, статус выполнения запроса, номер просматриваемой карты на данный момент.
-        /// </summary>
-        readonly List<(Processor[] processors, int reflexMapIndex, string systemName)> _recognizeResults = new List<(Processor[] processors, int reflexMapIndex, string systemName)>();
-
-        /// <summary>
-        ///     Отражает статус работы потока, отвечающего за поиск символов на распознаваемом изображении.
-        /// </summary>
-        readonly ManualResetEvent _recognizerActivity = new ManualResetEvent(false);
-
-        /// <summary>
-        ///     Поток, отвечающий за отображение процесса ожидания завершения операции.
-        /// </summary>
-        Thread _userInterfaceThread;
+        readonly int _widthStep;
 
         /// <summary>
         ///     Изображение, которое выводится в окне создания распознаваемого изображения.
@@ -232,12 +161,12 @@ namespace DynamicMosaicExample
 
         Bitmap _btmSavedRecognizeCopy;
 
-        string _savedRecognizeQuery = string.Empty;
-
         /// <summary>
         ///     Отражает статус всех кнопок на данный момент.
         /// </summary>
         bool _buttonsEnabled = true;
+
+        int _currentHistoryPos;
 
         /// <summary>
         ///     Индекс <see cref="ImageRect" />, рассматриваемый в данный момент.
@@ -246,26 +175,12 @@ namespace DynamicMosaicExample
 
         int _currentRecognizeProcIndex;
 
-        bool _needInitImage = true;
+        /// <summary>
+        ///     Текущее состояние программы.
+        /// </summary>
+        UndoRedoState _currentUndoRedoState = UndoRedoState.UNKNOWN;
 
-        bool _needInitRecognizeImage = true;
-
-        bool _isExited;
-
-        bool IsExited
-        {
-            get
-            {
-                lock (_commonLocker)
-                    return _isExited;
-            }
-
-            set
-            {
-                lock (_commonLocker)
-                    _isExited = value;
-            }
-        }
+        string _currentUndoRedoWord = string.Empty;
 
         /// <summary>
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
@@ -273,69 +188,53 @@ namespace DynamicMosaicExample
         /// </summary>
         bool _draw;
 
+        Thread _exitingThread;
+
+        /// <summary>
+        ///     Поток, отвечающий за актуализацию содержимого карт <see cref="Processor" />.
+        /// </summary>
+        Thread _fileRefreshThread;
+
+        FileSystemWatcher _fswImageChanged;
+
+        FileSystemWatcher _fswRecognizeChanged;
+
+        FileSystemWatcher _fswWorkDirChanged;
+
+        Graphics _grpImagesGraphics;
+
+        Graphics _grpResultsGraphics;
+
+        Graphics _grpSourceImageGraphics;
+
         /// <summary>
         ///     Поверхность рисования в окне создания распознаваемого изображения.
         /// </summary>
         Graphics _grRecognizeImageGraphics;
 
-        /// <summary>
-        ///     Сигнал остановки потокам, работающим на фоне.
-        /// </summary>
-        readonly ManualResetEvent _stopBackground = new ManualResetEvent(false);
+        Pen _imageFrameResetPen;
 
-        bool NeedStopBackground => _stopBackground.WaitOne(0);
+        bool _isExited;
 
-        (Processor[] processors, int reflexMapIndex, string systemName) SelectedResult
-        {
-            get => _recognizeResults[lstHistory.SelectedIndex];
-            set => _recognizeResults[lstHistory.SelectedIndex] = value;
-        }
+        bool _needInitImage = true;
+
+        bool _needInitRecognizeImage = true;
+
+        DynamicReflex _recognizer;
 
         /// <summary>
         ///     Поток, отвечающий за выполнение процедуры поиска символов на распознаваемом изображении.
         /// </summary>
         Thread _recognizerThread;
 
-        Thread RecognizerThread
-        {
-            get
-            {
-                lock (_commonLocker)
-                    return _recognizerThread;
-            }
-
-            set
-            {
-                lock (_commonLocker)
-                    _recognizerThread = value;
-            }
-        }
+        string _savedRecognizeQuery = string.Empty;
 
         bool _txtWordTextChecking;
 
         /// <summary>
-        /// 
+        ///     Поток, отвечающий за отображение процесса ожидания завершения операции.
         /// </summary>
-        /// <param name="sender">Вызывающий объект.</param>
-        /// <param name="e">Данные о событии.</param>
-        void TxtWordTextCheck(object sender, EventArgs e)
-        {
-            if (_txtWordTextChecking)
-                return;
-
-            if (txtWord.Text.Length <= txtWord.MaxLength)
-                return;
-
-            _txtWordTextChecking = true;
-            _savedRecognizeQuery = txtWord.Text = txtWord.Text.Remove(txtWord.MaxLength);
-            _txtWordTextChecking = false;
-        }
-
-        public static byte DefaultOpacity => 0xFF;
-
-        internal static Color CheckAlphaColor(Color c) => c.A == DefaultOpacity ? c : throw new InvalidOperationException($@"Значение прозрачности не может быть задано 0x{c.A:X2}. Должно быть задано как 0x{DefaultOpacity:X2}.");
-
-        internal static HashSet<char> InvalidCharSet { get; }
+        Thread _userInterfaceThread;
 
         static FrmExample()
         {
@@ -364,7 +263,8 @@ namespace DynamicMosaicExample
                 _widthStep = pbBrowse.Width;
 
                 _imagesProcessorStorage = new ImageProcessorStorage(ExtImg);
-                _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width, pbDraw.MaximumSize.Width, pbDraw.Height, ExtImg);
+                _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width,
+                    pbDraw.MaximumSize.Width, pbDraw.Height, ExtImg);
 
                 _savedRecognizeQuery = txtWord.Text;
                 _unknownSymbolName = txtSymbolPath.Text;
@@ -380,6 +280,81 @@ namespace DynamicMosaicExample
                 Process.GetCurrentProcess().Kill();
             }
         }
+
+        DynamicReflex Recognizer
+        {
+            get
+            {
+                lock (_commonLocker)
+                {
+                    return _recognizer;
+                }
+            }
+
+            set
+            {
+                lock (_commonLocker)
+                {
+                    if (value != null && _recognizer != null)
+                        throw new ArgumentException(
+                            $@"Нельзя создать новый экземпляр {nameof(DynamicReflex)}, когда предыдущий ещё существует.",
+                            nameof(value));
+
+                    _recognizer = value;
+                    CurrentUndoRedoState = UndoRedoState.UNKNOWN;
+                }
+            }
+        }
+
+        bool IsExited
+        {
+            get
+            {
+                lock (_commonLocker)
+                {
+                    return _isExited;
+                }
+            }
+
+            set
+            {
+                lock (_commonLocker)
+                {
+                    _isExited = value;
+                }
+            }
+        }
+
+        bool NeedStopBackground => _stopBackground.WaitOne(0);
+
+        (Processor[] processors, int reflexMapIndex, string systemName) SelectedResult
+        {
+            get => _recognizeResults[lstHistory.SelectedIndex];
+            set => _recognizeResults[lstHistory.SelectedIndex] = value;
+        }
+
+        Thread RecognizerThread
+        {
+            get
+            {
+                lock (_commonLocker)
+                {
+                    return _recognizerThread;
+                }
+            }
+
+            set
+            {
+                lock (_commonLocker)
+                {
+                    _recognizerThread = value;
+                }
+            }
+        }
+
+        public static byte DefaultOpacity => 0xFF;
+
+        internal static HashSet<char> InvalidCharSet { get; }
 
         /// <summary>
         ///     Ширина образа для распознавания.
@@ -420,7 +395,9 @@ namespace DynamicMosaicExample
             get
             {
                 lock (_commonLocker)
+                {
                     return _buttonsEnabled;
+                }
             }
 
             set
@@ -467,24 +444,6 @@ namespace DynamicMosaicExample
             }
         }
 
-        internal static bool CompareBitmaps(Bitmap bitmap1, Bitmap bitmap2)
-        {
-            if (bitmap1.Width != bitmap2.Width || bitmap1.Height != bitmap2.Height)
-                return false;
-
-            if (ReferenceEquals(bitmap1, bitmap2))
-                throw new InvalidOperationException("Ссылки на проверяемые изображения совпадают.");
-
-            for (int x = 0; x < bitmap1.Width; x++)
-                for (int y = 0; y < bitmap1.Height; y++)
-                    if (bitmap1.GetPixel(x, y).ToArgb() != bitmap2.GetPixel(x, y).ToArgb())
-                        return false;
-
-            return true;
-        }
-
-        void RefreshRecognizer() => Recognizer = null;
-
         /// <summary>
         ///     Возвращает значение <see langword="true" /> в случае, если пользователь нарисовал что-либо в окне создания
         ///     исходного изображения.
@@ -495,12 +454,110 @@ namespace DynamicMosaicExample
             get
             {
                 for (int y = 0; y < _btmRecognizeImage.Height; y++)
-                    for (int x = 0; x < _btmRecognizeImage.Width; x++)
-                        if (_btmRecognizeImage.GetPixel(x, y).ToArgb() != DefaultColor.ToArgb())
-                            return true;
+                for (int x = 0; x < _btmRecognizeImage.Width; x++)
+                    if (_btmRecognizeImage.GetPixel(x, y).ToArgb() != DefaultColor.ToArgb())
+                        return true;
 
                 return false;
             }
+        }
+
+        /// <summary>
+        ///     Искомое слово, написанное пользователем в момент запуска процедуры поиска символов на распознаваемом изображении.
+        /// </summary>
+        internal string CurrentUndoRedoWord
+        {
+            get => _currentUndoRedoWord;
+
+            set
+            {
+                if (CurrentUndoRedoState == UndoRedoState.UNKNOWN)
+                    return;
+
+                pbSuccess.Image = value == _currentUndoRedoWord
+                    ? CurrentUndoRedoState == UndoRedoState.ERROR
+                        ? Resources.Result_Error
+                        : Resources.Result_OK
+                    : Resources.Result_Unknown;
+            }
+        }
+
+        /// <summary>
+        ///     Устанавливает текущее состояние программы.
+        ///     Оно может быть установлено только, если текущее состояние равно <see cref="UndoRedoState.UNKNOWN" />.
+        ///     В других случаях новое состояние будет игнорироваться.
+        ///     Установить можно либо <see cref="UndoRedoState.ERROR" />, либо <see cref="UndoRedoState.SUCCESS" />.
+        /// </summary>
+        internal UndoRedoState CurrentUndoRedoState
+        {
+            get => _currentUndoRedoState;
+
+            set
+            {
+                switch (value)
+                {
+                    case UndoRedoState.ERROR:
+                        pbSuccess.Image = Resources.Result_Error;
+                        break;
+                    case UndoRedoState.SUCCESS:
+                        pbSuccess.Image = Resources.Result_OK;
+                        break;
+                    case UndoRedoState.UNKNOWN:
+                        pbSuccess.Image = Resources.Result_Unknown;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(value), value,
+                            $@"{nameof(UndoRedoState)} {nameof(CurrentUndoRedoState)}");
+                }
+
+                _currentUndoRedoState = value;
+            }
+        }
+
+        /// <summary>
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        void TxtWordTextCheck(object sender, EventArgs e)
+        {
+            if (_txtWordTextChecking)
+                return;
+
+            if (txtWord.Text.Length <= txtWord.MaxLength)
+                return;
+
+            _txtWordTextChecking = true;
+            _savedRecognizeQuery = txtWord.Text = txtWord.Text.Remove(txtWord.MaxLength);
+            _txtWordTextChecking = false;
+        }
+
+        internal static Color CheckAlphaColor(Color c)
+        {
+            return c.A == DefaultOpacity
+                ? c
+                : throw new InvalidOperationException(
+                    $@"Значение прозрачности не может быть задано 0x{c.A:X2}. Должно быть задано как 0x{DefaultOpacity:X2}.");
+        }
+
+        internal static bool CompareBitmaps(Bitmap bitmap1, Bitmap bitmap2)
+        {
+            if (bitmap1.Width != bitmap2.Width || bitmap1.Height != bitmap2.Height)
+                return false;
+
+            if (ReferenceEquals(bitmap1, bitmap2))
+                throw new InvalidOperationException("Ссылки на проверяемые изображения совпадают.");
+
+            for (int x = 0; x < bitmap1.Width; x++)
+            for (int y = 0; y < bitmap1.Height; y++)
+                if (bitmap1.GetPixel(x, y).ToArgb() != bitmap2.GetPixel(x, y).ToArgb())
+                    return false;
+
+            return true;
+        }
+
+        void RefreshRecognizer()
+        {
+            Recognizer = null;
         }
 
         /// <summary>
@@ -564,9 +621,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Создаёт новый поток для обновления списка файлов изображений, в случае, если поток (<see cref="_fileRefreshThread" />) не
+        ///     Создаёт новый поток для обновления списка файлов изображений, в случае, если поток (
+        ///     <see cref="_fileRefreshThread" />) не
         ///     выполняется.
-        ///     Созданный поток находится в состояниях <see cref="System.Threading.ThreadState.Unstarted" /> и <see cref="System.Threading.ThreadState.Background" />.
+        ///     Созданный поток находится в состояниях <see cref="System.Threading.ThreadState.Unstarted" /> и
+        ///     <see cref="System.Threading.ThreadState.Background" />.
         ///     Поток служит для получения всех имеющихся на данный момент образов букв для поиска, в том числе, для
         ///     актуализации их содержимого.
         ///     Возвращает экземпляр созданного потока или <see langword="null" />, в случае, этот поток выполняется.
@@ -575,7 +634,8 @@ namespace DynamicMosaicExample
         void CreateFileRefreshThread()
         {
             if (_fileRefreshThread != null)
-                throw new InvalidOperationException($@"Попытка вызвать метод {nameof(CreateFileRefreshThread)} в то время, когда поток {nameof(_fileRefreshThread)} уже существует.");
+                throw new InvalidOperationException(
+                    $@"Попытка вызвать метод {nameof(CreateFileRefreshThread)} в то время, когда поток {nameof(_fileRefreshThread)} уже существует.");
 
             Thread thread = new Thread(() => SafeExecute(() =>
             {
@@ -590,7 +650,6 @@ namespace DynamicMosaicExample
                         try
                         {
                             while (!NeedStopBackground && _concurrentFileTasks.TryDequeue(out FileTask task))
-                            {
                                 try
                                 {
                                     switch (task.Type)
@@ -598,38 +657,46 @@ namespace DynamicMosaicExample
                                         case FileTaskAction.REMOVED:
                                         {
                                             Common c = (Common)task;
-                                            ExceptionClause(() => c.Storage.RemoveProcessor(c.Path), $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {c.Path}");
+                                            ExceptionClause(() => c.Storage.RemoveProcessor(c.Path),
+                                                $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {c.Path}");
                                             break;
                                         }
                                         case FileTaskAction.CLEARED:
                                         {
                                             FileTask t = task;
-                                            ExceptionClause(() => t.Storage.Clear(), $"{nameof(ConcurrentProcessorStorage.Clear)} -> {task.Type}");
+                                            ExceptionClause(() => t.Storage.Clear(),
+                                                $"{nameof(ConcurrentProcessorStorage.Clear)} -> {task.Type}");
                                             break;
                                         }
                                         case FileTaskAction.RENAMED:
                                         {
                                             Renamed r = (Renamed)task;
                                             if (r.RenamedFrom)
-                                                ExceptionClause(() => r.Storage.RemoveProcessor(r.OldPath), $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {r.OldPath}");
+                                                ExceptionClause(() => r.Storage.RemoveProcessor(r.OldPath),
+                                                    $"{nameof(ConcurrentProcessorStorage.RemoveProcessor)} -> {task.Type} -> {r.OldPath}");
                                             if (r.RenamedTo)
-                                                ExceptionClause(() => r.Storage.AddProcessor(r.Path), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {r.Path}");
+                                                ExceptionClause(() => r.Storage.AddProcessor(r.Path),
+                                                    $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {r.Path}");
                                             break;
                                         }
                                         case FileTaskAction.CREATED:
                                         case FileTaskAction.CHANGED:
                                         {
                                             Common c = (Common)task;
-                                            ExceptionClause(() => c.Storage.AddProcessor(c.Path), $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {c.Path}");
+                                            ExceptionClause(() => c.Storage.AddProcessor(c.Path),
+                                                $"{nameof(ConcurrentProcessorStorage.AddProcessor)} -> {task.Type} -> {c.Path}");
                                             break;
                                         }
                                         default:
-                                            throw new ArgumentOutOfRangeException(nameof(task), task.Type, UnknownFSChangeType);
+                                            throw new ArgumentOutOfRangeException(nameof(task), task.Type,
+                                                UnknownFSChangeType);
                                     }
                                 }
                                 catch (AggregateException ex)
                                 {
-                                    StringBuilder sb = new StringBuilder($@"{ex.Message}{Environment.NewLine}Список возникших исключений:");
+                                    StringBuilder sb =
+                                        new StringBuilder(
+                                            $@"{ex.Message}{Environment.NewLine}Список возникших исключений:");
 
                                     int index = 1;
 
@@ -645,7 +712,6 @@ namespace DynamicMosaicExample
                                 {
                                     WriteLogMessage($@"{nameof(CreateFileRefreshThread)}: {ex.Message}");
                                 }
-                            }
                         }
                         finally
                         {
@@ -721,7 +787,8 @@ namespace DynamicMosaicExample
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(string.IsNullOrEmpty(m) ? ex.Message : m, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(string.IsNullOrEmpty(m) ? ex.Message : m, @"Ошибка", MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
                 }
             }
 
@@ -729,14 +796,19 @@ namespace DynamicMosaicExample
             {
                 logstr = $@"{DateTime.Now:dd.MM.yyyy HH:mm:ss} {logstr}";
                 lock (LogLockerObject)
+                {
                     using (FileStream fs = new FileStream(LogPath, FileMode.Append, FileAccess.Write,
-                        FileShare.ReadWrite | FileShare.Delete))
+                               FileShare.ReadWrite | FileShare.Delete))
                     using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8))
+                    {
                         sw.WriteLine(logstr);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                ShowOnceUserMessage($@"Ошибка при записи логов: {ex.Message}{Environment.NewLine}Сообщение лога: {logstr}");
+                ShowOnceUserMessage(
+                    $@"Ошибка при записи логов: {ex.Message}{Environment.NewLine}Сообщение лога: {logstr}");
                 return;
             }
 
@@ -749,7 +821,10 @@ namespace DynamicMosaicExample
         /// <param name="message">Текст отображаемого сообщения.</param>
         void ErrorMessageInOtherThread(string message)
         {
-            Thread t = new Thread(() => SafeExecute(() => MessageBox.Show(this, message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation), true))
+            Thread t = new Thread(() =>
+                SafeExecute(
+                    () => MessageBox.Show(this, message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation),
+                    true))
             {
                 IsBackground = true,
                 Name = @"Message"
@@ -819,54 +894,25 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Искомое слово, написанное пользователем в момент запуска процедуры поиска символов на распознаваемом изображении.
+        ///     Состояние программы после поиска символов на изображении.
         /// </summary>
-        internal string CurrentUndoRedoWord
+        internal enum UndoRedoState
         {
-            get => _currentUndoRedoWord;
+            /// <summary>
+            ///     Неизвестно.
+            ///     Этот статус означает, что процесс поиска ещё не был запущен.
+            /// </summary>
+            UNKNOWN,
 
-            set
-            {
-                if (CurrentUndoRedoState == UndoRedoState.UNKNOWN)
-                    return;
+            /// <summary>
+            ///     Ошибка, условия не изменялись.
+            /// </summary>
+            ERROR,
 
-                pbSuccess.Image = value == _currentUndoRedoWord
-                    ? CurrentUndoRedoState == UndoRedoState.ERROR
-                    ? Resources.Result_Error
-                    : Resources.Result_OK
-                    : Resources.Result_Unknown;
-            }
-        }
-
-        /// <summary>
-        ///     Устанавливает текущее состояние программы.
-        ///     Оно может быть установлено только, если текущее состояние равно <see cref="UndoRedoState.UNKNOWN" />.
-        ///     В других случаях новое состояние будет игнорироваться.
-        ///     Установить можно либо <see cref="UndoRedoState.ERROR" />, либо <see cref="UndoRedoState.SUCCESS" />.
-        /// </summary>
-        internal UndoRedoState CurrentUndoRedoState
-        {
-            get => _currentUndoRedoState;
-
-            set
-            {
-                switch (value)
-                {
-                    case UndoRedoState.ERROR:
-                        pbSuccess.Image = Resources.Result_Error;
-                        break;
-                    case UndoRedoState.SUCCESS:
-                        pbSuccess.Image = Resources.Result_OK;
-                        break;
-                    case UndoRedoState.UNKNOWN:
-                        pbSuccess.Image = Resources.Result_Unknown;
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(value), value, $@"{nameof(UndoRedoState)} {nameof(CurrentUndoRedoState)}");
-                }
-
-                _currentUndoRedoState = value;
-            }
+            /// <summary>
+            ///     Успех, условия не изменялись.
+            /// </summary>
+            SUCCESS
         }
     }
 }

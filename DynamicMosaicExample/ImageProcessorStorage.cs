@@ -8,19 +8,11 @@ namespace DynamicMosaicExample
 {
     public sealed class ImageProcessorStorage : ConcurrentProcessorStorage
     {
-        public ImageProcessorStorage(string extImg) : base(extImg) { }
+        public ImageProcessorStorage(string extImg) : base(extImg)
+        {
+        }
 
-        protected override Processor GetAddingProcessor(string fullPath) => ImageRect.GetProcessor(LoadBitmap(fullPath), GetProcessorTag(fullPath));
-
-        /// <summary>
-        ///     Преобразует название карты, заканчивающееся символами '0', в строку, содержащую имя и количество символов '0' в
-        ///     конце названия карты <see cref="Processor" />.
-        /// </summary>
-        /// <param name="fullPath"></param>
-        /// <returns>Возвращает строку, содержащую имя и количество символов '0' в конце названия карты <see cref="Processor" />.</returns>
-        public static string GetProcessorTag(string fullPath) => Path.GetFileNameWithoutExtension(fullPath);
-
-        public override string ImagesPath => FrmExample.SearchImagesPath;
+        public override string WorkingDirectory => FrmExample.SearchImagesPath;
 
         public override ProcessorStorageType StorageType => ProcessorStorageType.IMAGE;
 
@@ -30,46 +22,67 @@ namespace DynamicMosaicExample
             {
                 lock (SyncObject)
                 {
-                    if (IntLastProcessorIndex > -1)
+                    if (IntSelectedIndex > -1)
                         return true;
 
-                    string lastRecognizePath = LastRecognizePath;
+                    string selectedPath = SelectedPath;
 
-                    return !string.IsNullOrEmpty(lastRecognizePath) && DictionaryByKey.ContainsKey(GetStringKey(lastRecognizePath));
+                    return !string.IsNullOrEmpty(selectedPath) &&
+                           DictionaryByKey.ContainsKey(GetStringKey(selectedPath));
                 }
             }
         }
 
+        protected override Processor GetAddingProcessor(string fullPath)
+        {
+            return ImageRect.GetProcessor(LoadBitmap(fullPath), GetProcessorTag(fullPath));
+        }
+
         /// <summary>
-        ///     Сохраняет указанную карту <see cref="Processor" /> на жёсткий диск в формате BMP.
-        ///     Если карта содержит в конце названия ноли, то метод преобразует их в число, отражающее их количество.
+        ///     Преобразует название карты, заканчивающееся символами '0', в строку, содержащую имя и количество символов '0' в
+        ///     конце названия карты <see cref="Processor" />.
+        /// </summary>
+        /// <param name="fullPath"></param>
+        /// <returns>Возвращает строку, содержащую имя и количество символов '0' в конце названия карты <see cref="Processor" />.</returns>
+        public static string GetProcessorTag(string fullPath)
+        {
+            return Path.GetFileNameWithoutExtension(fullPath);
+        }
+
+        /// <summary>
+        ///     Сохраняет указанную карту <see cref="Processor" /> в рабочий каталог <see cref="WorkingDirectory"/>, в формате <see cref="ConcurrentProcessorStorage.ExtImg"/>.
+        ///     Сохраняет под оригинальным названием, в случае необходимости, маскирует.
         /// </summary>
         /// <param name="processor">Карта <see cref="Processor" />, которую требуется сохранить.</param>
-        /// <param name="relativeFolderPath"></param>
-        void IntSaveToFile(Processor processor, string relativeFolderPath)
+        /// <remarks>
+        /// Свойство <see cref="ConcurrentProcessorStorage.SelectedPath"/> будет содержать путь, по которому карта была сохранена.
+        /// </remarks>
+        void IntSaveToFile(Processor processor)
         {
             if (processor == null)
-                throw new ArgumentNullException(nameof(processor), $@"{nameof(IntSaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
+                throw new ArgumentNullException(nameof(processor),
+                    $@"{nameof(IntSaveToFile)}: Необходимо указать карту, которую требуется сохранить.");
 
             lock (SyncObject)
             {
-                (Processor p, string path) = GetUniqueProcessorWithMask(processor, relativeFolderPath);
-                SaveToFile(ImageRect.GetBitmap(p), path);
-                LastRecognizePath = path;
+                string path = GetUniquePath(processor.Tag);
+                SaveToFile(ImageRect.GetBitmap(processor), path);
+                SelectedPath = path;
             }
         }
 
         public void SaveToFile(Processor processor)
         {
-            CreateFolder();
+            CreateWorkingDirectory();
 
-            IntSaveToFile(processor, string.Empty);
+            IntSaveToFile(processor);
         }
 
         public void SaveToFile(string folderName, IEnumerable<Processor> processors)
         {
             if (processors == null)
-                throw new ArgumentNullException(nameof(processors), $@"{nameof(SaveToFile)}: Необходимо указать карты, которые требуется сохранить.");
+                throw new ArgumentNullException(nameof(processors),
+                    $@"{nameof(SaveToFile)}: Необходимо указать карты, которые требуется сохранить.");
 
             string folder = CombinePaths(folderName);
 
@@ -77,14 +90,18 @@ namespace DynamicMosaicExample
 
             CreateFolder(folder);
 
+            List<Processor> lstProcs = processors.ToList();
+
             lock (SyncObject)
             {
-                foreach ((Processor p, string path) in GetUniqueProcessor(processors.Where(pc => pc != null).Select(proc =>
+                foreach ((Processor p, string path) in GetUniqueProcessor(lstProcs.Select(proc =>
                          {
-                             (ulong count, string name) = ImageRect.GetFileNumberByName(proc.Tag, 1);
-                             return ((Processor, (ulong?, string), string)?)(proc, (count, ParseName(name).name), folder);
-                         })))
+                             (ulong? count, string name) = ImageRect.GetFileNumberByName(proc.Tag, 1);
+                             return ((Processor)null, (count, ParseName(name).name), folder);
+                         })).Select((pp, index) => (lstProcs[index], pp.path)))
+                {
                     SaveToFile(ImageRect.GetBitmap(p), path);
+                }
             }
         }
     }
