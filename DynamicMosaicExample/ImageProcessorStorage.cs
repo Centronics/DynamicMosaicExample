@@ -35,7 +35,7 @@ namespace DynamicMosaicExample
 
         protected override Processor GetAddingProcessor(string fullPath)
         {
-            return ImageRect.GetProcessor(LoadBitmap(fullPath), GetProcessorTag(fullPath));
+            return ImageRect.GetProcessor(ReadBitmap(fullPath), GetProcessorTag(fullPath));
         }
 
         /// <summary>

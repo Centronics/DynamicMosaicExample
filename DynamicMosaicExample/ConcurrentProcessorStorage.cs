@@ -14,6 +14,7 @@ namespace DynamicMosaicExample
     ///     Потокобезопасное хранилище карт <see cref="Processor" />.
     /// </summary>
     /// <remarks>
+    ///     Абстрактный класс. Обеспечивает базовую функциональность, без учёта особенностей хранимых карт.
     ///     Позволяет идентифицировать карты как по путям хранения, так и по индексу.
     ///     Предоставляет следующие функции для управления хранилищем.
     ///     1) Сохраняет карты на жёсткий диск (номерует их при совпадении названий).
@@ -389,7 +390,7 @@ namespace DynamicMosaicExample
         /// Выполняет разбор (демаскировку) названия карты, разделяя его с помощью символа <see cref="ImageRect.TagSeparatorChar"/>.
         /// </summary>
         /// <param name="name">Название, которое требуется разобрать. Не может быть пустым.</param>
-        /// <returns>Возвращает номер карты (или <see langword="null" />, если его нет) и имя карты без маскировки.</returns>
+        /// <returns>Возвращает номер (или <see langword="null" />, если его нет) и имя карты, без маскировки.</returns>
         /// <remarks>
         /// Метод потокобезопасен.
         /// Номер карты интерпретируется как <see cref="ulong"/>.
@@ -494,6 +495,7 @@ namespace DynamicMosaicExample
         /// В случае необходимости, название карты маскируется.
         /// Возвращает только полный путь.
         /// </remarks>
+        /// <seealso cref="ExtImg"/>
         protected string GetUniquePath(string tag)
         {
             return GetUniqueProcessor(new[]
@@ -808,14 +810,16 @@ namespace DynamicMosaicExample
         /// <param name="btm">Проверяемое изображение.</param>
         /// <returns>Возвращает <paramref name="btm"/>.</returns>
         /// <remarks>
-        /// Параметр <paramref name="btm"/> не может быть равен <see langword="null"/>, иначе <see cref="ArgumentNullException"/>.
-        /// Для проверки используется метод <see cref="FrmExample.CheckAlphaColor"/>.
+        /// Параметр <paramref name="btm"/> не может быть равен <see langword="null"/>, иначе будет выброшено исключение <see cref="ArgumentNullException"/>.
+        /// Для проверки используется метод <see cref="FrmExample.CheckAlphaColor(Color)"/>.
         /// В случае несоответствия ожиданиям, будет выдано исключение <see cref="InvalidOperationException"/>.
         /// Ожидаемое значение содержится в свойстве <see cref="FrmExample.DefaultOpacity"/>.
         /// Метод потокобезопасен.
         /// </remarks>
         /// <exception cref="ArgumentNullException"/>
         /// <exception cref="InvalidOperationException"/>
+        /// <seealso cref="FrmExample.DefaultOpacity"/>
+        /// <seealso cref="FrmExample.CheckAlphaColor(Color)"/>
         static Bitmap CheckBitmapByAlphaColor(Bitmap btm)
         {
             if (btm == null)
@@ -834,18 +838,24 @@ namespace DynamicMosaicExample
         /// <param name="fullPath">Путь к изображению.</param>
         /// <returns>Возвращает считанное изображение.</returns>
         /// <remarks>
-        /// Поддерживается возможность совершения повторных попыток открытия файла в случае возникновения ошибок.
-        /// Например, файл занят другим приложением.
+        /// Поддерживается возможность совершения повторных попыток открытия файла в случае возникновения различных ошибок.
+        /// Например, если файл занят другим приложением.
         /// В случае какой-либо ошибки открытия файла, попытки его открыть будут продолжаться каждые 100 мс, в течение пяти секунд.
-        /// Если ни одна попытка не была успешной, выдаётся <see cref="FileNotFoundException"/>.
-        /// Для получения изначального исключения, необходимо считывать свойство <see cref="Exception.InnerException"/>.
-        /// После считывания изображения выполняется его проверка с помощью метода <see cref="CheckBitmapByAlphaColor"/>.
+        /// Если ни одна попытка не была успешной, выдаётся исключение <see cref="FileNotFoundException"/>.
+        /// При обработке исключений требуется проверять свойство <see cref="Exception.InnerException"/> - если оно не равно <see langword="null"/>, то в нём содержится первоначальное исключение.
+        /// После считывания изображения выполняется его проверка с помощью метода <see cref="CheckBitmapByAlphaColor(Bitmap)"/>.
         /// Файл открывается на чтение, с флагом <see cref="FileShare.Read"/>.
         /// </remarks>
         /// <exception cref="FileNotFoundException"/>
         /// <exception cref="InvalidOperationException"/>
-        protected static Bitmap LoadBitmap(string fullPath)
+        /// <seealso cref="FrmExample.DefaultOpacity"/>
+        /// <seealso cref="FrmExample.CheckAlphaColor(Color)"/>
+        /// <seealso cref="CheckBitmapByAlphaColor(Bitmap)"/>
+        protected static Bitmap ReadBitmap(string fullPath)
         {
+            if (string.IsNullOrEmpty(fullPath))
+                throw new ArgumentNullException(nameof(fullPath), $@"{nameof(ReadBitmap)}: Путь должен быть указан.");
+
             FileStream fs = null;
 
             for (int k = 0; k < 50; k++)
@@ -857,7 +867,7 @@ namespace DynamicMosaicExample
                 catch (Exception ex)
                 {
                     if (k > 48)
-                        throw new FileNotFoundException($@"{nameof(LoadBitmap)}: {ex.Message}", fullPath, ex);
+                        throw new FileNotFoundException($@"{nameof(ReadBitmap)}: {ex.Message}", fullPath, ex);
 
                     Thread.Sleep(100);
 
@@ -868,7 +878,7 @@ namespace DynamicMosaicExample
             }
 
             if (fs == null)
-                throw new InvalidOperationException($@"{nameof(LoadBitmap)}: {nameof(fs)} = null.");
+                throw new InvalidOperationException($@"{nameof(ReadBitmap)}: {nameof(fs)} = null.");
 
             using (fs)
             {
@@ -910,17 +920,19 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Базовая функция для добавления указанной карты <see cref="Processor" /> в <see cref="ConcurrentProcessorStorage" />.
+        /// Базовая функция для добавления указанной карты в <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
         /// <param name="hashCode">Хеш добавляемой карты.</param>
         /// <param name="fullPath">Полный путь к добавляемой карте.</param>
-        /// <param name="processor">Добавляемая карта <see cref="Processor" />.</param>
+        /// <param name="processor">Добавляемая карта.</param>
         /// <remarks>
-        /// Эта функция заполняет коллекции <see cref="DictionaryByKey"/> и <see cref="DictionaryByHash"/>.
+        /// Этот метод добавляет <paramref name="processor"/> в оба хранилища: <see cref="DictionaryByKey"/> и <see cref="DictionaryByHash"/>.
         /// Обрабатывает случай, когда <paramref name="hashCode"/> добавляемой карты совпадает с <paramref name="hashCode"/> других карт.
-        /// Не синхронизирует доступ к коллекциям. Никаких проверок не производится.
-        /// При подаче некорректных значений аргументов поведение неопределено.
+        /// В случае совпадения указанного <paramref name="fullPath"/> с <paramref name="fullPath"/> другой карты (без учёта регистра), возникает исключение <see cref="ArgumentException"/>, а состояние <see cref="ConcurrentProcessorStorage" /> не изменится.
+        /// НЕ является потокобезопасным. Никаких проверок (в том числе, аргументов) не производит.
+        /// При некорректных значениях аргументов поведение метода неопределено.
         /// </remarks>
+        /// <exception cref="ArgumentException"/>
         protected void BaseAddElement(int hashCode, string fullPath, Processor processor)
         {
             DictionaryByKey.Add(GetStringKey(fullPath), new ProcPath(processor, fullPath));
@@ -1054,9 +1066,13 @@ namespace DynamicMosaicExample
         /// Является потокобезопасным.
         /// Если указан путь к папке, то будут удалены все карты, содержащиеся в ней (в том числе, во вложенных папках).
         /// В случае, если удаляемая (указанная) карта является выбранной в данный момент, свойство <see cref="SelectedPath"/> будет сброшено.
+        /// В случае, если указан путь к папке, поиск производится по соответствию части строки, без учёта регистра.
+        /// Если требуется произвести удаление карт строго из определённой папки, необходимо поставить разделитель каталогов в конце пути.
+        /// Для этого рекомендуется воспользоваться методом <see cref="AddEndingSlash(string)"/>.
         /// </remarks>
         /// <seealso cref="SelectedPath"/>
         /// <seealso cref="SelectedIndex"/>
+        /// <seealso cref="AddEndingSlash(string)"/>
         public bool RemoveProcessor(string fullPath)
         {
             if (string.IsNullOrEmpty(fullPath))
@@ -1142,8 +1158,8 @@ namespace DynamicMosaicExample
         /// <param name="path">Путь к элементу, для которого необходимо сформировать ключ.</param>
         /// <returns>Возвращает ключ в виде строки.</returns>
         /// <remarks>
-        /// Если путь пустой (<see langword="null" /> или <see cref="string.Empty" />), то вернётся <see cref="string.Empty"/>.
-        /// Ключ представляет собой обработку методом <see cref="string.ToLower()"/>.
+        /// Если <paramref name="path"/> пустой (<see langword="null" /> или <see cref="string.Empty" />), метод вернёт <see cref="string.Empty"/>.
+        /// Ключ представляет собой параметр <paramref name="path"/>, обработанный методом <see cref="string.ToLower()"/>.
         /// Метод потокобезопасен.
         /// </remarks>
         protected static string GetStringKey(string path)
@@ -1241,6 +1257,9 @@ namespace DynamicMosaicExample
         ///     Абсолютный путь, по которому требуется сохранить изображение. Если путь относительный, то
         ///     используется <see cref="WorkingDirectory" />.
         /// </param>
+        /// <remarks>
+        /// Изображение всегда будет сохранено с расширением <see cref="ExtImg"/>, в формате <see cref="ImageFormat.Bmp"/>.
+        /// </remarks>
         protected void SaveToFile(Bitmap btm, string path)
         {
             if (btm == null)
