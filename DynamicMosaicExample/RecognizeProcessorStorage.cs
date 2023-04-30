@@ -51,7 +51,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <remarks>
         /// Подробнее см. <see cref="ConcurrentProcessorStorage.WorkingDirectory"/>.
-        /// Берётся как <see cref="FrmExample.RecognizeImagesPath"/>.
+        /// Содержится в <see cref="FrmExample.RecognizeImagesPath"/>.
         /// </remarks>
         public override string WorkingDirectory => FrmExample.RecognizeImagesPath;
 
@@ -65,18 +65,33 @@ namespace DynamicMosaicExample
         public override ProcessorStorageType StorageType => ProcessorStorageType.RECOGNIZE;
 
         /// <summary>
-        /// Загружает карту по указанному пути, выполняя все необходимые операции для хранилища <see cref="RecognizeProcessorStorage"/>.
+        /// Считывает карту по указанному пути (не добавляя её в коллекцию), выполняя все необходимые проверки, характерные для хранилища <see cref="RecognizeProcessorStorage"/>.
         /// </summary>
         /// <param name="fullPath">Абсолютный путь к карте.</param>
-        /// <returns>Возвращает загруженную карту.</returns>
+        /// <returns>Возвращает считанную карту.</returns>
         /// <remarks>
-        /// При указании относительного пути возможны различные коллизии, поэтому рекомендуется указывать только абсолютный путь.
+        /// Метод потокобезопасен.
+        /// Проверяет карту на соответствие по ширине и высоте, для хранилища <see cref="RecognizeProcessorStorage"/>.
+        /// В том числе, метод выполняет проверку значения <see cref="Color.A"/> в считанном изображении, с помощью метода <see cref="ConcurrentProcessorStorage.CheckBitmapByAlphaColor(Bitmap)"/>, который, в случае неудачной проверки, выбрасывает исключение <see cref="InvalidOperationException"/>.
+        /// Если значение какого-либо параметра не соответствует ожидаемому, метод выбросит одно из нижеперечисленных исключений.
+        /// При обработке исключений необходимо проверять свойство <see cref="Exception.InnerException"/>, т.к. в нём находится первоначальное исключение.
+        /// При указании относительного пути возможны различные коллизии, поэтому рекомендуется всегда указывать только абсолютный путь.
+        /// <paramref name="fullPath"/> не должен содержать недопустимые символы (<see cref="Path.GetInvalidPathChars()"/>), в том числе, быть пустым (<see langword="null"/>, <see cref="string.Empty"/> или состоять из пробелов), иначе метод выбросит исключение <see cref="ArgumentException"/>.
         /// </remarks>
-        /// <seealso cref="ReadBitmap"/>
-        /// <seealso cref="GetProcessorTag"/>
+        /// <exception cref="ArgumentException"/>
+        /// <exception cref="FormatException"/>
+        /// <exception cref="Exception"/>
+        /// <exception cref="InvalidOperationException"/>
+        /// <exception cref="FileNotFoundException"/>
+        /// <seealso cref="ReadBitmap(string)"/>
+        /// <seealso cref="GetProcessorTag(string)"/>
+        /// <seealso cref="ConcurrentProcessorStorage.ParseName(string)"/>
         protected override Processor GetAddingProcessor(string fullPath)
         {
-            return new Processor(ReadBitmap(fullPath), GetProcessorTag(fullPath));
+            string tag = GetProcessorTag(fullPath);
+            Bitmap btm = ReadBitmap(fullPath);
+
+            return new Processor(btm, tag);
         }
 
         /// <summary>
@@ -109,16 +124,21 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Извлекает значение свойства <see cref="Processor.Tag"/> из указанного пути.
+        /// Извлекает значение свойства <see cref="Processor.Tag"/> (запрос на поиск данных) из указанного пути.
         /// </summary>
         /// <param name="fullPath">Путь, из которого требуется извлечь значение свойства <see cref="Processor.Tag"/>.</param>
         /// <returns>Возвращает значение свойства <see cref="Processor.Tag"/>.</returns>
         /// <remarks>
-        /// Берёт имя без расширения.
-        /// Выполняет демаскировку имени карты, в случае необходимости.
+        /// Метод потокобезопасен.
+        /// Получает имя без расширения. Для этого использует метод <see cref="Path.GetFileNameWithoutExtension(string)"/>.
+        /// С помощью метода <see cref="ConcurrentProcessorStorage.ParseName(string)"/> выполняет демаскировку имени карты, в случае необходимости.
         /// Путь может быть как абсолютным, так и относительным.
+        /// <paramref name="fullPath"/> не должен содержать недопустимые символы (<see cref="Path.GetInvalidPathChars()"/>), в том числе, быть пустым (<see langword="null"/>, <see cref="string.Empty"/> или состоять из пробелов), иначе метод выбросит исключение <see cref="ArgumentException"/>.
         /// </remarks>
-        /// <seealso cref="ConcurrentProcessorStorage.ParseName"/>
+        /// <exception cref="ArgumentException"/>
+        /// <seealso cref="ConcurrentProcessorStorage.ParseName(string)"/>
+        /// <seealso cref="Path.GetFileNameWithoutExtension(string)"/>
+        /// <seealso cref="Path.GetInvalidPathChars()"/>
         static string GetProcessorTag(string fullPath)
         {
             if (string.IsNullOrWhiteSpace(fullPath))
@@ -131,12 +151,13 @@ namespace DynamicMosaicExample
         /// Считывает изображение по указанному пути, выполняя все требуемые проверки.
         /// </summary>
         /// <param name="fullPath">Путь к изображению.</param>
-        /// <returns>Возвращает загруженное изображение.</returns>
+        /// <returns>Возвращает считанное изображение.</returns>
         /// <remarks>
+        /// Метод потокобезопасен.
         /// Проверяет его на соответствие по ширине и высоте, для хранилища <see cref="RecognizeProcessorStorage"/>.
-        /// В том числе, выполняется проверка компоненты <see cref="Color.A"/> с помощью метода <see cref="ConcurrentProcessorStorage.CheckBitmapByAlphaColor(Bitmap)"/>.
-        /// В случае несоответствия выдаётся исключение.
-        /// При обработке исключений требуется проверять свойство <see cref="Exception.InnerException"/> - если оно не равно <see langword="null"/>, то в нём содержится первоначальное исключение.
+        /// В том числе, метод выполняет проверку компоненты <see cref="Color.A"/> в считанном изображении, с помощью метода <see cref="ConcurrentProcessorStorage.CheckBitmapByAlphaColor(Bitmap)"/>, который, в случае неудачной проверки, выбрасывает исключение <see cref="InvalidOperationException"/>.
+        /// Если значение какого-либо параметра не соответствует ожидаемому, метод выбросит одно из нижеперечисленных исключений.
+        /// При обработке исключений необходимо проверять свойство <see cref="Exception.InnerException"/>, т.к. в нём находится первоначальное исключение.
         /// </remarks>
         /// <exception cref="ArgumentException"/>
         /// <exception cref="FormatException"/>

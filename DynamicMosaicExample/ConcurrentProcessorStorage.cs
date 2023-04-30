@@ -62,7 +62,7 @@ namespace DynamicMosaicExample
 
         /// <summary>
         ///     Объект для синхронизации доступа к экземпляру класса <see cref="ConcurrentProcessorStorage" />, с использованием
-        ///     конструкции <see langword="lock" />.
+        ///     инструкции <see langword="lock" />.
         /// </summary>
         /// <remarks>
         /// С целью исключения возможных взаимоблокировок при обращении к нему нескольких потоков, доступ к объекту <see cref="ConcurrentProcessorStorage" /> синхронизируется только с помощью этого объекта.
@@ -257,8 +257,8 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <remarks>
         /// Является потокобезопасным.
-        /// Значение получается путём линейного поиска индекса карты в соответствующей коллекции, находящейся по пути <see cref="SelectedPath"/>.
-        /// После чтения значения оно сохраняется во внутренней переменной <see cref="IntSelectedIndex"/>, далее берётся оттуда до тех пор, пока не будет сброшено (примет значение -1) либо добавлением (сохранением) карты,
+        /// Значение получается путём линейного поиска индекса карты, находящейся по пути <see cref="SelectedPath"/>.
+        /// После чтения значения оно сохраняется во внутренней переменной <see cref="IntSelectedIndex"/>, далее читается оттуда до тех пор, пока не будет сброшено (примет значение -1) либо добавлением (сохранением) карты,
         /// либо удалением текущей карты, в том числе, очисткой всей коллекции или обращением по индексу (<see cref="GetFirstProcessor"/> или <see cref="GetLatestProcessor"/>).
         /// Доступ на запись возможен только изнутри этого класса, и служит для сброса значения этого свойства.
         /// </remarks>
@@ -348,7 +348,7 @@ namespace DynamicMosaicExample
         /// Получает уникальные имена хранимых в коллекции карт, что и <see cref="UniqueElements"/>, только в виде набора строк.
         /// </summary>
         /// <remarks>
-        /// Следует использовать для оптимизации производительности, т.к. в этом случае нет накладных затрат на создание копии набора карт, как в случае со свойством <see cref="UniqueElements"/>.
+        /// Следует использовать для оптимизации производительности, т.к. в этом случае нет накладных расходов на создание копии набора карт, как в случае со свойством <see cref="UniqueElements"/>.
         /// </remarks>
         protected HashSet<string> UniqueNames
         {
@@ -365,9 +365,16 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Загружает карту, выполняя все соответствующие проверки, характерные для текущего типа хранилища.
+        ///     Считывает карту по указанному пути (не добавляя её в коллекцию), выполняя все необходимые проверки, характерные для текущего типа хранилища.
         /// </summary>
         /// <param name="fullPath">Путь к файлу, который содержит карту.</param>
+        /// <returns>Возвращает считанную карту.</returns>
+        /// <remarks>
+        /// Реализация по умолчанию отсутствует.
+        /// Для определения типа хранилища см. <see cref="StorageType"/>.
+        /// Метод потокобезопасен.
+        /// </remarks>
+        /// <seealso cref="StorageType"/>
         protected abstract Processor GetAddingProcessor(string fullPath);
 
         /// <summary>
@@ -378,7 +385,7 @@ namespace DynamicMosaicExample
         /// <returns>Полный путь к карте.</returns>
         /// <remarks>
         /// Метод потокобезопасен.
-        /// Расширение берётся из свойства <see cref="ExtImg"/>.
+        /// Расширение содержится в свойстве <see cref="ExtImg"/>.
         /// </remarks>
         protected string CreateImagePath(string sourcePath, string fileName)
         {
@@ -455,7 +462,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Получает карту и путь к ней, задавая ей соответствующее имя.
+        /// Получает карту и путь к ней, задавая ей уникальное имя.
         /// Если путь окажется полным, то вернёт карту и путь без изменений.
         /// </summary>
         /// <param name="args">Входные параметры. Значения следующие: 1) Карта, которую необходимо переименовать. Может быть <see langword="null"/>. 2) Подсказка по имени (обязательно) и номеру карты, в целях оптимизации производительности. 3) Путь, по которому будет располагаться указанная карта. Может быть пустым (<see langword="null"/> или <see cref="string.Empty"/>).</param>
@@ -543,6 +550,9 @@ namespace DynamicMosaicExample
         /// Создаёт все подкаталоги, если они отсутствуют.
         /// </summary>
         /// <param name="path">Путь каталога.</param>
+        /// <remarks>
+        /// Метод потокобезопасен.
+        /// </remarks>
         public static void CreateFolder(string path)
         {
             Directory.CreateDirectory(path);
@@ -602,9 +612,9 @@ namespace DynamicMosaicExample
         /// <param name="path">Строка пути.</param>
         /// <returns>Возвращает путь с разделителем на конце.</returns>
         /// <remarks>
-        /// Для определения наличия разделителя на конце используется метод <see cref="IsDirectorySeparatorSymbol"/>.
-        /// Если строка пустая (<see langword="null"/> или <see cref="string.Empty"/>), возвращается <see cref="string.Empty"/>.
-        /// Метод является потокобезопасным.
+        /// Метод потокобезопасен.
+        /// Для определения наличия разделителя на конце, используется метод <see cref="IsDirectorySeparatorSymbol"/>.
+        /// Если строка пустая (<see langword="null"/> или <see cref="string.Empty"/>), метод возвращает <see cref="string.Empty"/>.
         /// </remarks>
         public static string AddEndingSlash(string path)
         {
@@ -748,7 +758,7 @@ namespace DynamicMosaicExample
         /// <param name="lstExceptions">Коллекция исключений, куда требуется добавить возникшее исключение. Может быть <see langword="null"/> (значение по умолчанию).</param>
         /// <returns>Возвращает карту, считанную по указанному пути.</returns>
         /// <remarks>
-        /// Если указана коллекция исключений <paramref name="lstExceptions"/>, то возникшее исключение будет добавлено в неё, и не будет выброшено, в отличии от случая, если коллекция исключений равна <see langword="null"/> (значение по умолчанию).
+        /// Если указана коллекция исключений <paramref name="lstExceptions"/>, то возникшее исключение будет добавлено в неё, и не будет выброшено, в отличии от случая, когда коллекция исключений равна <see langword="null"/> (значение по умолчанию).
         /// В этом случае метод вернёт <see langword="null"/>.
         /// Такой способ обработки исключений необходим для массовой загрузки карт в коллекцию.
         /// В случае деактивации флага <see cref="LongOperationsAllowed"/> метод вернёт <see langword="null"/>.
@@ -838,13 +848,14 @@ namespace DynamicMosaicExample
         /// <param name="fullPath">Путь к изображению.</param>
         /// <returns>Возвращает считанное изображение.</returns>
         /// <remarks>
-        /// Поддерживается возможность совершения повторных попыток открытия файла в случае возникновения различных ошибок.
+        /// Метод потокобезопасен.
+        /// В случае возникновения различных ошибок открытия файла, совершает повторные попытки.
         /// Например, если файл занят другим приложением.
-        /// В случае какой-либо ошибки открытия файла, попытки его открыть будут продолжаться каждые 100 мс, в течение пяти секунд.
-        /// Если ни одна попытка не была успешной, выдаётся исключение <see cref="FileNotFoundException"/>.
-        /// При обработке исключений требуется проверять свойство <see cref="Exception.InnerException"/> - если оно не равно <see langword="null"/>, то в нём содержится первоначальное исключение.
-        /// После считывания изображения выполняется его проверка с помощью метода <see cref="CheckBitmapByAlphaColor(Bitmap)"/>.
-        /// Файл открывается на чтение, с флагом <see cref="FileShare.Read"/>.
+        /// В случае возникновения какой-либо ошибки, во время открытия файла, попытки его открыть будут продолжаться каждые 100 мс, в течение пяти секунд.
+        /// Если ни одна попытка не была успешной, метод выдаст исключение <see cref="FileNotFoundException"/>.
+        /// При обработке исключений необходимо проверять свойство <see cref="Exception.InnerException"/>, т.к. в нём находится первоначальное исключение.
+        /// После считывания изображения, метод выполняет проверку значения <see cref="Color.A"/> в считанном изображении, с помощью метода <see cref="CheckBitmapByAlphaColor(Bitmap)"/>, который, в случае неудачной проверки, выбрасывает исключение <see cref="InvalidOperationException"/>.
+        /// Метод открывает файл (<paramref name="fullPath"/>) на чтение, с флагом <see cref="FileShare.Read"/>.
         /// </remarks>
         /// <exception cref="FileNotFoundException"/>
         /// <exception cref="InvalidOperationException"/>
@@ -898,7 +909,7 @@ namespace DynamicMosaicExample
 
         /// <summary>
         ///     Добавляет указанную карту <see cref="Processor" /> в <see cref="ConcurrentProcessorStorage" />.
-        ///     Добавляет её в коллекцию, идентифицирующую карты по <paramref name="hashCode"/>, так и в коллекцию, идентифицирующую карты по путям.
+        ///     Добавляет её как в коллекцию, идентифицирующую карты по <paramref name="hashCode"/>, так и в коллекцию, идентифицирующую карты по путям к ним.
         ///     <paramref name="hashCode"/> добавляемой карты может совпадать с <paramref name="hashCode"/> других карт.
         ///     Полный путь к добавляемой карте на существование не проверяется.
         ///     Если карта уже присутствовала в коллекции, то она будет перезагружена в неё.
@@ -1177,6 +1188,8 @@ namespace DynamicMosaicExample
         /// Для получения дополнительных сведений см. класс <see cref="CRCIntCalc"/>.
         /// Для генерации хеш-кода используется только тело карты, значение свойства <see cref="Processor.Tag"/> не принимается во внимание.
         /// </remarks>
+        /// <seealso cref="CRCIntCalc"/>
+        /// <seealso cref="Processor.Tag"/>
         static int GetHashCode(Processor processor)
         {
             if (processor == null)
@@ -1250,7 +1263,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Сохраняет указанное изображение на жёсткий диск.
+        ///     Сохраняет изображение по указанному пути.
         /// </summary>
         /// <param name="btm">Изображение, которое требуется сохранить.</param>
         /// <param name="path">
@@ -1258,6 +1271,7 @@ namespace DynamicMosaicExample
         ///     используется <see cref="WorkingDirectory" />.
         /// </param>
         /// <remarks>
+        /// Является потокобезопасным.
         /// Изображение всегда будет сохранено с расширением <see cref="ExtImg"/>, в формате <see cref="ImageFormat.Bmp"/>.
         /// </remarks>
         protected void SaveToFile(Bitmap btm, string path)
