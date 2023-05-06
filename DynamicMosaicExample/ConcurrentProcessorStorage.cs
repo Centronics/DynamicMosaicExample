@@ -1064,7 +1064,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Удаляет указанную карту <see cref="Processor" /> из коллекции <see cref="ConcurrentProcessorStorage" />,
+        ///     Удаляет указанную карту (или папку с картами) из коллекции <see cref="ConcurrentProcessorStorage" />,
         ///     идентифицируя её по пути к ней.
         /// </summary>
         /// <param name="fullPath">Полный путь к карте (или к папке с картами), которую необходимо удалить из коллекции.</param>
