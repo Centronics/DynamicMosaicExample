@@ -576,7 +576,7 @@ namespace DynamicMosaicExample
         /// <returns>Возвращает значение <see langword="true"/> в случае, если указанный путь находится в рабочем каталоге.</returns>
         /// <remarks>
         /// Для метода не имеет значения наличие разделителей в конце сравниваемых путей.
-        /// Если их не будет, метод сам их добавит для коректного сравнения.
+        /// Если они отсутствуют, метод сам их добавит для корректного сравнения.
         /// Метод является потокобезопасным.
         /// </remarks>
         public bool IsWorkingDirectory(string path, bool isEqual = false)
@@ -1148,16 +1148,17 @@ namespace DynamicMosaicExample
         /// Проверяет, указывает ли заданный путь на директорию.
         /// </summary>
         /// <param name="path">Проверяемый путь.</param>
-        /// <returns>Если указывает на директорию, то возвращает значение <see langword="true" />.</returns>
+        /// <returns>Если <paramref name="path"/> указывает на директорию, метод возвращает значение <see langword="true" />.</returns>
         /// <remarks>
-        /// Входная строка может быть <see langword="null" /> или <see cref="string.Empty" />.
-        /// Для увеличения производительности метода лучше на конце строки использовать какой-либо разделитель каталогов.
-        /// Если в конце строки символ-разделитель не найден, то ищется расширение. Если оно отсутствует, то считается, что строка пути указывает на каталог.
+        /// Входная строка может быть <see langword="null" /> или <see cref="string.Empty" />, в этом случае метод возвращает значение <see langword="false" />.
+        /// Для увеличения производительности метода, на конце строки следует использовать разделитель каталогов (<see cref="Path.DirectorySeparatorChar"/>).
+        /// Если в конце строки символ-разделитель отсутствует, метод ищет расширение. Если оно отсутствует, то считается, что строка пути указывает на каталог.
         /// Метод является потокобезопасным.
         /// К файловой системе не обращается.
-        /// Использует метод <see cref="IsDirectorySeparatorSymbol"/>.
+        /// Для определения наличия символа-разделителя каталогов на конце строки пути, использует метод <see cref="IsDirectorySeparatorSymbol(char)"/>.
         /// </remarks>
-        static bool IsDirectory(string path)
+        /// <seealso cref="IsDirectorySeparatorSymbol(char)"/>
+        public static bool IsDirectory(string path)
         {
             return !string.IsNullOrEmpty(path) && (IsDirectorySeparatorSymbol(path[path.Length - 1]) ||
                                                    string.IsNullOrEmpty(Path.GetExtension(path)));

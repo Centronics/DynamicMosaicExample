@@ -137,20 +137,26 @@ namespace DynamicMosaicExample
         /// <param name="fullPath">Путь к папке с картами.</param>
         /// <param name="storage">Хранилище, в которое необходимо добавить карты.</param>
         /// <remarks>
-        /// Если хранилище не указано (<see langword="null"/>), вызов игнорируется.
+        /// Если хранилище не указано (<see langword="null"/>), вызов будет игнорирован.
+        /// Метод определяет, куда указывает <paramref name="fullPath"/>, с помощью метода <see cref="ConcurrentProcessorStorage.IsDirectory(string)"/>.
+        /// Если он не указывает на папку, вызов будет игнорирован.
         /// Задание будет выполнено, когда до него дойдёт очередь.
         /// В случае, если <see cref="ConcurrentProcessorStorage.StorageType"/> является <see cref="ProcStorType.IMAGE"/>, тестируемый <see cref="Recognizer"/> будет сброшен (<see langword="null"/>).
-        /// Метод автоматически добавляет разделитель каталогов в конец пути, используя метод <see cref="ConcurrentProcessorStorage.AddEndingSlash"/>.
+        /// Метод автоматически добавляет разделитель каталогов в конец пути (<paramref name="fullPath"/>), используя метод <see cref="ConcurrentProcessorStorage.AddEndingSlash"/>.
         /// Метод потокобезопасен.
         /// </remarks>
         /// <seealso cref="Common"/>
         /// <seealso cref="FileTaskAction"/>
         /// <seealso cref="ProcStorType"/>
+        /// <seealso cref="ConcurrentProcessorStorage.IsDirectory(string)"/>
         /// <seealso cref="ConcurrentProcessorStorage.StorageType"/>
         /// <seealso cref="ConcurrentProcessorStorage.AddEndingSlash"/>
         void EnqueueCreate(string fullPath, ConcurrentProcessorStorage storage)
         {
             if (storage == null)
+                return;
+
+            if (!ConcurrentProcessorStorage.IsDirectory(fullPath))
                 return;
 
             _concurrentFileTasks.Enqueue(new Common(FileTaskAction.CREATED, storage,
