@@ -37,11 +37,15 @@ namespace DynamicMosaicExample
         /// </summary>
         bool _draw;
 
+        /// <summary>
+        ///     Флаг, необходимый для того, чтобы защититься от возникновения события изменения текста на поле ввода, в процессе обработки такого события.
+        /// </summary>
         bool _txtSymbolTextChecking;
 
         /// <summary>
         ///     Конструктор формы ввода нового искомого символа.
         /// </summary>
+        /// <param name="imageProcessorStorage">Хранит загруженные карты, которые требуется искать на основной карте.</param>
         internal FrmSymbol(ImageProcessorStorage imageProcessorStorage)
         {
             _imagesProcessorStorage = imageProcessorStorage ??
@@ -120,7 +124,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Сохраняет текущий образ искомой буквы.
+        ///     Сохраняет текущий образ искомой буквы в рабочий каталог и закрывает форму (<see cref="DialogResult.OK"/>).
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -150,7 +154,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Очищает поверхность для рисования искомого образа.
+        ///     Очищает поверхность рисования искомого образа.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -193,6 +197,10 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
+        /// Производит контроль вводимого содержимого в поле ввода (<see cref="TextBox.Text"/>) названия символа.
+        /// Поле не может содержать знаки пробела, содержать строку длиннее значения <see cref="TextBoxBase.MaxLength"/>, при этом, метод всегда скорректирует строку в большой регистр (<see cref="string.ToUpper()"/>).
+        /// Если поле содержит знаки пробела, его значение будет сброшено (<see cref="string.Empty"/>).
+        /// Если поле пустое (<see cref="string.Empty"/>), метод не производит никаких действий.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -230,6 +238,12 @@ namespace DynamicMosaicExample
             });
         }
 
+        /// <summary>
+        /// Обрабатывает события нажатий клавиш над формой: закрывает форму (<see cref="DialogResult.Cancel"/>) при нажатии клавиши <see cref="Keys.Escape"/>.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        /// <seealso cref="ExitCancel()"/>
         void Btn_KeyDown(object sender, KeyEventArgs e)
         {
             RunAction(() =>
@@ -243,6 +257,15 @@ namespace DynamicMosaicExample
             });
         }
 
+        /// <summary>
+        /// Обрабатывает события нажатий клавиш над полем ввода названия символа:
+        /// 1) Сохраняет текущий образ искомой буквы в рабочий каталог и закрывает форму (<see cref="DialogResult.OK"/>), при нажатии клавиши <see cref="Keys.Enter"/>.
+        /// 2) Закрывает форму (<see cref="DialogResult.Cancel"/>) при нажатии клавиши <see cref="Keys.Escape"/>.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        /// <seealso cref="BtnOK_Click(object, EventArgs)"/>
+        /// <seealso cref="ExitCancel()"/>
         void TxtSymbol_KeyDown(object sender, KeyEventArgs e)
         {
             RunAction(() =>
@@ -259,11 +282,29 @@ namespace DynamicMosaicExample
             });
         }
 
+        /// <summary>
+        /// Закрывает форму как диалог (<see cref="DialogResult.Cancel"/>).
+        /// </summary>
+        /// <seealso cref="Form.DialogResult"/>
+        /// <seealso cref="DialogResult"/>
         void ExitCancel()
         {
             DialogResult = DialogResult.Cancel;
         }
 
+        /// <summary>
+        /// Предотвращает (<see cref="KeyPressEventArgs.Handled"/>) реакцию системы (по умолчанию) на нажатие служебной клавиши.
+        /// Поддерживаются следующие клавиши:
+        /// 1) <see cref="Keys.Enter"/>
+        /// 2) <see cref="Keys.Tab"/>
+        /// 3) <see cref="Keys.Escape"/>
+        /// 4) <see cref="Keys.Pause"/>
+        /// 5) <see cref="Keys.XButton1"/>.
+        /// В противном случае, будет выполнена очистка (<see cref="string.Empty"/>) поля ввода названия символа перед тем, как его значение будет изменено.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        /// <seealso cref="KeyPressEventArgs.Handled"/>
         void TxtSymbol_KeyPress(object sender, KeyPressEventArgs e)
         {
             RunAction(() =>
@@ -284,6 +325,12 @@ namespace DynamicMosaicExample
             });
         }
 
+        /// <summary>
+        /// Закрывает все используемые формой ресурсы.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        /// <seealso cref="FrmExample.DisposeImage(PictureBox)"/>
         void FrmSymbol_FormClosing(object sender, FormClosingEventArgs e)
         {
             RunAction(() =>

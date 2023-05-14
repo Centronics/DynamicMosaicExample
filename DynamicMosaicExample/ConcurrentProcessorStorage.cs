@@ -640,7 +640,7 @@ namespace DynamicMosaicExample
         /// В случае, если параметр <paramref name="relativeFolderPath"/> пустой (<see langword="null"/> или <see cref="string.Empty"/>), ему будет присвоен путь в рабочий каталог <see cref="WorkingDirectory"/>.
         /// Вернётся значение <see langword="false"/>.
         /// Если путь <paramref name="relativeFolderPath"/> ведёт в каталог (находящийся в рабочем каталоге), то параметр <paramref name="relativeFolderPath"/> останется без изменений. Вернётся значение <see langword="false"/>.
-        /// Для определения, указывает ли путь на каталог, используется метод <see cref="IsDirectory"/>.
+        /// Для определения, указывает ли путь на каталог, используется метод <see cref="IsDirectory(string)"/>.
         /// В случае, когда путь указывает на файл с другим расширением, возникает исключение <see cref="ArgumentException"/>.
         /// Параметр <paramref name="relativeFolderPath"/> остаётся неизменным.
         /// Метод является потокобезопасным.
@@ -697,10 +697,11 @@ namespace DynamicMosaicExample
         /// Это касается только карт, находящихся в рабочем каталоге.
         /// Для добавления карт в <see cref="ConcurrentProcessorStorage"/> требуется, чтобы добавляемые карты находились в папке хранилища (<see cref="WorkingDirectory"/>), которую определяет метод <see cref="IsWorkingDirectory"/>.
         /// Если карта находится за пределами рабочего каталога (<see cref="WorkingDirectory"/>), она будет считана и возвращена, но не будет добавлена в коллекцию.
-        /// Исключение может возникать только после завершения обработки карт. В случае получения нескольких исключений будет выброшено <see cref="AggregateException"/>.
+        /// Исключение может возникать только после завершения обработки карт. В случае получения нескольких исключений, будет выброшено <see cref="AggregateException"/>.
         /// В случае деактивации флага <see cref="LongOperationsAllowed"/> метод вернёт пустой массив. <see langword="null"/> никогда не возвращается.
         /// Метод потокобезопасен.
         /// </remarks>
+        /// <exception cref="AggregateException"/>
         public IEnumerable<Processor> AddProcessor(string fullPath)
         {
             List<Exception> lstExceptions = new List<Exception>();
@@ -1075,12 +1076,13 @@ namespace DynamicMosaicExample
         /// </returns>
         /// <remarks>
         /// Является потокобезопасным.
-        /// Если указан путь к папке, то будут удалены все карты, содержащиеся в ней (в том числе, во вложенных папках).
+        /// Если указан путь к папке (<see cref="IsDirectory(string)"/>), то будут удалены все карты, содержащиеся в ней (в том числе, во вложенных папках).
         /// В случае, если удаляемая (указанная) карта является выбранной в данный момент, свойство <see cref="SelectedPath"/> будет сброшено.
         /// В случае, если указан путь к папке, поиск производится по соответствию части строки, без учёта регистра.
-        /// Если требуется произвести удаление карт строго из определённой папки, необходимо поставить разделитель каталогов в конце пути.
+        /// Если требуется произвести удаление карт из строго определённой папки, необходимо поставить разделитель каталогов в конце пути.
         /// Для этого рекомендуется воспользоваться методом <see cref="AddEndingSlash(string)"/>.
         /// </remarks>
+        /// <seealso cref="IsDirectory(string)"/>
         /// <seealso cref="SelectedPath"/>
         /// <seealso cref="SelectedIndex"/>
         /// <seealso cref="AddEndingSlash(string)"/>
