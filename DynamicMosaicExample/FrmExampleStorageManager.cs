@@ -78,7 +78,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="storage">Хранилище, которое требуется очистить.</param>
         /// <remarks>
-        /// Если хранилище не указано (<see langword="null"/>), вызов игнорируется.
+        /// Если хранилище не указано (<see langword="null"/>), вызов будет игнорирован.
         /// Задание будет выполнено, когда до него дойдёт очередь.
         /// В случае, если <see cref="ConcurrentProcessorStorage.StorageType"/> является <see cref="ProcStorType.IMAGE"/>, тестируемый <see cref="Recognizer"/> будет сброшен (<see langword="null"/>).
         /// Метод потокобезопасен.
@@ -95,7 +95,7 @@ namespace DynamicMosaicExample
             _concurrentFileTasks.Enqueue(new FileTask(FileTaskAction.CLEARED, storage));
 
             if (storage.StorageType == ProcStorType.IMAGE)
-                RefreshRecognizer();
+                ResetRecognizer();
 
             _refreshEvent.Set();
         }
@@ -106,7 +106,7 @@ namespace DynamicMosaicExample
         /// <param name="fullPath">Путь к папке с картами.</param>
         /// <param name="storage">Хранилище, из которого требуется удалить карты.</param>
         /// <remarks>
-        /// Если хранилище не указано (<see langword="null"/>), вызов игнорируется.
+        /// Если хранилище не указано (<see langword="null"/>), вызов будет игнорирован.
         /// Задание будет выполнено, когда до него дойдёт очередь.
         /// В случае, если <see cref="ConcurrentProcessorStorage.StorageType"/> является <see cref="ProcStorType.IMAGE"/>, тестируемый <see cref="Recognizer"/> будет сброшен (<see langword="null"/>).
         /// Метод автоматически добавляет разделитель каталогов в конец пути, используя метод <see cref="ConcurrentProcessorStorage.AddEndingSlash"/>.
@@ -126,7 +126,7 @@ namespace DynamicMosaicExample
                 ConcurrentProcessorStorage.AddEndingSlash(fullPath)));
 
             if (storage.StorageType == ProcStorType.IMAGE)
-                RefreshRecognizer();
+                ResetRecognizer();
 
             _refreshEvent.Set();
         }
@@ -163,7 +163,7 @@ namespace DynamicMosaicExample
                 ConcurrentProcessorStorage.AddEndingSlash(fullPath)));
 
             if (storage.StorageType == ProcStorType.IMAGE)
-                RefreshRecognizer();
+                ResetRecognizer();
 
             _refreshEvent.Set();
         }
@@ -389,7 +389,7 @@ namespace DynamicMosaicExample
                 _concurrentFileTasks.Enqueue(new Common(ConvertWatcherChangeTypes(e.ChangeType), storage, e.FullPath));
 
                 if (storage.StorageType == ProcStorType.IMAGE)
-                    RefreshRecognizer();
+                    ResetRecognizer();
 
                 _refreshEvent.Set();
             });
@@ -433,7 +433,7 @@ namespace DynamicMosaicExample
                     e.FullPath, e.OldFullPath, true, true));
 
                 if (oldStorage.StorageType == ProcStorType.IMAGE || newStorage.StorageType == ProcStorType.IMAGE)
-                    RefreshRecognizer();
+                    ResetRecognizer();
 
                 _refreshEvent.Set();
             });
@@ -548,7 +548,7 @@ namespace DynamicMosaicExample
         /// Активирует наблюдение за хранилищем <see cref="SourceChanged.RECOGNIZE"/>, с помощью <see cref="FileSystemWatcher"/>.
         /// </summary>
         /// <remarks>
-        /// Метод может использоваться только в том же потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
+        /// Метод может быть использован только в том потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
         /// Если наблюдение за этим хранилищем уже производилось, оно будет перезапущено.
         /// Отслеживаемый путь: <see cref="RecognizeImagesPath"/>.
         /// Использует поле <see cref="_fswRecognizeChanged"/>.
@@ -586,7 +586,7 @@ namespace DynamicMosaicExample
         /// Активирует наблюдение за хранилищем <see cref="SourceChanged.IMAGES"/>, с помощью <see cref="FileSystemWatcher"/>.
         /// </summary>
         /// <remarks>
-        /// Метод может использоваться только в том же потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
+        /// Метод может быть использован только в том потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
         /// Если наблюдение за этим хранилищем уже производилось, оно будет перезапущено.
         /// Отслеживаемый путь: <see cref="SearchImagesPath"/>.
         /// Использует поле <see cref="_fswImageChanged"/>.
@@ -624,7 +624,7 @@ namespace DynamicMosaicExample
         /// Активирует наблюдение за состоянием папок хранилищ (<see cref="SourceChanged.WORKDIR"/>), с помощью <see cref="FileSystemWatcher"/>.
         /// </summary>
         /// <remarks>
-        /// Метод может использоваться только в том же потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
+        /// Метод может быть использован только в том потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
         /// Если наблюдение за этим хранилищем уже производилось, оно будет перезапущено.
         /// Отслеживаемый путь: <see cref="WorkingDirectory"/>.
         /// Использует поле <see cref="_fswWorkDirChanged"/>.
@@ -662,7 +662,7 @@ namespace DynamicMosaicExample
         /// Прекращает наблюдение за хранилищем <see cref="SourceChanged.RECOGNIZE"/>.
         /// </summary>
         /// <remarks>
-        /// Этот метод может использоваться только в том же потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
+        /// Этот метод может быть использован только в том потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
         /// Его можно вызывать сколько угодно раз подряд, т.к. если наблюдение отключено, никакого эффекта не будет.
         /// Использует поле <see cref="_fswRecognizeChanged"/>.
         /// Для того, чтобы активировать наблюдение за этим хранилищем, используйте метод <see cref="CreateRecognizeWatcher()"/>.
@@ -681,7 +681,7 @@ namespace DynamicMosaicExample
         /// Прекращает наблюдение за хранилищем <see cref="SourceChanged.IMAGES"/>.
         /// </summary>
         /// <remarks>
-        /// Этот метод может использоваться только в том же потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
+        /// Этот метод может быть использован только в том потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
         /// Его можно вызывать сколько угодно раз подряд, т.к. если наблюдение отключено, никакого эффекта не будет.
         /// Использует поле <see cref="_fswImageChanged"/>.
         /// Для того, чтобы активировать наблюдение за этим хранилищем, используйте метод <see cref="CreateImageWatcher()"/>.
@@ -700,7 +700,7 @@ namespace DynamicMosaicExample
         /// Прекращает наблюдение за хранилищем <see cref="SourceChanged.WORKDIR"/>.
         /// </summary>
         /// <remarks>
-        /// Этот метод может использоваться только в том же потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
+        /// Этот метод может быть использован только в том потоке, в котором создана основная форма приложения <see cref="FrmExample"/>.
         /// Его можно вызывать сколько угодно раз подряд, т.к. если наблюдение отключено, никакого эффекта не будет.
         /// Использует поле <see cref="_fswWorkDirChanged"/>.
         /// Для того, чтобы активировать наблюдение за этим хранилищем, используйте метод <see cref="CreateWorkDirWatcher()"/>.

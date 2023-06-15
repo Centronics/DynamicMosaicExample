@@ -90,8 +90,8 @@
             this.lstHistory.ScrollAlwaysVisible = true;
             this.lstHistory.Size = new System.Drawing.Size(125, 132);
             this.lstHistory.TabIndex = 17;
-            this.lstHistory.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.LstResults_DrawItem);
-            this.lstHistory.SelectedIndexChanged += new System.EventHandler(this.LstResults_SelectedIndexChanged);
+            this.lstHistory.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.LstHistory_DrawItem);
+            this.lstHistory.SelectedIndexChanged += new System.EventHandler(this.LstHistory_SelectedIndexChanged);
             // 
             // txtWord
             // 
