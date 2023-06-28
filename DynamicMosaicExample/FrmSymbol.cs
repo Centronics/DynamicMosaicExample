@@ -244,7 +244,7 @@ namespace DynamicMosaicExample
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         /// <seealso cref="ExitCancel()"/>
-        void Btn_KeyDown(object sender, KeyEventArgs e)
+        void BtnKeyDown(object sender, KeyEventArgs e)
         {
             RunAction(() =>
             {

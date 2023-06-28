@@ -22,7 +22,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <remarks>
         /// Для того, чтобы запрос был сохранён, необходимо сохранить его в файл, а изображение на экране не подвергать изменению.
-        /// Таким образом, изображение <see cref="_btmRecognizeImage"/> должно совпадать с <see cref="_btmSavedRecognizeCopy"/>, а текущий поисковый запрос <see cref="txtWord"/> должен быть равен <see cref="_savedRecognizeQuery"/>.
+        /// Таким образом, изображение <see cref="_btmRecognizeImage"/> должно совпадать с <see cref="_btmSavedRecognizeCopy"/>, а текущий поисковый запрос <see cref="txtRecogQueryWord"/> должен быть равен <see cref="_savedRecognizeQuery"/>.
         /// Во всех остальных случаях запрос является изменённым.
         /// Свойство можно использовать только в том потоке, в котором была создана форма <see cref="FrmExample"/>.
         /// </remarks>
@@ -37,7 +37,7 @@ namespace DynamicMosaicExample
                 if (_btmSavedRecognizeCopy == null)
                     return false;
 
-                return !_recognizeProcessorStorage.IsSelectedOne || txtWord.Text != _savedRecognizeQuery ||
+                return !_recognizeProcessorStorage.IsSelectedOne || txtRecogQueryWord.Text != _savedRecognizeQuery ||
                        !CompareBitmaps(_btmRecognizeImage, _btmSavedRecognizeCopy);
             }
         }
@@ -60,7 +60,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Отображает указанную карту на экране.
+        ///     Отображает указанную распознаваемую карту на экране.
         /// </summary>
         /// <param name="loadingProcessor">Карта, которую требуется отобразить на экране.</param>
         /// <remarks>
@@ -77,11 +77,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Выполняет указанное действие, используя аргументы, необходимые для его выполнения.
-        ///     Актуализирует состояние пользовательского интерфейса.
+        ///     Выполняет указанное действие над распознаваемой картой, используя аргументы, необходимые для его выполнения.
+        ///     Актуализирует состояние пользовательского интерфейса, предназначенного для создания распознаваемого изображения.
         /// </summary>
         /// <param name="action">Действие, которое необходимо выполнить.</param>
-        /// <param name="btmPath">Путь к файлу загружаемого изображения. Необходим только для выполнения действия <see cref="ImageActualizeAction.LOAD"/>.</param>
+        /// <param name="btmPath">Путь к файлу загружаемого распознаваемого изображения. Необходим только для выполнения действия <see cref="ImageActualizeAction.LOAD"/>.</param>
         /// <param name="loadingProcessor">Необходима для выполнения действия <see cref="ImageActualizeAction.LOADDIRECTLY"/>, иначе - <see langword="null"/>.</param>
         /// <remarks>
         /// Для получения сведений о выполняемых действиях см. <see cref="ImageActualizeAction"/>.
@@ -94,7 +94,7 @@ namespace DynamicMosaicExample
                 _grRecognizeImageGraphics?.Dispose();
                 _grRecognizeImageGraphics = Graphics.FromImage(_btmRecognizeImage);
 
-                pbDraw.Image = _btmRecognizeImage;
+                pbRecognizeDraw.Image = _btmRecognizeImage;
             }
 
             string tag;
@@ -118,8 +118,8 @@ namespace DynamicMosaicExample
 
                         if (count == 1)
                         {
-                            btnRecogNext.Enabled = false;
-                            txtWord.Select();
+                            btnNextRecog.Enabled = false;
+                            txtRecogQueryWord.Select();
                         }
 
                         tag = processor.Tag;
@@ -170,7 +170,7 @@ namespace DynamicMosaicExample
                     break;
                 case ImageActualizeAction.REFRESH:
                     {
-                        Bitmap btm = new Bitmap(pbDraw.Width, pbDraw.Height);
+                        Bitmap btm = new Bitmap(pbRecognizeDraw.Width, pbRecognizeDraw.Height);
 
                         bool needReset = false;
 
@@ -191,8 +191,8 @@ namespace DynamicMosaicExample
                         if (needReset)
                             _grRecognizeImageGraphics.Clear(DefaultColor);
 
-                        btnSaveRecognizeImage.Enabled = !string.IsNullOrEmpty(txtWord.Text) && IsQueryChanged;
-                        btnClearImage.Enabled = IsPainting;
+                        btnSaveRecognizeImage.Enabled = !string.IsNullOrEmpty(txtRecogQueryWord.Text) && IsQueryChanged;
+                        btnClearRecogImage.Enabled = IsPainting;
                     }
                     return;
                 default:
@@ -212,7 +212,7 @@ namespace DynamicMosaicExample
                 }
 
                 _currentUndoRedoWord = tag;
-                txtWord.Text = tag;
+                txtRecogQueryWord.Text = tag;
             }
             catch (Exception ex)
             {
@@ -220,18 +220,18 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            DrawFieldFrame(pbDraw, _grpSourceImageGraphics);
-            pbDraw.Width = _btmRecognizeImage.Width;
-            btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
-            btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
+            DrawFieldFrame(pbRecognizeDraw, _grpSourceImageGraphics);
+            pbRecognizeDraw.Width = _btmRecognizeImage.Width;
+            btnWide.Enabled = pbRecognizeDraw.Width < pbRecognizeDraw.MaximumSize.Width;
+            btnNarrow.Enabled = pbRecognizeDraw.Width > pbRecognizeDraw.MinimumSize.Width;
 
             if (countMain != null)
                 SetRedoRecognizeImage(countMain.Value);
             else
                 SetRedoRecognizeImage();
 
-            if (!string.IsNullOrEmpty(txtWord.Text))
-                txtWord.Select(txtWord.Text.Length, 0);
+            if (!string.IsNullOrEmpty(txtRecogQueryWord.Text))
+                txtRecogQueryWord.Select(txtRecogQueryWord.Text.Length, 0);
 
             CommonMethod();
         }
@@ -269,24 +269,24 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbDraw_MouseDown(object sender, MouseEventArgs e)
+        void PbRecognizeDraw_MouseDown(object sender, MouseEventArgs e)
         {
             SafeExecute(() =>
             {
-                _draw = true;
+                _drawAllowed = true;
                 DrawPoint(e.X, e.Y, e.Button);
 
                 switch (e.Button)
                 {
                     case MouseButtons.Left:
-                        btnClearImage.Enabled = true;
+                        btnClearRecogImage.Enabled = true;
                         break;
                 }
             });
         }
 
         /// <summary>
-        ///     Расширяет область создания распознаваемого изображения <see cref="pbDraw" /> до максимального размера по
+        ///     Расширяет область создания распознаваемого изображения <see cref="pbRecognizeDraw" /> до максимального размера по
         ///     <see cref="Control.Width" />.
         ///     Изображение будет считаться изменённым.
         /// </summary>
@@ -296,9 +296,9 @@ namespace DynamicMosaicExample
         {
             SafeExecute(() =>
             {
-                pbDraw.Width += _widthStep;
-                btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
-                btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
+                pbRecognizeDraw.Width += _widthStep;
+                btnWide.Enabled = pbRecognizeDraw.Width < pbRecognizeDraw.MaximumSize.Width;
+                btnNarrow.Enabled = pbRecognizeDraw.Width > pbRecognizeDraw.MinimumSize.Width;
                 ImageActualize(ImageActualizeAction.REFRESH);
                 CurrentUndoRedoState = UndoRedoState.UNKNOWN;
             });
@@ -307,7 +307,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Выводит рамку (или удаляет её) на указанной позиции.
+        /// Рисует рамку (или удаляет её) на указанной позиции.
         /// </summary>
         /// <param name="ctl">Необходим для считывания координат, ширины и высоты.</param>
         /// <param name="g">Поверхность для рисования.</param>
@@ -324,7 +324,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Сужает область создания распознаваемого изображения <see cref="pbDraw" /> до минимального размера по
+        ///     Сужает область создания распознаваемого изображения <see cref="pbRecognizeDraw" /> до минимального размера по
         ///     <see cref="Control.Width" />.
         ///     Изображение будет считаться изменённым.
         /// </summary>
@@ -334,10 +334,10 @@ namespace DynamicMosaicExample
         {
             SafeExecute(() =>
             {
-                DrawFieldFrame(pbDraw, _grpSourceImageGraphics);
-                pbDraw.Width -= _widthStep;
-                btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
-                btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
+                DrawFieldFrame(pbRecognizeDraw, _grpSourceImageGraphics);
+                pbRecognizeDraw.Width -= _widthStep;
+                btnWide.Enabled = pbRecognizeDraw.Width < pbRecognizeDraw.MaximumSize.Width;
+                btnNarrow.Enabled = pbRecognizeDraw.Width > pbRecognizeDraw.MinimumSize.Width;
                 ImageActualize(ImageActualizeAction.REFRESH);
                 CurrentUndoRedoState = UndoRedoState.UNKNOWN;
             });
@@ -346,11 +346,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается при отпускании клавиши мыши над полем создания исходного изображения <see cref="pbDraw"/>.
+        ///     Вызывается при отпускании клавиши мыши над полем создания исходного изображения <see cref="pbRecognizeDraw"/>.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbDraw_MouseUp(object sender, MouseEventArgs e)
+        void PbRecognizeDraw_MouseUp(object sender, MouseEventArgs e)
         {
             DrawStop();
         }
@@ -444,7 +444,7 @@ namespace DynamicMosaicExample
 
             txtRecogPath.Text = changed ? string.Empty : recogPath;
 
-            btnSaveRecognizeImage.Enabled = changed && !string.IsNullOrEmpty(txtWord.Text);
+            btnSaveRecognizeImage.Enabled = changed && !string.IsNullOrEmpty(txtRecogQueryWord.Text);
         }
 
         /// <summary>
@@ -471,12 +471,12 @@ namespace DynamicMosaicExample
 
             if (t.imageProcessor != null && t.imageCount > 0)
             {
-                pbBrowse.Image = ImageRect.GetBitmap(t.imageProcessor);
+                pbImage.Image = ImageRect.GetBitmap(t.imageProcessor);
                 txtSymbolPath.Text = t.imagePath;
             }
             else
             {
-                pbBrowse.Image = new Bitmap(pbBrowse.Width, pbBrowse.Height);
+                pbImage.Image = new Bitmap(pbImage.Width, pbImage.Height);
                 txtSymbolPath.Text = _unknownSymbolName;
             }
 
@@ -498,13 +498,13 @@ namespace DynamicMosaicExample
 
                 _needInitImage = imageCount <= 0;
 
-                btnImageUpToQueries.Enabled = btnImageDelete.Enabled = ButtonsEnabled && imageCount > 0;
-                btnImageNext.Enabled = imageCount > 1;
-                btnImagePrev.Enabled = imageCount > 1;
+                btnImageUpToQueries.Enabled = btnImageDelete.Enabled = IsButtonsEnabled && imageCount > 0;
+                btnNextImage.Enabled = imageCount > 1;
+                btnPrevImage.Enabled = imageCount > 1;
                 txtImagesNumber.Enabled = imageCount > 0;
                 txtImagesCount.Enabled = imageCount > 0;
                 txtSymbolPath.Enabled = imageCount > 0;
-                pbBrowse.Enabled = imageCount > 0;
+                pbImage.Enabled = imageCount > 0;
                 lblImagesCount.Enabled = imageCount > 0;
 
                 bool needInitRecognizeImage = _needInitRecognizeImage;
@@ -523,8 +523,8 @@ namespace DynamicMosaicExample
 
                         ImageActualize(recogProcessor);
 
-                        btnRecogNext.Enabled = recogCount > 1;
-                        btnRecogPrev.Enabled = recogCount > 1;
+                        btnNextRecog.Enabled = recogCount > 1;
+                        btnPrevRecog.Enabled = recogCount > 1;
                         txtRecogNumber.Enabled = true;
                         txtRecogCount.Enabled = true;
                         txtRecogPath.Enabled = true;
@@ -542,8 +542,8 @@ namespace DynamicMosaicExample
                         break;
                 }
 
-                btnRecogNext.Enabled = recogCount > 1 || (recogCount > 0 && isQueryChanged);
-                btnRecogPrev.Enabled = recogCount > 1;
+                btnNextRecog.Enabled = recogCount > 1 || (recogCount > 0 && isQueryChanged);
+                btnPrevRecog.Enabled = recogCount > 1;
                 txtRecogNumber.Enabled = recogCount > 0;
                 txtRecogCount.Enabled = recogCount > 0;
                 txtRecogPath.Enabled = recogCount > 0;
@@ -588,9 +588,9 @@ namespace DynamicMosaicExample
                             {
                                 btnRecognizeImage.Image = _imgSearchDefault;
                                 btnRecognizeImage.Text = string.Empty;
-                                ButtonsEnabled = true;
+                                IsButtonsEnabled = true;
                                 RefreshImagesCount();
-                                txtWord.Select();
+                                txtRecogQueryWord.Select();
 
                                 if (initializeUserInterface)
                                     return;
@@ -663,19 +663,19 @@ namespace DynamicMosaicExample
                                 case 2:
                                     btnRecognizeImage.Image = null;
                                     btnRecognizeImage.Text = strPreparing;
-                                    ButtonsEnabled = true;
+                                    IsButtonsEnabled = true;
                                     return;
 
                                 case 3:
                                     btnRecognizeImage.Image = null;
                                     btnRecognizeImage.Text = strLoading;
-                                    ButtonsEnabled = true;
+                                    IsButtonsEnabled = true;
                                     return;
 
                                 default:
                                     btnRecognizeImage.Text = string.Empty;
                                     btnRecognizeImage.Image = _imgSearchDefault;
-                                    ButtonsEnabled = true;
+                                    IsButtonsEnabled = true;
                                     return;
                             }
                         }, true);
@@ -756,7 +756,7 @@ namespace DynamicMosaicExample
                     return;
                 }
 
-                ButtonsEnabled = false;
+                IsButtonsEnabled = false;
                 lstHistory.SelectedIndex = -1;
 
                 CurrentUndoRedoState = UndoRedoState.UNKNOWN;
@@ -792,9 +792,9 @@ namespace DynamicMosaicExample
                 {
                     _recogPreparing.Set();
 
-                    (Processor, string)[] query = _recognizeProcessorStorage.Elements.Select(t => (t, t.Tag)).ToArray();
+                    (Processor, string)[] queries = _recognizeProcessorStorage.Elements.Select(t => (t, t.Tag)).ToArray();
 
-                    if (!query.Any())
+                    if (!queries.Any())
                     {
                         ErrorMessageInOtherThread(@"Поисковые запросы отсутствуют. Создайте хотя бы один.");
                         return;
@@ -808,7 +808,7 @@ namespace DynamicMosaicExample
 
                         if (!processors.Any())
                         {
-                            ErrorMessageInOtherThread(@"Образы для поиска отсутствуют. Создайте хотя бы два.");
+                            ErrorMessageInOtherThread(@"Образы для поиска отсутствуют. Создайте хотя бы один.");
                             return;
                         }
 
@@ -828,7 +828,7 @@ namespace DynamicMosaicExample
 
                         try
                         {
-                            result = recognizer.FindRelation(query);
+                            result = recognizer.FindRelation(queries);
                         }
                         finally
                         {
@@ -869,7 +869,7 @@ namespace DynamicMosaicExample
         /// Осуществляет запись исторического события процесса тестирования <see cref="Recognizer"/>.
         /// </summary>
         /// <param name="result">Результат выполнения поискового запроса или <see langword="null"/>, в случае его отсутствия. Выводит 'T' = <see langword="true"/>, 'F' = <see langword="false"/> или 'пробел' в случае значения <see langword="null"/>.</param>
-        /// <param name="ps">Содержимое экземпляра тестируемого класса на момент записи исторического события. В случае отсутствия результата (к примеру, из-за ошибки) может быть равен <see langword="null"/>.</param>
+        /// <param name="ps">Содержимое экземпляра тестируемого класса на момент записи исторического события. Обязательно должно присутствовать, т.е. не может быть равно <see langword="null"/>.</param>
         /// <param name="comment">Комментарий события (если есть) или <see langword="null"/> (по умолчанию).</param>
         /// <returns>Возвращает значение <see langword="true"/> в случае, если операция завершилась без ошибок.</returns>
         /// <remarks>
@@ -884,6 +884,7 @@ namespace DynamicMosaicExample
         /// В случае, если количество карт в тестируемом объекте такое большое, что превысит ширину поля этих записей, оно будет заменено символом '∞'.
         /// Узнать его можно будет кликнув по событию, и посмотрев на строку снизу.
         /// </remarks>
+        /// <seealso cref="Recognizer"/>
         /// <seealso cref="CurrentUndoRedoState"/>
         /// <example>
         /// 1) №10 T 13:45:30 (15) - поисковый запрос №10 выполнен успешно.
@@ -965,8 +966,8 @@ namespace DynamicMosaicExample
 
         /// <summary>
         ///     Глобальная функция для определения поведения при нажатии различных клавиш, при различных условиях.
-        ///     Осуществляет запуск (или остановку) выполнения поискового запроса по нажатии клавиши <see cref="Keys.Enter"/> над полем ввода поискового запроса <see cref="txtWord"/>.
-        ///     Переопределяет функцию отката изменений последнего выполненного поискового запроса (<see cref="CurrentUndoRedoWord"/>) посредством нажатия сочетания клавиш (<see cref="KeyEventArgs.Control"/> + <see cref="Keys.Z"/>) над полем ввода поискового запроса <see cref="txtWord"/>.
+        ///     Осуществляет запуск (или остановку) выполнения поискового запроса по нажатии клавиши <see cref="Keys.Enter"/> над полем ввода поискового запроса <see cref="txtRecogQueryWord"/>.
+        ///     Переопределяет функцию отката изменений последнего выполненного поискового запроса (<see cref="CurrentUndoRedoWord"/>) посредством нажатия сочетания клавиш (<see cref="KeyEventArgs.Control"/> + <see cref="Keys.Z"/>) над полем ввода поискового запроса <see cref="txtRecogQueryWord"/>.
         ///     При нажатии клавиши <see cref="Keys.Escape"/> завершает работу приложения с помощью <see cref="Application.Exit()"/>.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
@@ -977,15 +978,15 @@ namespace DynamicMosaicExample
             {
                 switch (e.KeyCode)
                 {
-                    case Keys.Enter when txtWord.Focused:
+                    case Keys.Enter when txtRecogQueryWord.Focused:
                         BtnRecognizeImage_Click(btnRecognizeImage, EventArgs.Empty);
                         return;
-                    case Keys.Z when e.Control && txtWord.Focused:
-                        if (txtWord.Text == CurrentUndoRedoWord)
+                    case Keys.Z when e.Control && txtRecogQueryWord.Focused:
+                        if (txtRecogQueryWord.Text == CurrentUndoRedoWord)
                             return;
 
-                        txtWord.Text = CurrentUndoRedoWord;
-                        txtWord.Select(txtWord.Text.Length, 0);
+                        txtRecogQueryWord.Text = CurrentUndoRedoWord;
+                        txtRecogQueryWord.Select(txtRecogQueryWord.Text.Length, 0);
                         return;
                     case Keys.Escape:
                         Application.Exit();
@@ -999,7 +1000,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void TxtWord_KeyPress(object sender, KeyPressEventArgs e)
+        void TxtRecogQueryWord_KeyPress(object sender, KeyPressEventArgs e)
         {
             switch ((Keys)e.KeyChar)
             {
@@ -1020,13 +1021,13 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbDraw_MouseLeave(object sender, EventArgs e)
+        void PbRecognizeDraw_MouseLeave(object sender, EventArgs e)
         {
             DrawStop();
         }
 
         /// <summary>
-        /// Активирует кнопку сброса (<see cref="btnRecogNext"/>) распознаваемого изображения и связанные с ней кнопки, в случае, если изображение было изменено.
+        /// Активирует кнопку сброса (<see cref="btnNextRecog"/>) распознаваемого изображения и связанные с ней кнопки, в случае, если изображение было изменено.
         /// </summary>
         void SetRedoRecognizeImage()
         {
@@ -1034,7 +1035,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Активирует кнопку сброса (<see cref="btnRecogNext"/>) распознаваемого изображения и связанные с ней кнопки, в случае, если изображение было изменено.
+        /// Активирует кнопку сброса (<see cref="btnNextRecog"/>) распознаваемого изображения и связанные с ней кнопки, в случае, если изображение было изменено.
         /// </summary>
         /// <param name="needPaintCheck">Значение <see langword="true"/> в случае, если требуется проверка наличия изображения на экране.</param>
         /// <remarks>
@@ -1047,7 +1048,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Активирует кнопку сброса (<see cref="btnRecogNext"/>) распознаваемого изображения и связанные с ней кнопки, в случае, если изображение было изменено.
+        /// Активирует кнопку сброса (<see cref="btnNextRecog"/>) распознаваемого изображения и связанные с ней кнопки, в случае, если изображение было изменено.
         /// Обновляет количество карт в коллекции <see cref="_recognizeProcessorStorage"/> (переопределяя его) на момент вызова.
         /// </summary>
         /// <param name="count">Количество карт в коллекции <see cref="_recognizeProcessorStorage"/>.</param>
@@ -1060,7 +1061,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Активирует кнопку сброса (<see cref="btnRecogNext"/>) распознаваемого изображения и связанные с ней кнопки, в случае, если изображение было изменено.
+        /// Активирует кнопку сброса (<see cref="btnNextRecog"/>) распознаваемого изображения и связанные с ней кнопки, в случае, если изображение было изменено.
         /// Обновляет количество карт в коллекции <see cref="_recognizeProcessorStorage"/> (переопределяя его) на момент вызова.
         /// </summary>
         /// <param name="count">Количество карт в коллекции <see cref="_recognizeProcessorStorage"/>.</param>
@@ -1074,9 +1075,9 @@ namespace DynamicMosaicExample
         {
             bool changed = IsQueryChanged;
 
-            btnSaveRecognizeImage.Enabled = changed && !string.IsNullOrEmpty(txtWord.Text);
+            btnSaveRecognizeImage.Enabled = changed && !string.IsNullOrEmpty(txtRecogQueryWord.Text);
 
-            btnRecogNext.Enabled = (changed && count > 0) || count > 1;
+            btnNextRecog.Enabled = (changed && count > 0) || count > 1;
             btnDeleteRecognizeImage.Enabled = !changed && count > 0;
 
             SavedPathInfoActualize(count, _recognizeProcessorStorage.SelectedPath);
@@ -1084,11 +1085,11 @@ namespace DynamicMosaicExample
             if (!needPaintCheck)
                 return;
 
-            btnClearImage.Enabled = IsPainting;
+            btnClearRecogImage.Enabled = IsPainting;
         }
 
         /// <summary>
-        /// Запрещает (<see cref="_draw"/>) графический вывод в случае, если пользователь отпустил кнопку мыши или курсор покинул область рисования распознаваемого изображения.
+        /// Запрещает (<see cref="_drawAllowed"/>) графический вывод в случае, если пользователь отпустил кнопку мыши или курсор покинул область рисования распознаваемого изображения.
         /// Актуализирует состояние кнопок, связанных с изображением.
         /// </summary>
         /// <remarks>
@@ -1100,28 +1101,28 @@ namespace DynamicMosaicExample
         {
             SafeExecute(() =>
             {
-                _draw = false;
+                _drawAllowed = false;
 
                 SetRedoRecognizeImage();
             });
         }
 
         /// <summary>
-        ///     Выводит создаваемый пользователем рисунок на экран, если это действие разрешено флагом <see cref="_draw"/>.
+        ///     Выводит создаваемый пользователем рисунок на экран, если это действие разрешено флагом <see cref="_drawAllowed"/>.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbDraw_MouseMove(object sender, MouseEventArgs e)
+        void PbRecognizeDraw_MouseMove(object sender, MouseEventArgs e)
         {
             SafeExecute(() =>
             {
-                if (_draw)
+                if (_drawAllowed)
                     DrawPoint(e.X, e.Y, e.Button);
             });
         }
 
         /// <summary>
-        ///     Рисует точку в указанном месте на <see cref="pbDraw" /> с помощью <see cref="_grRecognizeImageGraphics" />.
+        ///     Рисует точку в указанном месте на <see cref="pbRecognizeDraw" /> с помощью <see cref="_grRecognizeImageGraphics" />.
         /// </summary>
         /// <param name="x">Координата Х.</param>
         /// <param name="y">Координата Y.</param>
@@ -1142,7 +1143,7 @@ namespace DynamicMosaicExample
                 }
             });
 
-            SafeExecute(() => pbDraw.Refresh());
+            SafeExecute(() => pbRecognizeDraw.Refresh());
         }
 
         /// <summary>
@@ -1151,7 +1152,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void BtnClearImage_Click(object sender, EventArgs e)
+        void BtnClearRecogImage_Click(object sender, EventArgs e)
         {
             SafeExecute(() =>
             {
@@ -1160,7 +1161,7 @@ namespace DynamicMosaicExample
                 CurrentUndoRedoState = UndoRedoState.UNKNOWN;
             });
 
-            SafeExecute(() => pbDraw.Refresh());
+            SafeExecute(() => pbRecognizeDraw.Refresh());
         }
 
         /// <summary>
@@ -1172,7 +1173,7 @@ namespace DynamicMosaicExample
         {
             SafeExecute(() =>
             {
-                string tag = txtWord.Text;
+                string tag = txtRecogQueryWord.Text;
 
                 if (string.IsNullOrWhiteSpace(tag))
                 {
@@ -1202,7 +1203,7 @@ namespace DynamicMosaicExample
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         /// <remarks>
-        /// Для выполнения операции используется метод <see cref="ImageActualize(ImageActualizeAction, string, Processor)"/> с аргументом <see cref="ImageActualizeAction.LOAD"/>.
+        /// Для выполнения операции используется метод <see cref="ImageActualize(ImageActualizeAction, string, Processor)"/> с параметром <see cref="ImageActualizeAction.LOAD"/>.
         /// Сбрасывает статус поиска (<see cref="CurrentUndoRedoState"/>) на (<see cref="UndoRedoState.UNKNOWN"/>).
         /// </remarks>
         /// <seealso cref="ImageActualize(ImageActualizeAction, string, Processor)"/>
@@ -1604,11 +1605,11 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void TxtWord_TextChanged(object sender, EventArgs e)
+        void TxtRecogQueryWord_TextChanged(object sender, EventArgs e)
         {
             SafeExecute(() =>
             {
-                CurrentUndoRedoWord = txtWord.Text;
+                CurrentUndoRedoWord = txtRecogQueryWord.Text;
 
                 SetRedoRecognizeImage(false);
             });
@@ -1644,26 +1645,26 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Выводит рамку вокруг элемента <see cref="pbDraw"/> на <see cref="grpSourceImage"/>, с помощью <see cref="_grpSourceImageGraphics"/>.
+        /// Рисует рамку вокруг элемента <see cref="pbRecognizeDraw"/> на <see cref="grpSourceImage"/>, с помощью <see cref="_grpSourceImageGraphics"/>.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         /// <remarks>
-        /// Используется метод <see cref="DrawFieldFrame(Control, Graphics, bool)"/>.
+        /// Использует метод <see cref="DrawFieldFrame(Control, Graphics, bool)"/>.
         /// </remarks>
         /// <seealso cref="DrawFieldFrame(Control, Graphics, bool)"/>.
-        void PbDraw_Paint(object sender, PaintEventArgs e)
+        void PbRecognizeDraw_Paint(object sender, PaintEventArgs e)
         {
-            SafeExecute(() => DrawFieldFrame(pbDraw, _grpSourceImageGraphics, true));
+            SafeExecute(() => DrawFieldFrame(pbRecognizeDraw, _grpSourceImageGraphics, true));
         }
 
         /// <summary>
-        /// Выводит рамку вокруг элемента <see cref="pbConSymbol"/> на <see cref="grpResults"/>, с помощью <see cref="_grpResultsGraphics"/>.
+        /// Рисует рамку вокруг элемента <see cref="pbConSymbol"/> на <see cref="grpResults"/>, с помощью <see cref="_grpResultsGraphics"/>.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         /// <remarks>
-        /// Используется метод <see cref="DrawFieldFrame(Control, Graphics, bool)"/>.
+        /// Использует метод <see cref="DrawFieldFrame(Control, Graphics, bool)"/>.
         /// </remarks>
         /// <seealso cref="DrawFieldFrame(Control, Graphics, bool)"/>.
         void PbConSymbol_Paint(object sender, PaintEventArgs e)
@@ -1672,17 +1673,17 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Выводит рамку вокруг элемента <see cref="pbBrowse"/> на <see cref="grpImages"/>, с помощью <see cref="_grpImagesGraphics"/>.
+        /// Рисует рамку вокруг элемента <see cref="pbImage"/> на <see cref="grpImages"/>, с помощью <see cref="_grpImagesGraphics"/>.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         /// <remarks>
-        /// Используется метод <see cref="DrawFieldFrame(Control, Graphics, bool)"/>.
+        /// Использует метод <see cref="DrawFieldFrame(Control, Graphics, bool)"/>.
         /// </remarks>
         /// <seealso cref="DrawFieldFrame(Control, Graphics, bool)"/>.
-        void PbBrowse_Paint(object sender, PaintEventArgs e)
+        void PbImage_Paint(object sender, PaintEventArgs e)
         {
-            SafeExecute(() => DrawFieldFrame(pbBrowse, _grpImagesGraphics, true));
+            SafeExecute(() => DrawFieldFrame(pbImage, _grpImagesGraphics, true));
         }
 
         /// <summary>
@@ -1707,8 +1708,8 @@ namespace DynamicMosaicExample
                 WhitePen.Dispose();
                 _imageFrameResetPen?.Dispose();
 
-                DisposeImage(pbDraw);
-                DisposeImage(pbBrowse);
+                DisposeImage(pbRecognizeDraw);
+                DisposeImage(pbImage);
                 DisposeImage(pbConSymbol);
             }
             catch (Exception ex)
@@ -1736,16 +1737,16 @@ namespace DynamicMosaicExample
             PREV,
 
             /// <summary>
-            /// Загружает карту по указанному пути.
+            /// Загружает распознаваемую карту по указанному пути.
             /// Если карта находится в рабочем каталоге хранилища (<see cref="RecognizeProcessorStorage.WorkingDirectory"/>), произойдёт "переключение" на неё, т.е. она будет перезагружена, затем будет актуализировано состояние пользовательского интерфейса.
-            /// Если карта находится за пределами рабочего каталога хранилища, она будет отображена на экране, но не появится в хранилище до того, как будет сохранена в рабочий каталог.
+            /// Если карта находится за пределами рабочего каталога хранилища, она будет отображена на экране, но не может быть добавлена в хранилище до того, как будет сохранена в рабочий каталог.
             /// </summary>
             LOAD,
 
             /// <summary>
-            /// Необходим для отображения указанной карты на экране. В этом случае, должна быть указана сама карта, но не путь к ней.
+            /// Необходим для отображения указанной распознаваемой карты на экране. В этом случае должна быть указана сама карта, но не путь к ней.
             /// Путь должен быть равен <see langword="null"/>.
-            /// Применим в случаях, когда необходимо актуализировать распознаваемое изображение на экране, например, если был изменён либо файл с изображением карты, либо во время запуска программы.
+            /// Применим в случаях, когда необходимо актуализировать распознаваемое изображение на экране, например, если был изменён файл с изображением карты, либо во время запуска программы.
             /// </summary>
             LOADDIRECTLY,
 

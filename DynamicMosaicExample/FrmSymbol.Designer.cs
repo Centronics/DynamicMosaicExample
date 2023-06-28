@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.txtSymbol = new System.Windows.Forms.TextBox();
-            this.label1 = new System.Windows.Forms.Label();
+            this.lblImageName = new System.Windows.Forms.Label();
             this.btnOK = new System.Windows.Forms.Button();
             this.btnClear = new System.Windows.Forms.Button();
             this.pbBox = new System.Windows.Forms.PictureBox();
@@ -49,15 +49,15 @@
             this.txtSymbol.KeyDown += new System.Windows.Forms.KeyEventHandler(this.TxtSymbol_KeyDown);
             this.txtSymbol.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TxtSymbol_KeyPress);
             // 
-            // label1
+            // lblImageName
             // 
-            this.label1.AutoSize = true;
-            this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.label1.Location = new System.Drawing.Point(12, 6);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(88, 16);
-            this.label1.TabIndex = 1;
-            this.label1.Text = "Имя образа:";
+            this.lblImageName.AutoSize = true;
+            this.lblImageName.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.lblImageName.Location = new System.Drawing.Point(12, 6);
+            this.lblImageName.Name = "lblImageName";
+            this.lblImageName.Size = new System.Drawing.Size(88, 16);
+            this.lblImageName.TabIndex = 1;
+            this.lblImageName.Text = "Имя образа:";
             // 
             // btnOK
             // 
@@ -68,7 +68,7 @@
             this.btnOK.TabIndex = 2;
             this.btnOK.UseVisualStyleBackColor = true;
             this.btnOK.Click += new System.EventHandler(this.BtnOK_Click);
-            this.btnOK.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Btn_KeyDown);
+            this.btnOK.KeyDown += new System.Windows.Forms.KeyEventHandler(this.BtnKeyDown);
             // 
             // btnClear
             // 
@@ -80,7 +80,7 @@
             this.btnClear.TabIndex = 4;
             this.btnClear.UseVisualStyleBackColor = true;
             this.btnClear.Click += new System.EventHandler(this.BtnClear_Click);
-            this.btnClear.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Btn_KeyDown);
+            this.btnClear.KeyDown += new System.Windows.Forms.KeyEventHandler(this.BtnKeyDown);
             // 
             // pbBox
             // 
@@ -104,7 +104,7 @@
             this.Controls.Add(this.btnClear);
             this.Controls.Add(this.pbBox);
             this.Controls.Add(this.btnOK);
-            this.Controls.Add(this.label1);
+            this.Controls.Add(this.lblImageName);
             this.Controls.Add(this.txtSymbol);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
             this.MaximizeBox = false;
@@ -123,7 +123,7 @@
         #endregion
 
         private System.Windows.Forms.TextBox txtSymbol;
-        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label lblImageName;
         private System.Windows.Forms.Button btnOK;
         private System.Windows.Forms.PictureBox pbBox;
         private System.Windows.Forms.Button btnClear;

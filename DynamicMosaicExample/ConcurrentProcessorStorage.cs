@@ -102,9 +102,10 @@ namespace DynamicMosaicExample
         /// Используется для определения того, является ли указанный каталог рабочим или нет.
         /// При выполнении различных операций с картами, в зависимости от этого параметра, принимаются те или иные решения.
         /// Например, определение типа хранилища, исходя из сведений о пути к его рабочему каталогу.
-        /// Этот каталог существует всегда. Если не существует, должен быть создан с помощью метода <see cref="CreateWorkingDirectory()" /> или создастся автоматически, при вызове соответствующего метода.
+        /// Этот каталог существует всегда. Если его не существует, он должен быть создан с помощью метода <see cref="CreateWorkingDirectory()" /> или создастся автоматически, при вызове соответствующего метода.
         /// В него всегда сохраняются карты, которые требуется сохранить.
         /// </remarks>
+        /// <seealso cref="CreateWorkingDirectory()"/>
         public abstract string WorkingDirectory { get; }
 
         /// <summary>
@@ -187,7 +188,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Возвращает карту <see cref="Processor" /> по указанному пути, путь к ней, и количество карт в коллекции.
         ///     От наличия файла на жёстком диске не зависит.
-        ///     Если карта не найдена, возвращается (<see langword="null" />, <see cref="string.Empty" />, <see cref="Count" />).
+        ///     Если карта отсутствует, возвращается (<see langword="null" />, <see cref="string.Empty" />, <see cref="Count" />).
         /// </summary>
         /// <param name="fullPath">Полный путь к карте <see cref="Processor" />.</param>
         /// <returns>Возвращает карту <see cref="Processor" /> по указанному пути, путь к ней, и количество карт в коллекции.</returns>
@@ -327,8 +328,10 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <remarks>
         ///     Имена будут уникальными даже в случае, когда элементы находятся в разных папках.
-        /// Отличаются значения свойств <see cref="Processor.Tag" />.
+        ///     Отличаются только значения свойств <see cref="Processor.Tag" />.
         /// </remarks>
+        /// <seealso cref="Elements"/>
+        /// <seealso cref="Processor.Tag"/>
         public IEnumerable<Processor> UniqueElements
         {
             get
@@ -350,6 +353,7 @@ namespace DynamicMosaicExample
         /// <remarks>
         /// Следует использовать для оптимизации производительности, т.к. в этом случае нет накладных расходов на создание копии набора карт, как в случае со свойством <see cref="UniqueElements"/>.
         /// </remarks>
+        /// <seealso cref="UniqueElements"/>
         protected HashSet<string> UniqueNames
         {
             get
@@ -645,6 +649,7 @@ namespace DynamicMosaicExample
         /// Параметр <paramref name="relativeFolderPath"/> остаётся неизменным.
         /// Метод является потокобезопасным.
         /// </remarks>
+        /// <exception cref="ArgumentException"/>
         public bool GetImagePath(ref string relativeFolderPath)
         {
             if (string.IsNullOrEmpty(relativeFolderPath))

@@ -245,10 +245,10 @@ namespace DynamicMosaicExample
         ///     Отражает состояние активации или деактивации пользовательского интерфейса на время выполнения длительной операции.
         /// </summary>
         /// <remarks>
-        /// Хранит значение свойства <see cref="ButtonsEnabled"/>.
+        /// Хранит значение свойства <see cref="IsButtonsEnabled"/>.
         /// </remarks>
-        /// <seealso cref="ButtonsEnabled"/>
-        bool _buttonsEnabled = true;
+        /// <seealso cref="IsButtonsEnabled"/>
+        bool _isButtonsEnabled = true;
 
         /// <summary>
         /// Текущая позиция курсора в списке исторических событий экземпляра тестируемого класса.
@@ -283,7 +283,7 @@ namespace DynamicMosaicExample
         ///     Определяет, разрешён вывод создаваемой пользователем линии на экран или нет.
         ///     Значение <see langword="true" /> - вывод разрешён, в противном случае - <see langword="false" />.
         /// </summary>
-        bool _draw;
+        bool _drawAllowed;
 
         /// <summary>
         /// Закрывает все процессы в программе, освобождает все используемые ресурсы, и закрывает форму <see cref="FrmExample"/>.
@@ -375,10 +375,10 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Служит для защиты от бесконечного цикла вызовов обработчика события при изменении текста в поле ввода поискового запроса.
-        /// Предназначен только для метода <see cref="TxtWordTextCheck(object, EventArgs)"/>.
+        /// Предназначен только для метода <see cref="TxtRecogQueryWordTextCheck(object, EventArgs)"/>.
         /// </summary>
-        /// <seealso cref="TxtWordTextCheck(object, EventArgs)"/>
-        bool _txtWordTextChecking;
+        /// <seealso cref="TxtRecogQueryWordTextCheck(object, EventArgs)"/>
+        bool _txtRecogQueryWordTextChecking;
 
         /// <summary>
         ///     Поток, отвечающий за инициализацию и актуализацию состояния пользовательского интерфейса в реальном времени.
@@ -416,18 +416,18 @@ namespace DynamicMosaicExample
                 ThreadPool.GetMaxThreads(out _, out int comPortMax);
                 ThreadPool.SetMaxThreads(Environment.ProcessorCount * 15, comPortMax);
 
-                _widthStep = pbBrowse.Width;
+                _widthStep = pbImage.Width;
 
                 _imagesProcessorStorage = new ImageProcessorStorage(ExtImg);
-                _recognizeProcessorStorage = new RecognizeProcessorStorage(pbDraw.MinimumSize.Width,
-                    pbDraw.MaximumSize.Width, pbDraw.Height, ExtImg);
+                _recognizeProcessorStorage = new RecognizeProcessorStorage(pbRecognizeDraw.MinimumSize.Width,
+                    pbRecognizeDraw.MaximumSize.Width, pbRecognizeDraw.Height, ExtImg);
 
-                _savedRecognizeQuery = txtWord.Text;
+                _savedRecognizeQuery = txtRecogQueryWord.Text;
                 _unknownSymbolName = txtSymbolPath.Text;
                 _imgSearchDefault = btnRecognizeImage.Image;
-                ImageWidth = pbBrowse.Width;
-                ImageHeight = pbBrowse.Height;
-                txtWord.TextChanged += TxtWordTextCheck;
+                ImageWidth = pbImage.Width;
+                ImageHeight = pbImage.Height;
+                txtRecogQueryWord.TextChanged += TxtRecogQueryWordTextCheck;
             }
             catch (Exception ex)
             {
@@ -438,7 +438,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Основной экземпляр тестируемого класса <see cref="DynamicReflex"/>.
+        /// Экземпляр тестируемого класса <see cref="DynamicReflex"/>.
         /// </summary>
         /// <remarks>
         /// Свойство потокобезопасно. Потокобезопасность обеспечивает объект <see cref="_commonLocker"/>.
@@ -627,16 +627,16 @@ namespace DynamicMosaicExample
         /// Свойство потокобезопасно.
         /// Это свойство можно использовать в любом потоке.
         /// Потокобезопасность обеспечивает <see cref="_commonLocker"/>.
-        /// Значение хранит поле <see cref="_buttonsEnabled"/>.
+        /// Значение хранит поле <see cref="_isButtonsEnabled"/>.
         /// </remarks>
-        /// <seealso cref="_buttonsEnabled"/>
-        bool ButtonsEnabled
+        /// <seealso cref="_isButtonsEnabled"/>
+        bool IsButtonsEnabled
         {
             get
             {
                 lock (_commonLocker)
                 {
-                    return _buttonsEnabled;
+                    return _isButtonsEnabled;
                 }
             }
 
@@ -644,24 +644,24 @@ namespace DynamicMosaicExample
             {
                 lock (_commonLocker)
                 {
-                    if (value == _buttonsEnabled)
+                    if (value == _isButtonsEnabled)
                         return;
 
                     SafeExecute(() =>
                     {
-                        pbDraw.Enabled = value;
+                        pbRecognizeDraw.Enabled = value;
                         btnImageCreate.Enabled = value;
                         btnImageDelete.Enabled = value;
                         btnImageUpToQueries.Enabled = value;
-                        btnImagePrev.Enabled = value;
-                        btnImageNext.Enabled = value;
+                        btnPrevImage.Enabled = value;
+                        btnNextImage.Enabled = value;
                         txtImagesNumber.Enabled = value;
                         txtImagesCount.Enabled = value;
-                        txtWord.ReadOnly = !value;
+                        txtRecogQueryWord.ReadOnly = !value;
                         btnLoadRecognizeImage.Enabled = value;
-                        btnClearImage.Enabled = value && IsPainting;
-                        btnRecogPrev.Enabled = value;
-                        btnRecogNext.Enabled = value;
+                        btnClearRecogImage.Enabled = value && IsPainting;
+                        btnPrevRecog.Enabled = value;
+                        btnNextRecog.Enabled = value;
                         txtRecogNumber.Enabled = value;
                         txtRecogCount.Enabled = value;
                         btnDeleteRecognizeImage.Enabled = value;
@@ -670,8 +670,8 @@ namespace DynamicMosaicExample
 
                         if (value)
                         {
-                            btnWide.Enabled = pbDraw.Width < pbDraw.MaximumSize.Width;
-                            btnNarrow.Enabled = pbDraw.Width > pbDraw.MinimumSize.Width;
+                            btnWide.Enabled = pbRecognizeDraw.Width < pbRecognizeDraw.MaximumSize.Width;
+                            btnNarrow.Enabled = pbRecognizeDraw.Width > pbRecognizeDraw.MinimumSize.Width;
                             return;
                         }
 
@@ -679,7 +679,7 @@ namespace DynamicMosaicExample
                         btnNarrow.Enabled = false;
                     }, true);
 
-                    _buttonsEnabled = value;
+                    _isButtonsEnabled = value;
                 }
             }
         }
@@ -777,17 +777,17 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void TxtWordTextCheck(object sender, EventArgs e)
+        void TxtRecogQueryWordTextCheck(object sender, EventArgs e)
         {
-            if (_txtWordTextChecking)
+            if (_txtRecogQueryWordTextChecking)
                 return;
 
-            if (txtWord.Text.Length <= txtWord.MaxLength)
+            if (txtRecogQueryWord.Text.Length <= txtRecogQueryWord.MaxLength)
                 return;
 
-            _txtWordTextChecking = true;
-            _savedRecognizeQuery = txtWord.Text = txtWord.Text.Remove(txtWord.MaxLength);
-            _txtWordTextChecking = false;
+            _txtRecogQueryWordTextChecking = true;
+            _savedRecognizeQuery = txtRecogQueryWord.Text = txtRecogQueryWord.Text.Remove(txtRecogQueryWord.MaxLength);
+            _txtRecogQueryWordTextChecking = false;
         }
 
         /// <summary>
