@@ -375,7 +375,7 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Служит для защиты от бесконечного цикла вызовов обработчика события при изменении текста в поле ввода поискового запроса.
-        /// Предназначен только для метода <see cref="TxtRecogQueryWordTextCheck(object, EventArgs)"/>.
+        /// Поле предназначено только для метода <see cref="TxtRecogQueryWordTextCheck(object, EventArgs)"/>.
         /// </summary>
         /// <seealso cref="TxtRecogQueryWordTextCheck(object, EventArgs)"/>
         bool _txtRecogQueryWordTextChecking;
@@ -419,8 +419,8 @@ namespace DynamicMosaicExample
                 _widthStep = pbImage.Width;
 
                 _imagesProcessorStorage = new ImageProcessorStorage(ExtImg);
-                _recognizeProcessorStorage = new RecognizeProcessorStorage(pbRecognizeDraw.MinimumSize.Width,
-                    pbRecognizeDraw.MaximumSize.Width, pbRecognizeDraw.Height, ExtImg);
+                _recognizeProcessorStorage = new RecognizeProcessorStorage(pbRecognizeImageDraw.MinimumSize.Width,
+                    pbRecognizeImageDraw.MaximumSize.Width, pbRecognizeImageDraw.Height, ExtImg);
 
                 _savedRecognizeQuery = txtRecogQueryWord.Text;
                 _unknownSymbolName = txtSymbolPath.Text;
@@ -649,7 +649,7 @@ namespace DynamicMosaicExample
 
                     SafeExecute(() =>
                     {
-                        pbRecognizeDraw.Enabled = value;
+                        pbRecognizeImageDraw.Enabled = value;
                         btnImageCreate.Enabled = value;
                         btnImageDelete.Enabled = value;
                         btnImageUpToQueries.Enabled = value;
@@ -670,8 +670,8 @@ namespace DynamicMosaicExample
 
                         if (value)
                         {
-                            btnWide.Enabled = pbRecognizeDraw.Width < pbRecognizeDraw.MaximumSize.Width;
-                            btnNarrow.Enabled = pbRecognizeDraw.Width > pbRecognizeDraw.MinimumSize.Width;
+                            btnWide.Enabled = pbRecognizeImageDraw.Width < pbRecognizeImageDraw.MaximumSize.Width;
+                            btnNarrow.Enabled = pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
                             return;
                         }
 

@@ -80,7 +80,7 @@ namespace DynamicMosaicExample
         /// Метод потокобезопасен.
         /// При указании относительного пути возможны различные коллизии, поэтому рекомендуется всегда указывать только абсолютный путь.
         /// Метод выполняет проверку значения <see cref="Color.A"/> в считанном изображении, с помощью метода <see cref="ConcurrentProcessorStorage.CheckBitmapByAlphaColor(Bitmap)"/>, который, в случае неудачной проверки, выбрасывает исключение <see cref="InvalidOperationException"/>.
-        /// Изображение по ширине (<see cref="Image.Width"/>) должно соответствовать <see cref="FrmExample.ImageWidth"/> и высоте (<see cref="Image.Height"/>) должно соответствовать <see cref="FrmExample.ImageHeight"/>, иначе выбрасывается <see cref="ArgumentException"/>.
+        /// Изображение по ширине (<see cref="Image.Width"/>) должно соответствовать <see cref="FrmExample.ImageWidth"/> и высоте (<see cref="Image.Height"/>) должно соответствовать <see cref="FrmExample.ImageHeight"/>, иначе будет выброшено исключение <see cref="ArgumentException"/>.
         /// При обработке исключений необходимо проверять свойство <see cref="Exception.InnerException"/>, т.к. в нём находится первоначальное исключение.
         /// Имя получаемой карты представляет собой имя файла без расширения, получаемое с помощью метода <see cref="Path.GetFileNameWithoutExtension(string)"/>.
         /// <paramref name="fullPath"/> не должен содержать недопустимые символы (<see cref="Path.GetInvalidPathChars()"/>), в том числе, быть пустым (<see langword="null"/>, <see cref="string.Empty"/> или состоять из пробелов), иначе метод выбросит исключение <see cref="ArgumentException"/>.
@@ -105,7 +105,14 @@ namespace DynamicMosaicExample
             string tag = GetProcessorTag(fullPath);
             Bitmap btm = ReadBitmap(fullPath);
 
-            return ImageRect.GetProcessor(btm, tag);
+            try
+            {
+                return ImageRect.GetProcessor(btm, tag);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($@"{nameof(GetAddingProcessor)}: {ex.Message}{Environment.NewLine}Путь: {fullPath}.", ex);
+            }
         }
 
         /// <summary>
@@ -127,7 +134,14 @@ namespace DynamicMosaicExample
             if (string.IsNullOrWhiteSpace(fullPath))
                 throw new ArgumentException($@"{nameof(GetProcessorTag)}: Поле {nameof(Processor.Tag)} карты не может быть пустым или белым полем.", nameof(fullPath));
 
-            return Path.GetFileNameWithoutExtension(fullPath);
+            try
+            {
+                return Path.GetFileNameWithoutExtension(fullPath);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($@"{nameof(GetProcessorTag)}: {ex.Message}{Environment.NewLine}Путь: {fullPath}.", ex);
+            }
         }
 
         /// <summary>

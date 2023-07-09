@@ -91,7 +91,14 @@ namespace DynamicMosaicExample
             string tag = GetProcessorTag(fullPath);
             Bitmap btm = ReadBitmap(fullPath);
 
-            return new Processor(btm, tag);
+            try
+            {
+                return new Processor(btm, tag);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($@"{nameof(GetAddingProcessor)}: {ex.Message}{Environment.NewLine}Путь: {fullPath}.", ex);
+            }
         }
 
         /// <summary>
@@ -144,7 +151,14 @@ namespace DynamicMosaicExample
             if (string.IsNullOrWhiteSpace(fullPath))
                 throw new ArgumentException($@"{nameof(GetProcessorTag)}: Обнаружен пустой параметр, значение ({fullPath ?? @"<null>"}).", nameof(fullPath));
 
-            return ParseName(Path.GetFileNameWithoutExtension(fullPath)).name;
+            try
+            {
+                return ParseName(Path.GetFileNameWithoutExtension(fullPath)).name;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($@"{nameof(GetProcessorTag)}: {ex.Message}{Environment.NewLine}Путь: {fullPath}.", ex);
+            }
         }
 
         /// <summary>
@@ -177,34 +191,30 @@ namespace DynamicMosaicExample
             }
             catch (FormatException fx)
             {
-                throw new FormatException($@"{fx.Message} Путь: {fullPath}.", fx);
+                throw new FormatException($@"{nameof(ReadBitmap)}: Ошибка при загрузке изображения по пути: {fullPath}.{Environment.NewLine}Текст ошибки: ""{fx.Message}"".", fx);
             }
             catch (Exception ex)
             {
-                throw new Exception(
-                    $@"Ошибка при загрузке изображения по пути: {fullPath}{Environment.NewLine}Текст ошибки: ""{ex.Message}"".",
-                    ex);
+                throw new Exception($@"{nameof(ReadBitmap)}: Ошибка при загрузке изображения по пути: {fullPath}.{Environment.NewLine}Текст ошибки: ""{ex.Message}"".", ex);
             }
 
             if (btm.Width < _minWidth || btm.Width > _maxWidth)
             {
                 int w = btm.Width;
                 btm.Dispose();
-                throw new ArgumentException(
-                    $@"Загружаемое изображение не подходит по ширине: {w}. Она выходит за рамки допустимого ({_minWidth};{_maxWidth}). Путь: {fullPath}.");
+
+                throw new ArgumentException($@"{nameof(ReadBitmap)}: Загружаемое изображение не подходит по ширине: {w}. Она выходит за рамки допустимого ({_minWidth};{_maxWidth}).{Environment.NewLine}Путь: {fullPath}.");
             }
 
             if (btm.Height != _height)
             {
                 int h = btm.Height;
                 btm.Dispose();
-                throw new ArgumentException(
-                    $@"Загружаемое изображение не подходит по высоте: {h}; необходимо: {_height}. Путь: {fullPath}.");
+
+                throw new ArgumentException($@"{nameof(ReadBitmap)}: Загружаемое изображение не подходит по высоте: {h}; необходимо: {_height}.{Environment.NewLine}Путь: {fullPath}.");
             }
 
-            btm.SetPixel(0, 0,
-                btm.GetPixel(0,
-                    0)); // Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
+            btm.SetPixel(0, 0, btm.GetPixel(0, 0)); // Необходим для устранения "Ошибки общего вида в GDI+" при попытке сохранения загруженного файла.
 
             return btm;
         }

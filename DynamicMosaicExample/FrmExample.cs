@@ -94,7 +94,7 @@ namespace DynamicMosaicExample
                 _grRecognizeImageGraphics?.Dispose();
                 _grRecognizeImageGraphics = Graphics.FromImage(_btmRecognizeImage);
 
-                pbRecognizeDraw.Image = _btmRecognizeImage;
+                pbRecognizeImageDraw.Image = _btmRecognizeImage;
             }
 
             string tag;
@@ -170,7 +170,7 @@ namespace DynamicMosaicExample
                     break;
                 case ImageActualizeAction.REFRESH:
                     {
-                        Bitmap btm = new Bitmap(pbRecognizeDraw.Width, pbRecognizeDraw.Height);
+                        Bitmap btm = new Bitmap(pbRecognizeImageDraw.Width, pbRecognizeImageDraw.Height);
 
                         bool needReset = false;
 
@@ -220,10 +220,11 @@ namespace DynamicMosaicExample
                 return;
             }
 
-            DrawFieldFrame(pbRecognizeDraw, _grpSourceImageGraphics);
-            pbRecognizeDraw.Width = _btmRecognizeImage.Width;
-            btnWide.Enabled = pbRecognizeDraw.Width < pbRecognizeDraw.MaximumSize.Width;
-            btnNarrow.Enabled = pbRecognizeDraw.Width > pbRecognizeDraw.MinimumSize.Width;
+            DrawFieldFrame(pbRecognizeImageDraw, _grpSourceImageGraphics);
+
+            pbRecognizeImageDraw.Width = _btmRecognizeImage.Width;
+            btnWide.Enabled = pbRecognizeImageDraw.Width < pbRecognizeImageDraw.MaximumSize.Width;
+            btnNarrow.Enabled = pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
 
             if (countMain != null)
                 SetRedoRecognizeImage(countMain.Value);
@@ -265,11 +266,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается, когда пользователь начинает рисовать исходное изображение.
+        ///     Вызывается, когда пользователь начинает рисовать распознаваемое изображение.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbRecognizeDraw_MouseDown(object sender, MouseEventArgs e)
+        void PbRecognizeImageDraw_MouseDown(object sender, MouseEventArgs e)
         {
             SafeExecute(() =>
             {
@@ -286,7 +287,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Расширяет область создания распознаваемого изображения <see cref="pbRecognizeDraw" /> до максимального размера по
+        ///     Расширяет область создания распознаваемого изображения <see cref="pbRecognizeImageDraw" /> до максимального размера по
         ///     <see cref="Control.Width" />.
         ///     Изображение будет считаться изменённым.
         /// </summary>
@@ -296,9 +297,9 @@ namespace DynamicMosaicExample
         {
             SafeExecute(() =>
             {
-                pbRecognizeDraw.Width += _widthStep;
-                btnWide.Enabled = pbRecognizeDraw.Width < pbRecognizeDraw.MaximumSize.Width;
-                btnNarrow.Enabled = pbRecognizeDraw.Width > pbRecognizeDraw.MinimumSize.Width;
+                pbRecognizeImageDraw.Width += _widthStep;
+                btnWide.Enabled = pbRecognizeImageDraw.Width < pbRecognizeImageDraw.MaximumSize.Width;
+                btnNarrow.Enabled = pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
                 ImageActualize(ImageActualizeAction.REFRESH);
                 CurrentUndoRedoState = UndoRedoState.UNKNOWN;
             });
@@ -307,7 +308,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Рисует рамку (или удаляет её) на указанной позиции.
+        /// Рисует рамку (или удаляет её) вокруг указанного элемента управления.
         /// </summary>
         /// <param name="ctl">Необходим для считывания координат, ширины и высоты.</param>
         /// <param name="g">Поверхность для рисования.</param>
@@ -319,12 +320,14 @@ namespace DynamicMosaicExample
         /// <seealso cref="_imageFrameResetPen"/>
         void DrawFieldFrame(Control ctl, Graphics g, bool draw = false)
         {
-            g.DrawRectangle(draw ? ImageFramePen : _imageFrameResetPen, ctl.Location.X - 1, ctl.Location.Y - 1,
-                ctl.Width + 1, ctl.Height + 1);
+            Pen pen = draw ? ImageFramePen : _imageFrameResetPen;
+            float width = pen.Width;
+
+            g.DrawRectangle(pen, ctl.Location.X - width, ctl.Location.Y - width, ctl.Width + width, ctl.Height + width);
         }
 
         /// <summary>
-        ///     Сужает область создания распознаваемого изображения <see cref="pbRecognizeDraw" /> до минимального размера по
+        ///     Сужает область создания распознаваемого изображения <see cref="pbRecognizeImageDraw" /> до минимального размера по
         ///     <see cref="Control.Width" />.
         ///     Изображение будет считаться изменённым.
         /// </summary>
@@ -334,10 +337,10 @@ namespace DynamicMosaicExample
         {
             SafeExecute(() =>
             {
-                DrawFieldFrame(pbRecognizeDraw, _grpSourceImageGraphics);
-                pbRecognizeDraw.Width -= _widthStep;
-                btnWide.Enabled = pbRecognizeDraw.Width < pbRecognizeDraw.MaximumSize.Width;
-                btnNarrow.Enabled = pbRecognizeDraw.Width > pbRecognizeDraw.MinimumSize.Width;
+                DrawFieldFrame(pbRecognizeImageDraw, _grpSourceImageGraphics);
+                pbRecognizeImageDraw.Width -= _widthStep;
+                btnWide.Enabled = pbRecognizeImageDraw.Width < pbRecognizeImageDraw.MaximumSize.Width;
+                btnNarrow.Enabled = pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
                 ImageActualize(ImageActualizeAction.REFRESH);
                 CurrentUndoRedoState = UndoRedoState.UNKNOWN;
             });
@@ -346,11 +349,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается при отпускании клавиши мыши над полем создания исходного изображения <see cref="pbRecognizeDraw"/>.
+        ///     Вызывается при отпускании клавиши мыши над полем создания исходного изображения <see cref="pbRecognizeImageDraw"/>.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbRecognizeDraw_MouseUp(object sender, MouseEventArgs e)
+        void PbRecognizeImageDraw_MouseUp(object sender, MouseEventArgs e)
         {
             DrawStop();
         }
@@ -779,7 +782,7 @@ namespace DynamicMosaicExample
         /// Выводит статус на экран, включая историю изменений экземпляра тестируемого класса (<see cref="Recognizer"/>).
         /// Значения статусов следующие:
         /// 1) "start" - экземпляр тестируемого класса (<see cref="Recognizer"/>) был создан.
-        /// 2) В случае выполнения операции в штатном режиме вместо текстовой пометки будет отображено количество элементов в тестируемой системе на текущий момент.
+        /// 2) В случае выполнения операции в штатном режиме, вместо текстовой пометки будет отображено количество элементов в тестируемой системе на текущий момент.
         /// 3) "EXCP" - во время выполнения поискового запроса произошла ошибка (нештатная ситуация).
         /// Функция предназначена для исполнения в ОТДЕЛЬНОМ потоке.
         /// </summary>
@@ -924,6 +927,9 @@ namespace DynamicMosaicExample
                         _recognizeResults.Insert(0, (ps, 0, sm));
                         lstHistory.Items.Insert(0, sm);
                         lstHistory.SelectedIndex = 0;
+
+                        globalResult = true;
+
                         return;
                     }
 
@@ -1021,7 +1027,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbRecognizeDraw_MouseLeave(object sender, EventArgs e)
+        void PbRecognizeImageDraw_MouseLeave(object sender, EventArgs e)
         {
             DrawStop();
         }
@@ -1112,7 +1118,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void PbRecognizeDraw_MouseMove(object sender, MouseEventArgs e)
+        void PbRecognizeImageDraw_MouseMove(object sender, MouseEventArgs e)
         {
             SafeExecute(() =>
             {
@@ -1122,7 +1128,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Рисует точку в указанном месте на <see cref="pbRecognizeDraw" /> с помощью <see cref="_grRecognizeImageGraphics" />.
+        ///     Рисует точку в указанном месте на <see cref="pbRecognizeImageDraw" /> с помощью <see cref="_grRecognizeImageGraphics" />.
         /// </summary>
         /// <param name="x">Координата Х.</param>
         /// <param name="y">Координата Y.</param>
@@ -1143,7 +1149,7 @@ namespace DynamicMosaicExample
                 }
             });
 
-            SafeExecute(() => pbRecognizeDraw.Refresh());
+            SafeExecute(() => pbRecognizeImageDraw.Refresh());
         }
 
         /// <summary>
@@ -1161,7 +1167,7 @@ namespace DynamicMosaicExample
                 CurrentUndoRedoState = UndoRedoState.UNKNOWN;
             });
 
-            SafeExecute(() => pbRecognizeDraw.Refresh());
+            SafeExecute(() => pbRecognizeImageDraw.Refresh());
         }
 
         /// <summary>
@@ -1645,17 +1651,17 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Рисует рамку вокруг элемента <see cref="pbRecognizeDraw"/> на <see cref="grpSourceImage"/>, с помощью <see cref="_grpSourceImageGraphics"/>.
+        /// Рисует рамку вокруг элемента <see cref="pbRecognizeImageDraw"/> на <see cref="grpSourceImage"/>, с помощью <see cref="_grpSourceImageGraphics"/>.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         /// <remarks>
         /// Использует метод <see cref="DrawFieldFrame(Control, Graphics, bool)"/>.
         /// </remarks>
-        /// <seealso cref="DrawFieldFrame(Control, Graphics, bool)"/>.
-        void PbRecognizeDraw_Paint(object sender, PaintEventArgs e)
+        /// <seealso cref="DrawFieldFrame(Control, Graphics, bool)"/>
+        void PbRecognizeImageDraw_Paint(object sender, PaintEventArgs e)
         {
-            SafeExecute(() => DrawFieldFrame(pbRecognizeDraw, _grpSourceImageGraphics, true));
+            SafeExecute(() => DrawFieldFrame(pbRecognizeImageDraw, _grpSourceImageGraphics, true));
         }
 
         /// <summary>
@@ -1666,7 +1672,7 @@ namespace DynamicMosaicExample
         /// <remarks>
         /// Использует метод <see cref="DrawFieldFrame(Control, Graphics, bool)"/>.
         /// </remarks>
-        /// <seealso cref="DrawFieldFrame(Control, Graphics, bool)"/>.
+        /// <seealso cref="DrawFieldFrame(Control, Graphics, bool)"/>
         void PbConSymbol_Paint(object sender, PaintEventArgs e)
         {
             SafeExecute(() => DrawFieldFrame(pbConSymbol, _grpResultsGraphics, true));
@@ -1680,7 +1686,7 @@ namespace DynamicMosaicExample
         /// <remarks>
         /// Использует метод <see cref="DrawFieldFrame(Control, Graphics, bool)"/>.
         /// </remarks>
-        /// <seealso cref="DrawFieldFrame(Control, Graphics, bool)"/>.
+        /// <seealso cref="DrawFieldFrame(Control, Graphics, bool)"/>
         void PbImage_Paint(object sender, PaintEventArgs e)
         {
             SafeExecute(() => DrawFieldFrame(pbImage, _grpImagesGraphics, true));
@@ -1692,7 +1698,7 @@ namespace DynamicMosaicExample
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         /// <remarks>
-        /// В случае какой-либо ошибки, программа будет принудительно завершена.
+        /// В случае какой-либо ошибки программа будет принудительно завершена.
         /// </remarks>
         void FrmExample_FormClosed(object sender, FormClosedEventArgs e)
         {
@@ -1703,12 +1709,9 @@ namespace DynamicMosaicExample
                 _grpImagesGraphics?.Dispose();
                 _grpSourceImageGraphics?.Dispose();
 
-                BlackPen.Dispose();
-                ImageFramePen.Dispose();
-                WhitePen.Dispose();
                 _imageFrameResetPen?.Dispose();
 
-                DisposeImage(pbRecognizeDraw);
+                DisposeImage(pbRecognizeImageDraw);
                 DisposeImage(pbImage);
                 DisposeImage(pbConSymbol);
             }
@@ -1754,6 +1757,25 @@ namespace DynamicMosaicExample
             /// Выполняет полное обновление состояния пользовательского интерфейса, предназначенного для создания распознаваемого изображения, учитывая изменения различных параметров (в т.ч. его ширины).
             /// </summary>
             REFRESH
+        }
+
+        /// <summary>
+        /// Рисует рамки вокруг элементов <see cref="pbRecognizeImageDraw"/>, <see cref="pbConSymbol"/>, <see cref="pbImage"/>.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        /// <remarks>
+        /// Использует метод <see cref="DrawFieldFrame(Control, Graphics, bool)"/>.
+        /// </remarks>
+        /// <seealso cref="DrawFieldFrame(Control, Graphics, bool)"/>
+        /// <seealso cref="PbRecognizeImageDraw_Paint(object, PaintEventArgs)"/>
+        /// <seealso cref="PbConSymbol_Paint(object, PaintEventArgs)"/>
+        /// <seealso cref="PbImage_Paint(object, PaintEventArgs)"/>
+        private void FrmExample_Paint(object sender, PaintEventArgs e)
+        {
+            DrawFieldFrame(pbConSymbol, _grpResultsGraphics, true);
+            DrawFieldFrame(pbImage, _grpImagesGraphics, true);
+            DrawFieldFrame(pbRecognizeImageDraw, _grpSourceImageGraphics, true);
         }
     }
 }

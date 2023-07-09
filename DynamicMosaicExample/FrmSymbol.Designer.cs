@@ -84,7 +84,6 @@
             // 
             // pbBox
             // 
-            this.pbBox.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pbBox.Cursor = System.Windows.Forms.Cursors.Cross;
             this.pbBox.Location = new System.Drawing.Point(15, 33);
             this.pbBox.Name = "pbBox";
@@ -112,8 +111,9 @@
             this.Name = "FrmSymbol";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Образ";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmSymbol_FormClosing);
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.FrmSymbol_FormClosed);
             this.Shown += new System.EventHandler(this.FrmSymbol_Shown);
+            this.Paint += new System.Windows.Forms.PaintEventHandler(this.FrmSymbol_Paint);
             ((System.ComponentModel.ISupportInitialize)(this.pbBox)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();

@@ -426,7 +426,7 @@ namespace DynamicMosaicExample
         /// <param name="maskedTagSet">Набор для поддержания уникальности имён карт.</param>
         /// <param name="tagProc">Карта, для которой требуется получить уникальное имя. Может быть равна <see langword="null"/>. Изначальное значение свойства <see cref="Processor.Tag"/> не имеет значения.</param>
         /// <param name="hint">Подсказка по имени (обязательно) и номеру карты, в целях оптимизации производительности.</param>
-        /// <param name="pathToSave">Может быть <see cref="string.Empty"/>, но не может быть <see langword="null"/>. Путь, по которому будет располагаться указанная карта. Если <see cref="string.Empty"/>, то вернётся имя карты и расширение, но без полного пути.</param>
+        /// <param name="pathToSave">Путь, по которому будет располагаться указанная карта. Может быть <see cref="string.Empty"/>, но не может быть <see langword="null"/>. Если <see cref="string.Empty"/>, то вернётся имя карты и расширение (без полного пути).</param>
         /// <returns>Возвращает карту, соответствующую заданным параметрам или <see langword="null"/>. Второй параметр - путь, по которому располагается карта.</returns>
         /// <remarks>
         /// Карта может быть равна <see langword="null"/>. В этом случае уникальное имя будет получено и добавлено в указанный <see cref="ISet&lt;T&gt;"/>, но карта на выходе будет равна <see langword="null"/>.
@@ -484,7 +484,7 @@ namespace DynamicMosaicExample
             {
                 string argPath = pathToSave;
 
-                if (GetImagePath(ref argPath))
+                if (CheckImagePath(ref argPath))
                 {
                     yield return (p, argPath);
                     continue;
@@ -632,25 +632,23 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Корректирует указанный путь и возвращает соответствующее его значение.
-        /// Используется в методе <see cref="GetUniqueProcessor"/>.
+        /// Проверяет указанный путь на возможность его применения в текущем экземпляре <see cref="ConcurrentProcessorStorage"/> или получает путь к рабочему каталогу (<see cref="WorkingDirectory"/>) если он не указан (<see langword="null"/> или <see cref="string.Empty"/>).
         /// </summary>
-        /// <param name="relativeFolderPath">Корректируемый путь.</param>
-        /// <returns>Если в пути отсутствуют ошибки, возвращается значение <see langword="true"/>.</returns>
+        /// <param name="relativeFolderPath">Проверяемый путь.</param>
+        /// <returns>Если в параметре <paramref name="relativeFolderPath"/> отсутствуют ошибки, метод возвращает значение <see langword="true"/>.</returns>
         /// <remarks>
-        /// В случае, когда путь указывает на файл с картой (абсолютный путь, с расширением <see cref="ExtImg"/>), возвращается значение <see langword="true"/>.
-        /// В этом случае параметр <paramref name="relativeFolderPath"/> остаётся без изменений.
-        /// В случае, если он ведёт не в рабочий каталог, выдаётся исключение <see cref="ArgumentException"/>. При этом, параметр <paramref name="relativeFolderPath"/> остаётся без изменений.
-        /// В случае, если параметр <paramref name="relativeFolderPath"/> пустой (<see langword="null"/> или <see cref="string.Empty"/>), ему будет присвоен путь в рабочий каталог <see cref="WorkingDirectory"/>.
-        /// Вернётся значение <see langword="false"/>.
-        /// Если путь <paramref name="relativeFolderPath"/> ведёт в каталог (находящийся в рабочем каталоге), то параметр <paramref name="relativeFolderPath"/> останется без изменений. Вернётся значение <see langword="false"/>.
-        /// Для определения, указывает ли путь на каталог, используется метод <see cref="IsDirectory(string)"/>.
-        /// В случае, когда путь указывает на файл с другим расширением, возникает исключение <see cref="ArgumentException"/>.
-        /// Параметр <paramref name="relativeFolderPath"/> остаётся неизменным.
-        /// Метод является потокобезопасным.
+        /// В случае, когда путь <paramref name="relativeFolderPath"/> указывает на файл с картой (абсолютный путь с расширением <see cref="ExtImg"/>), метод возвращает значение <see langword="true"/>.
+        /// В случае, если он ведёт не в рабочий каталог, будет выброшено исключение <see cref="ArgumentException"/>.
+        /// В вышеуказанных случаях значение параметра <paramref name="relativeFolderPath"/> будет прежним.
+        /// В случае, если параметр <paramref name="relativeFolderPath"/> пустой (<see langword="null"/> или <see cref="string.Empty"/>), ему будет присвоен путь в рабочий каталог <see cref="WorkingDirectory"/>, а метод вернёт значение <see langword="false"/>.
+        /// Если путь <paramref name="relativeFolderPath"/> ведёт в каталог (расположенный в рабочем каталоге), то значение параметра <paramref name="relativeFolderPath"/> будет прежним, а метод вернёт значение <see langword="false"/>.
+        /// Для определения, указывает ли путь на каталог, служит метод <see cref="IsDirectory(string)"/>.
+        /// В случае, когда путь указывает на файл с другим расширением (отличным от <see cref="ExtImg"/>), будет выброшено исключение <see cref="ArgumentException"/>.
+        /// В этом случае значение параметра <paramref name="relativeFolderPath"/> будет прежним.
+        /// Метод потокобезопасен, к файловой системе не обращается.
         /// </remarks>
         /// <exception cref="ArgumentException"/>
-        public bool GetImagePath(ref string relativeFolderPath)
+        public bool CheckImagePath(ref string relativeFolderPath)
         {
             if (string.IsNullOrEmpty(relativeFolderPath))
             {
@@ -895,21 +893,29 @@ namespace DynamicMosaicExample
             }
 
             if (fs == null)
-                throw new InvalidOperationException($@"{nameof(ReadBitmap)}: {nameof(fs)} = null.");
+                throw new InvalidOperationException($@"{nameof(ReadBitmap)}: {nameof(fs)} = null{Environment.NewLine}Путь: {fullPath}.");
 
-            using (fs)
+            try
             {
-                Bitmap btm = new Bitmap(fs);
+                using (fs)
+                {
+                    Bitmap btm = new Bitmap(fs);
 
-                try
-                {
-                    return CheckBitmapByAlphaColor(btm);
+                    try
+                    {
+                        return CheckBitmapByAlphaColor(btm);
+                    }
+                    catch
+                    {
+                        btm.Dispose();
+
+                        throw;
+                    }
                 }
-                catch
-                {
-                    btm.Dispose();
-                    throw;
-                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException($@"{nameof(ReadBitmap)}: {ex.Message}{Environment.NewLine}Путь: {fullPath}.", ex);
             }
         }
 
@@ -1296,7 +1302,7 @@ namespace DynamicMosaicExample
             {
                 path = Path.ChangeExtension(path, string.Empty);
 
-                resultTmp = Path.Combine(WorkingDirectory, Path.ChangeExtension(path, @"bmpTMP"));
+                resultTmp = Path.Combine(WorkingDirectory, Path.ChangeExtension(path, @"saveTMP"));
                 result = Path.Combine(WorkingDirectory, Path.ChangeExtension(path, ExtImg));
 
                 using (FileStream fs = new FileStream(resultTmp, FileMode.Create, FileAccess.Write))

@@ -66,7 +66,7 @@
             this.btnNarrow = new System.Windows.Forms.Button();
             this.btnLoadRecognizeImage = new System.Windows.Forms.Button();
             this.btnSaveRecognizeImage = new System.Windows.Forms.Button();
-            this.pbRecognizeDraw = new System.Windows.Forms.PictureBox();
+            this.pbRecognizeImageDraw = new System.Windows.Forms.PictureBox();
             this.btnRecognizeImage = new System.Windows.Forms.Button();
             this.btnClearRecogImage = new System.Windows.Forms.Button();
             this.dlgOpenImage = new System.Windows.Forms.OpenFileDialog();
@@ -76,7 +76,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.pbConSymbol)).BeginInit();
             this.grpSourceImage.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbSuccess)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pbRecognizeDraw)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pbRecognizeImageDraw)).BeginInit();
             this.SuspendLayout();
             // 
             // lstHistory
@@ -375,7 +375,7 @@
             this.grpSourceImage.Controls.Add(this.btnNarrow);
             this.grpSourceImage.Controls.Add(this.btnLoadRecognizeImage);
             this.grpSourceImage.Controls.Add(this.btnSaveRecognizeImage);
-            this.grpSourceImage.Controls.Add(this.pbRecognizeDraw);
+            this.grpSourceImage.Controls.Add(this.pbRecognizeImageDraw);
             this.grpSourceImage.Controls.Add(this.btnRecognizeImage);
             this.grpSourceImage.Controls.Add(this.btnClearRecogImage);
             this.grpSourceImage.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
@@ -513,21 +513,21 @@
             this.btnSaveRecognizeImage.UseVisualStyleBackColor = true;
             this.btnSaveRecognizeImage.Click += new System.EventHandler(this.BtnSaveRecognizeImage_Click);
             // 
-            // pbRecognizeDraw
+            // pbRecognizeImageDraw
             // 
-            this.pbRecognizeDraw.Cursor = System.Windows.Forms.Cursors.Cross;
-            this.pbRecognizeDraw.Location = new System.Drawing.Point(3, 36);
-            this.pbRecognizeDraw.MaximumSize = new System.Drawing.Size(258, 50);
-            this.pbRecognizeDraw.MinimumSize = new System.Drawing.Size(43, 50);
-            this.pbRecognizeDraw.Name = "pbRecognizeDraw";
-            this.pbRecognizeDraw.Size = new System.Drawing.Size(258, 50);
-            this.pbRecognizeDraw.TabIndex = 0;
-            this.pbRecognizeDraw.TabStop = false;
-            this.pbRecognizeDraw.Paint += new System.Windows.Forms.PaintEventHandler(this.PbRecognizeDraw_Paint);
-            this.pbRecognizeDraw.MouseDown += new System.Windows.Forms.MouseEventHandler(this.PbRecognizeDraw_MouseDown);
-            this.pbRecognizeDraw.MouseLeave += new System.EventHandler(this.PbRecognizeDraw_MouseLeave);
-            this.pbRecognizeDraw.MouseMove += new System.Windows.Forms.MouseEventHandler(this.PbRecognizeDraw_MouseMove);
-            this.pbRecognizeDraw.MouseUp += new System.Windows.Forms.MouseEventHandler(this.PbRecognizeDraw_MouseUp);
+            this.pbRecognizeImageDraw.Cursor = System.Windows.Forms.Cursors.Cross;
+            this.pbRecognizeImageDraw.Location = new System.Drawing.Point(3, 36);
+            this.pbRecognizeImageDraw.MaximumSize = new System.Drawing.Size(258, 50);
+            this.pbRecognizeImageDraw.MinimumSize = new System.Drawing.Size(43, 50);
+            this.pbRecognizeImageDraw.Name = "pbRecognizeImageDraw";
+            this.pbRecognizeImageDraw.Size = new System.Drawing.Size(258, 50);
+            this.pbRecognizeImageDraw.TabIndex = 0;
+            this.pbRecognizeImageDraw.TabStop = false;
+            this.pbRecognizeImageDraw.Paint += new System.Windows.Forms.PaintEventHandler(this.PbRecognizeImageDraw_Paint);
+            this.pbRecognizeImageDraw.MouseDown += new System.Windows.Forms.MouseEventHandler(this.PbRecognizeImageDraw_MouseDown);
+            this.pbRecognizeImageDraw.MouseLeave += new System.EventHandler(this.PbRecognizeImageDraw_MouseLeave);
+            this.pbRecognizeImageDraw.MouseMove += new System.Windows.Forms.MouseEventHandler(this.PbRecognizeImageDraw_MouseMove);
+            this.pbRecognizeImageDraw.MouseUp += new System.Windows.Forms.MouseEventHandler(this.PbRecognizeImageDraw_MouseUp);
             // 
             // btnRecognizeImage
             // 
@@ -575,6 +575,7 @@
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.FrmExample_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.FrmExample_FormClosed);
             this.Shown += new System.EventHandler(this.FrmExample_Shown);
+            this.Paint += new System.Windows.Forms.PaintEventHandler(this.FrmExample_Paint);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FrmExample_KeyDown);
             this.grpImages.ResumeLayout(false);
             this.grpImages.PerformLayout();
@@ -585,14 +586,14 @@
             this.grpSourceImage.ResumeLayout(false);
             this.grpSourceImage.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.pbSuccess)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.pbRecognizeDraw)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.pbRecognizeImageDraw)).EndInit();
             this.ResumeLayout(false);
 
         }
 
         #endregion
 
-        private System.Windows.Forms.PictureBox pbRecognizeDraw;
+        private System.Windows.Forms.PictureBox pbRecognizeImageDraw;
         private System.Windows.Forms.Button btnRecognizeImage;
         private System.Windows.Forms.Button btnClearRecogImage;
         private System.Windows.Forms.ListBox lstHistory;

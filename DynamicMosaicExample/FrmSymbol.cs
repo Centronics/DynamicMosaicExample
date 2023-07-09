@@ -26,6 +26,11 @@ namespace DynamicMosaicExample
         readonly Graphics _grFront;
 
         /// <summary>
+        ///     Поверхность для рисования на <see cref="FrmSymbol"/>.
+        /// </summary>
+        Graphics _frmSymbolGraphics;
+
+        /// <summary>
         ///     Хранит загруженные карты, которые требуется искать на основной карте.
         ///     Предназначена для использования несколькими потоками одновременно.
         /// </summary>
@@ -173,9 +178,24 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void FrmSymbol_Shown(object sender, EventArgs e)
+        void FrmSymbol_Shown(object sender, EventArgs e) => RunAction(() => BtnClear_Click(btnClear, EventArgs.Empty));
+
+        /// <summary>
+        /// Рисует рамку вокруг указанного элемента управления.
+        /// </summary>
+        /// <param name="ctl">Необходим для считывания координат, ширины и высоты.</param>
+        /// <param name="g">Поверхность для рисования.</param>
+        /// <param name="draw">Значение <see langword="true"/> для рисования рамки, в противном случае - для стирания.</param>
+        /// <remarks>
+        /// Метод использует <see cref="FrmExample.ImageFramePen"/> для рисования.
+        /// </remarks>
+        /// <seealso cref="FrmExample.ImageFramePen"/>
+        void DrawFieldFrame(Control ctl, Graphics g)
         {
-            BtnClear_Click(btnClear, EventArgs.Empty);
+            float width = FrmExample.ImageFramePen.Width;
+
+            g.DrawRectangle(FrmExample.ImageFramePen, ctl.Location.X - width, ctl.Location.Y - width,
+                ctl.Width + width, ctl.Height + width);
         }
 
         /// <summary>
@@ -326,18 +346,41 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Закрывает все используемые формой ресурсы.
+        /// Освобождает все используемые ресурсы.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         /// <seealso cref="FrmExample.DisposeImage(PictureBox)"/>
-        void FrmSymbol_FormClosing(object sender, FormClosingEventArgs e)
+        void FrmSymbol_FormClosed(object sender, FormClosedEventArgs e)
         {
             RunAction(() =>
             {
+                _frmSymbolGraphics?.Dispose();
                 _grFront?.Dispose();
 
                 FrmExample.DisposeImage(pbBox);
+            });
+        }
+
+        /// <summary>
+        /// Рисует рамку вокруг элемента <see cref="pbBox"/> на <see cref="FrmSymbol"/>, с помощью <see cref="_frmSymbolGraphics"/>.
+        /// </summary>
+        /// <param name="sender">Вызывающий объект.</param>
+        /// <param name="e">Данные о событии.</param>
+        /// <remarks>
+        /// Использует метод <see cref="DrawFieldFrame(Control, Graphics)"/>.
+        /// Если поверхность для рисования (<see cref="_frmSymbolGraphics"/>) не создана, она будет создана с помощью метода <see cref="Graphics.FromHwnd(IntPtr)"/>.
+        /// </remarks>
+        /// <seealso cref="DrawFieldFrame(Control, Graphics)"/>.
+        /// <seealso cref="Graphics.FromHwnd(IntPtr)"/>
+        void FrmSymbol_Paint(object sender, PaintEventArgs e)
+        {
+            RunAction(() =>
+            {
+                if (_frmSymbolGraphics == null)
+                    _frmSymbolGraphics = Graphics.FromHwnd(Handle);
+
+                DrawFieldFrame(pbBox, _frmSymbolGraphics);
             });
         }
     }
