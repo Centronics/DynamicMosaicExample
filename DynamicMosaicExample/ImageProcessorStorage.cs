@@ -185,11 +185,11 @@ namespace DynamicMosaicExample
         /// Является потокобезопасным.
         /// В случае отсутствия указанной папки, метод создаёт её.
         /// Путь к папке может содержать несколько уровней.
-        /// Выполняет сокращение названия карты, если оно заканчивается нолями ('0'), и демаскировку.
-        /// Для этого используются методы <see cref="ImageRect.GetFileNumberByName(string, uint)"/> и <see cref="ConcurrentProcessorStorage.ParseName(string)"/>.
+        /// Выполняет демаскировку названия карты, если это необходимо.
+        /// Это может потребоваться в случае, если название карты уже было замаскировано или его значение совпало по форме маскировки.
+        /// Для этого используется метод <see cref="ConcurrentProcessorStorage.ParseName(string)"/>.
         /// </remarks>
         /// <seealso cref="WorkingDirectory"/>
-        /// <seealso cref="ImageRect.GetFileNumberByName(string, uint)"/>
         /// <seealso cref="ConcurrentProcessorStorage.ParseName(string)"/>
         public void SaveToFile(string folderName, IEnumerable<Processor> processors)
         {
@@ -208,10 +208,9 @@ namespace DynamicMosaicExample
             lock (SyncObject)
             {
                 foreach ((Processor p, string path) in GetUniqueProcessor(lstProcs.Select(proc =>
-                         {
-                             (ulong? count, string name) = ImageRect.GetFileNumberByName(proc.Tag, 1);
-                             return ((Processor)null, (count, ParseName(name).name), folder);
-                         })).Select((pp, index) => (lstProcs[index], pp.path)))
+                    ((Processor)null, ((ulong?)null,
+                    ParseName(proc.Tag).name),
+                    folder))).Select((pp, index) => (lstProcs[index], pp.path)))
                 {
                     SaveToFile(ImageRect.GetBitmap(p), path);
                 }

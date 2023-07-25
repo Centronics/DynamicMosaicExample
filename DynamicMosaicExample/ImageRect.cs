@@ -70,36 +70,5 @@ namespace DynamicMosaicExample
                 b.SetPixel(x, y, proc[x, y].ValueColor);
             return b;
         }
-
-        /// <summary>
-        ///     Преобразует название карты, заканчивающееся символами '0', в параметры, включающие имя и количество символов '0' в
-        ///     конце названия карты.
-        /// </summary>
-        /// <param name="tag">Значение свойства <see cref="Processor.Tag" /> карты.</param>
-        /// <param name="tolerant">Количество символов '0', до которого (включительно) оно не будет преобразовано в число.</param>
-        /// <returns>
-        ///     Возвращает количество символов '0' в конце названия карты и само название.
-        /// </returns>
-        /// <remarks>
-        /// Является потокобеопасным.
-        /// </remarks>
-        public static (ulong count, string name) GetFileNumberByName(string tag, uint tolerant)
-        {
-            if (string.IsNullOrWhiteSpace(tag))
-                throw new ArgumentNullException(nameof(tag), nameof(GetFileNumberByName));
-
-            for (int start = tag.Length - 1, k = start; k >= 0; k--)
-                if (tag[k] != '0' || k == 0)
-                {
-                    ulong count = Convert.ToUInt64(start - k);
-
-                    if (count <= tolerant)
-                        break;
-
-                    return (count, tag.Substring(0, k + 1));
-                }
-
-            return (0, tag);
-        }
     }
 }
