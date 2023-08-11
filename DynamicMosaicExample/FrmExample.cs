@@ -191,8 +191,8 @@ namespace DynamicMosaicExample
                         if (needReset)
                             _grRecognizeImageGraphics.Clear(DefaultColor);
 
-                        btnSaveRecognizeImage.Enabled = !string.IsNullOrEmpty(txtRecogQueryWord.Text) && IsQueryChanged;
-                        btnClearRecogImage.Enabled = IsPainting;
+                        btnSaveRecognizeImage.Enabled = IsButtonsEnabled && !string.IsNullOrEmpty(txtRecogQueryWord.Text) && IsQueryChanged;
+                        btnClearRecogImage.Enabled = IsButtonsEnabled && IsPainting;
                     }
                     return;
                 default:
@@ -216,15 +216,15 @@ namespace DynamicMosaicExample
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                WriteLogMessage(ex.Message);
                 return;
             }
 
             DrawFieldFrame(pbRecognizeImageDraw, _grpSourceImageGraphics);
 
             pbRecognizeImageDraw.Width = _btmRecognizeImage.Width;
-            btnWide.Enabled = pbRecognizeImageDraw.Width < pbRecognizeImageDraw.MaximumSize.Width;
-            btnNarrow.Enabled = pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
+            btnWide.Enabled = IsButtonsEnabled && pbRecognizeImageDraw.Width < pbRecognizeImageDraw.MaximumSize.Width;
+            btnNarrow.Enabled = IsButtonsEnabled && pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
 
             if (countMain != null)
                 SetRedoRecognizeImage(countMain.Value);
@@ -421,10 +421,12 @@ namespace DynamicMosaicExample
 
         /// <summary>
         /// Актуализирует сведения о пути к выбранной распознаваемой карте и их количестве, в интерфейсе пользователя.
-        /// Учитывает случай, если выбранная карта была изменена.
         /// </summary>
         /// <param name="count">Количество карт в коллекции <see cref="_recognizeProcessorStorage"/>.</param>
         /// <param name="recogPath">Путь к текущей (выбранной) распознаваемой карте.</param>
+        /// <remarks>
+        /// Учитывает случай, если выбранная карта была изменена.
+        /// </remarks>
         void SavedPathInfoActualize(int count, string recogPath)
         {
             bool changed = IsQueryChanged;
@@ -447,7 +449,7 @@ namespace DynamicMosaicExample
 
             txtRecogPath.Text = changed ? string.Empty : recogPath;
 
-            btnSaveRecognizeImage.Enabled = changed && !string.IsNullOrEmpty(txtRecogQueryWord.Text);
+            btnSaveRecognizeImage.Enabled = changed && IsButtonsEnabled && !string.IsNullOrEmpty(txtRecogQueryWord.Text);
         }
 
         /// <summary>
@@ -487,9 +489,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///    Полностью актуализирует состояние пользовательского интерфейса.
-        ///    Предназначена для работы в фоновом потоке.
+        ///    Актуализирует состояние пользовательского интерфейса.
         /// </summary>
+        /// <remarks>
+        ///     Предназначен для работы в фоновом потоке.
+        /// </remarks>
         void RefreshImagesCount()
         {
             SafeExecute(() =>
@@ -522,7 +526,7 @@ namespace DynamicMosaicExample
 
                 switch (needInitRecognizeImage)
                 {
-                    case true when recogCount > 0 && !isQueryChanged:
+                    case true when recogCount > 0 && IsButtonsEnabled && !isQueryChanged:
 
                         ImageActualize(recogProcessor);
 
@@ -538,7 +542,7 @@ namespace DynamicMosaicExample
 
                         return;
 
-                    case false when recogCount > 0 && !isQueryChanged:
+                    case false when recogCount > 0 && IsButtonsEnabled && !isQueryChanged:
 
                         ImageActualize(recogProcessor);
 
@@ -551,14 +555,14 @@ namespace DynamicMosaicExample
                 txtRecogCount.Enabled = recogCount > 0;
                 txtRecogPath.Enabled = recogCount > 0;
                 lblSourceCount.Enabled = recogCount > 0;
-                btnDeleteRecognizeImage.Enabled = !isQueryChanged && !_recognizeProcessorStorage.IsEmpty;
+                btnDeleteRecognizeImage.Enabled = !isQueryChanged && IsButtonsEnabled && !_recognizeProcessorStorage.IsEmpty;
 
                 SavedPathInfoActualize(recogCount, recogPath);
             }, true);
         }
 
         /// <summary>
-        ///     Создаёт и запускает новый поток (<see cref="_userInterfaceThread" />), отвечающий за инициализацию и актуализацию состояния пользовательского интерфейса в реальном времени.
+        ///     Создаёт и запускает новый поток (<see cref="_userInterfaceActualizeThread" />), отвечающий за инициализацию и актуализацию состояния пользовательского интерфейса в реальном времени.
         ///     Созданный поток называется WaitThread и находится в состоянии <see cref="System.Threading.ThreadState.Running" />, <see cref="System.Threading.ThreadState.Background" />.
         /// </summary>
         /// <remarks>
@@ -567,9 +571,9 @@ namespace DynamicMosaicExample
         /// <exception cref="InvalidOperationException"/>
         void InitializeUserInterface()
         {
-            if (_userInterfaceThread != null)
+            if (_userInterfaceActualizeThread != null)
                 throw new InvalidOperationException(
-                    $@"Попытка вызвать метод {nameof(InitializeUserInterface)} в то время, когда поток {nameof(_userInterfaceThread)} уже существует.");
+                    $@"Попытка вызвать метод {nameof(InitializeUserInterface)} в то время, когда поток {nameof(_userInterfaceActualizeThread)} уже существует.");
 
             Thread thread = new Thread(() => SafeExecute(() =>
             {
@@ -618,9 +622,7 @@ namespace DynamicMosaicExample
                                 }
                                 catch (Exception ex)
                                 {
-                                    MessageBox.Show($@"{ex.Message}{Environment.NewLine}Программа будет завершена.",
-                                        @"Ошибка",
-                                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                    WriteLogMessage($@"{ex.Message}{Environment.NewLine}Программа будет завершена.");
                                     Process.GetCurrentProcess().Kill();
                                 }
                             }, true);
@@ -644,7 +646,7 @@ namespace DynamicMosaicExample
                         stwRenew.Restart();
                     }
 
-                    void OutCurrentStatus(string strPreparing, string strLoading)
+                    void OutCurrentStatus(string strPreparing, string strLoading, string strStopping)
                     {
                         SafeExecute(() =>
                         {
@@ -655,31 +657,23 @@ namespace DynamicMosaicExample
 
                             switch (eventIndex)
                             {
-                                case 0:
-                                    throw new Exception($@"Этот ID произошедшего события недопустим ({eventIndex}).");
-
                                 case 1:
                                     btnRecognizeImage.Image = null;
-                                    btnRecognizeImage.Text = CreateTimeString(_stwRecognize.Elapsed);
+                                    btnRecognizeImage.Text = StopperThread != null ? strStopping : CreateTimeString(_stwRecognize.Elapsed);
                                     return;
 
                                 case 2:
                                     btnRecognizeImage.Image = null;
                                     btnRecognizeImage.Text = strPreparing;
-                                    IsButtonsEnabled = true;
                                     return;
 
                                 case 3:
                                     btnRecognizeImage.Image = null;
                                     btnRecognizeImage.Text = strLoading;
-                                    IsButtonsEnabled = true;
                                     return;
 
                                 default:
-                                    btnRecognizeImage.Text = string.Empty;
-                                    btnRecognizeImage.Image = _imgSearchDefault;
-                                    IsButtonsEnabled = true;
-                                    return;
+                                    throw new Exception($@"Этот ID произошедшего события недопустим ({eventIndex}).");
                             }
                         }, true);
                     }
@@ -687,19 +681,19 @@ namespace DynamicMosaicExample
                     switch (k)
                     {
                         case 0:
-                            OutCurrentStatus(StrPreparing0, StrLoading0);
+                            OutCurrentStatus(StrPreparing0, StrLoading0, StrStopping0);
                             Thread.Sleep(100);
                             break;
                         case 1:
-                            OutCurrentStatus(StrPreparing1, StrLoading1);
+                            OutCurrentStatus(StrPreparing1, StrLoading1, StrStopping1);
                             Thread.Sleep(100);
                             break;
                         case 2:
-                            OutCurrentStatus(StrPreparing2, StrLoading2);
+                            OutCurrentStatus(StrPreparing2, StrLoading2, StrStopping2);
                             Thread.Sleep(100);
                             break;
                         case 3:
-                            OutCurrentStatus(StrPreparing3, StrLoading3);
+                            OutCurrentStatus(StrPreparing3, StrLoading3, StrStopping3);
                             Thread.Sleep(100);
                             k = -1;
                             break;
@@ -714,7 +708,7 @@ namespace DynamicMosaicExample
                 Name = "WaitThread"
             };
 
-            _userInterfaceThread = thread;
+            _userInterfaceActualizeThread = thread;
 
             thread.Start();
         }
@@ -749,7 +743,7 @@ namespace DynamicMosaicExample
             {
                 ResetLogWriteMessage();
 
-                if (StopRecognize())
+                if (StopRecognize() != null)
                     return;
 
                 if (IsQueryChanged)
@@ -764,6 +758,8 @@ namespace DynamicMosaicExample
 
                 CurrentUndoRedoState = UndoRedoState.UNKNOWN;
 
+                GC.Collect();
+
                 Thread t = new Thread(RecognizerFunction)
                 {
                     Priority = ThreadPriority.Highest,
@@ -771,9 +767,9 @@ namespace DynamicMosaicExample
                     Name = "Recognizer"
                 };
 
-                RecognizerThread = t;
-
                 t.Start();
+
+                RecognizerThread = t;
             });
         }
 
@@ -1081,17 +1077,17 @@ namespace DynamicMosaicExample
         {
             bool changed = IsQueryChanged;
 
-            btnSaveRecognizeImage.Enabled = changed && !string.IsNullOrEmpty(txtRecogQueryWord.Text);
+            btnSaveRecognizeImage.Enabled = changed && IsButtonsEnabled && !string.IsNullOrEmpty(txtRecogQueryWord.Text);
 
             btnNextRecog.Enabled = (changed && count > 0) || count > 1;
-            btnDeleteRecognizeImage.Enabled = !changed && count > 0;
+            btnDeleteRecognizeImage.Enabled = !changed && IsButtonsEnabled && count > 0;
 
             SavedPathInfoActualize(count, _recognizeProcessorStorage.SelectedPath);
 
             if (!needPaintCheck)
                 return;
 
-            btnClearRecogImage.Enabled = IsPainting;
+            btnClearRecogImage.Enabled = IsButtonsEnabled && IsPainting;
         }
 
         /// <summary>
@@ -1312,8 +1308,8 @@ namespace DynamicMosaicExample
                 txtConSymbolCount.Enabled = anyProcs;
                 btnConNext.Enabled = anyProcs && processors.Length > 1;
                 btnConPrevious.Enabled = anyProcs && processors.Length > 1;
-                btnConSaveImage.Enabled = anyProcs && p != null;
-                btnConSaveAllImages.Enabled = anyProcs && processors.Length > 1;
+                btnConSaveImage.Enabled = anyProcs && IsButtonsEnabled && p != null;
+                btnConSaveAllImages.Enabled = anyProcs && IsButtonsEnabled && processors.Length > 1;
                 lblConSymbolCount.Enabled = anyProcs;
                 lblConSymbolEqual.Enabled = anyProcs;
             }
@@ -1412,6 +1408,9 @@ namespace DynamicMosaicExample
 
                 e.Cancel = true;
 
+                btnRecognizeImage.Enabled = false;
+                txtRecogQueryWord.Enabled = false;
+
                 DisposeWorkDirWatcher();
                 DisposeRecognizeWatcher();
                 DisposeImageWatcher();
@@ -1422,14 +1421,10 @@ namespace DynamicMosaicExample
 
                     _stopBackground.Set();
 
-                    Thread recognizerThread = RecognizerThread;
-
-                    StopRecognize(false);
-
-                    recognizerThread?.Join();
+                    StopRecognize()?.Join();
 
                     _fileRefreshThread?.Join();
-                    _userInterfaceThread?.Join();
+                    _userInterfaceActualizeThread?.Join();
 
                     IsExited = true;
 
@@ -1444,7 +1439,7 @@ namespace DynamicMosaicExample
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                WriteLogMessage(ex.Message);
                 Process.GetCurrentProcess().Kill();
             }
         }
@@ -1644,8 +1639,7 @@ namespace DynamicMosaicExample
             }
             catch (Exception ex)
             {
-                MessageBox.Show($@"{ex.Message}{Environment.NewLine}Программа будет завершена.", @"Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                WriteLogMessage($@"{ex.Message}{Environment.NewLine}Программа будет завершена.");
                 Process.GetCurrentProcess().Kill();
             }
         }
@@ -1717,7 +1711,7 @@ namespace DynamicMosaicExample
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                WriteLogMessage(ex.Message);
                 Process.GetCurrentProcess().Kill();
             }
         }
@@ -1754,7 +1748,7 @@ namespace DynamicMosaicExample
             LOADDIRECTLY,
 
             /// <summary>
-            /// Выполняет полное обновление состояния пользовательского интерфейса, предназначенного для создания распознаваемого изображения, учитывая изменения различных параметров (в т.ч. его ширины).
+            /// Выполняет обновление состояния пользовательского интерфейса, предназначенного для создания распознаваемого изображения, учитывая изменения различных параметров (в т.ч. его ширины).
             /// </summary>
             REFRESH
         }

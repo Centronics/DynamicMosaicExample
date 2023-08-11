@@ -56,6 +56,26 @@ namespace DynamicMosaicExample
         const string StrLoading3 = @"Загрузка(/)";
 
         /// <summary>
+        ///     Текст кнопки "Найти".
+        /// </summary>
+        const string StrStopping0 = @"Остановка";
+
+        /// <summary>
+        ///     Текст кнопки "Найти".
+        /// </summary>
+        const string StrStopping1 = @"Остановка.";
+
+        /// <summary>
+        ///     Текст кнопки "Найти".
+        /// </summary>
+        const string StrStopping2 = @"Остановка..";
+
+        /// <summary>
+        ///     Текст кнопки "Найти".
+        /// </summary>
+        const string StrStopping3 = @"Остановка...";
+
+        /// <summary>
         /// Строка сообщения.
         /// </summary>
         /// <remarks>
@@ -93,7 +113,7 @@ namespace DynamicMosaicExample
         /// <remarks>
         /// Призвана сократить длину строк в коде.
         /// </remarks>
-        const string SearchStopError = @"Во время остановки процесса поиска произошла ошибка. Программа будет завершена.";
+        const string SearchStopError = @"Во время остановки процесса поиска произошла ошибка.";
 
         /// <summary>
         /// Строка сообщения.
@@ -369,6 +389,15 @@ namespace DynamicMosaicExample
         Thread _recognizerThread;
 
         /// <summary>
+        /// Поток, который останавливает процесс выполнения поискового запроса.
+        /// </summary>
+        /// <remarks>
+        /// Хранит значение свойства <see cref="StopperThread"/>.
+        /// </remarks>
+        /// <seealso cref="StopperThread"/>
+        Thread _stoppingThread;
+
+        /// <summary>
         /// Последний сохранённый поисковый запрос.
         /// </summary>
         string _savedRecognizeQuery = string.Empty;
@@ -383,7 +412,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Поток, отвечающий за инициализацию и актуализацию состояния пользовательского интерфейса в реальном времени.
         /// </summary>
-        Thread _userInterfaceThread;
+        Thread _userInterfaceActualizeThread;
 
         /// <summary>
         /// Необходим для инициализации коллекции недопустимых символов пути к файлу или папке.
@@ -431,8 +460,7 @@ namespace DynamicMosaicExample
             }
             catch (Exception ex)
             {
-                MessageBox.Show($@"{ex.Message}{Environment.NewLine}Программа будет завершена.", @"Ошибка",
-                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                WriteLogMessage($@"{ex.Message}{Environment.NewLine}Программа будет завершена.");
                 Process.GetCurrentProcess().Kill();
             }
         }
@@ -533,7 +561,7 @@ namespace DynamicMosaicExample
         /// <remarks>
         /// Если никакой запрос не выполняется, значение свойства будет равно <see langword="null"/>.
         /// Свойство потокобезопасно как на чтение, так и на запись.
-        /// Потокобезопасноть обеспечивается с помощью <see cref="_commonLocker"/>.
+        /// Потокобезопасность обеспечивает поле <see cref="_commonLocker"/>.
         /// Значение свойства содержит поле <see cref="_recognizerThread"/>.
         /// </remarks>
         /// <seealso cref="_commonLocker"/>
@@ -553,6 +581,36 @@ namespace DynamicMosaicExample
                 lock (_commonLocker)
                 {
                     _recognizerThread = value;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Получает или задаёт поток, который останавливает процесс выполнения поискового запроса.
+        /// </summary>
+        /// <remarks>
+        /// В случае, если поток не активен, в этом свойстве содержится значение <see langword="null"/>.
+        /// Свойство потокобезопасно как на чтение, так и на запись.
+        /// Потокобезопасность обеспечивает поле <see cref="_commonLocker"/>.
+        /// Значение этого свойства содержит поле <see cref="_stoppingThread"/>.
+        /// </remarks>
+        /// <seealso cref="_commonLocker"/>
+        /// <seealso cref="_stoppingThread"/>
+        Thread StopperThread
+        {
+            get
+            {
+                lock (_commonLocker)
+                {
+                    return _stoppingThread;
+                }
+            }
+
+            set
+            {
+                lock (_commonLocker)
+                {
+                    _stoppingThread = value;
                 }
             }
         }
@@ -626,7 +684,7 @@ namespace DynamicMosaicExample
         /// <remarks>
         /// Свойство потокобезопасно.
         /// Это свойство можно использовать в любом потоке.
-        /// Потокобезопасность обеспечивает <see cref="_commonLocker"/>.
+        /// Потокобезопасность обеспечивает поле <see cref="_commonLocker"/>.
         /// Значение хранит поле <see cref="_isButtonsEnabled"/>.
         /// </remarks>
         /// <seealso cref="_isButtonsEnabled"/>
@@ -650,33 +708,20 @@ namespace DynamicMosaicExample
                     SafeExecute(() =>
                     {
                         pbRecognizeImageDraw.Enabled = value;
-                        btnImageCreate.Enabled = value;
-                        btnImageDelete.Enabled = value;
-                        btnImageUpToQueries.Enabled = value;
-                        btnPrevImage.Enabled = value;
-                        btnNextImage.Enabled = value;
-                        txtImagesNumber.Enabled = value;
-                        txtImagesCount.Enabled = value;
                         txtRecogQueryWord.ReadOnly = !value;
                         btnLoadRecognizeImage.Enabled = value;
                         btnClearRecogImage.Enabled = value && IsPainting;
-                        btnPrevRecog.Enabled = value;
-                        btnNextRecog.Enabled = value;
-                        txtRecogNumber.Enabled = value;
-                        txtRecogCount.Enabled = value;
                         btnDeleteRecognizeImage.Enabled = value;
-                        lblSourceCount.Enabled = value;
-                        lblImagesCount.Enabled = value;
 
-                        if (value)
-                        {
-                            btnWide.Enabled = pbRecognizeImageDraw.Width < pbRecognizeImageDraw.MaximumSize.Width;
-                            btnNarrow.Enabled = pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
-                            return;
-                        }
+                        btnImageUpToQueries.Enabled = value;
+                        btnImageCreate.Enabled = value;
+                        btnImageDelete.Enabled = value;
 
-                        btnWide.Enabled = false;
-                        btnNarrow.Enabled = false;
+                        btnConSaveAllImages.Enabled = value;
+                        btnConSaveImage.Enabled = value;
+
+                        btnWide.Enabled = value && pbRecognizeImageDraw.Width < pbRecognizeImageDraw.MaximumSize.Width;
+                        btnNarrow.Enabled = value && pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
                     }, true);
 
                     _isButtonsEnabled = value;
@@ -698,9 +743,9 @@ namespace DynamicMosaicExample
             get
             {
                 for (int y = 0; y < _btmRecognizeImage.Height; y++)
-                for (int x = 0; x < _btmRecognizeImage.Width; x++)
-                    if (_btmRecognizeImage.GetPixel(x, y).ToArgb() != DefaultColor.ToArgb())
-                        return true;
+                    for (int x = 0; x < _btmRecognizeImage.Width; x++)
+                        if (_btmRecognizeImage.GetPixel(x, y).ToArgb() != DefaultColor.ToArgb())
+                            return true;
 
                 return false;
             }
@@ -831,9 +876,9 @@ namespace DynamicMosaicExample
                 throw new InvalidOperationException("Ссылки на проверяемые изображения совпадают.");
 
             for (int x = 0; x < bitmap1.Width; x++)
-            for (int y = 0; y < bitmap1.Height; y++)
-                if (bitmap1.GetPixel(x, y).ToArgb() != bitmap2.GetPixel(x, y).ToArgb())
-                    return false;
+                for (int y = 0; y < bitmap1.Height; y++)
+                    if (bitmap1.GetPixel(x, y).ToArgb() != bitmap2.GetPixel(x, y).ToArgb())
+                        return false;
 
             return true;
         }
@@ -853,43 +898,64 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Останавливает поток (вызывая <see cref="Thread.Abort()"/>), который называется Recognizer, и выполняет текущий поисковый запрос.
         /// </summary>
-        /// <param name="userNotify">В случае наличия необходимости уведомить пользователя о произошедшей ошибке (в том числе, сделать запись в логе), следует указать значение <see langword="true"/>.</param>
         /// <returns>
-        ///     Возвращает значение <see langword="true" /> в случае успешной остановки процесса выполнения запроса, в противном случае,
-        ///     возвращает значение <see langword="false" />, в том числе, если процесс выполнения запроса не был запущен.
+        ///     Возвращает поток, отвечающий за остановку процесса поиска.
+        ///     Если поисковый поток не был запущен, метод возвращает значение <see langword="null"/>.
         /// </returns>
         /// <remarks>
         /// Если процесс поиска не был запущен, вызов будет игнорирован.
-        /// Этот поток находится в свойстве <see cref="RecognizerThread"/>, и, в случае его успешного завершения, в этом свойстве будет содержаться значение <see langword="null"/>.
-        /// Метод гарантирует, что, после его вызова, поток будет полностью завершён.
+        /// Этот поток находится в свойстве <see cref="RecognizerThread"/>, и, в случае его завершения, в этом свойстве будет содержаться значение <see langword="null"/>.
+        /// Метод запускает поток (<see cref="StopperThread"/>), который останавливает процесс выполнения текущего поискового запроса, т.е. этот метод является асинхронным.
+        /// Если вызвать этот метод во время обработки предыдущего запроса на остановку операции поиска, то будет возвращён экземпляр существующего потока вместо того, чтобы создать ещё один запрос на остановку.
         /// </remarks>
-        /// <seealso cref="RecognizerThread"/>
         /// <seealso cref="Thread.Abort()"/>
-        bool StopRecognize(bool userNotify = true)
+        /// <seealso cref="RecognizerThread"/>
+        /// <seealso cref="StopperThread"/>
+        Thread StopRecognize()
         {
-            try
+            Thread result = null;
+
+            SafeExecute(() =>
             {
-                Thread t = RecognizerThread;
+                try
+                {
+                    ResetLogWriteMessage();
 
-                if (t == null)
-                    return false;
+                    Thread rt = RecognizerThread;
+                    result = StopperThread;
 
-                t.Abort();
+                    if (rt == null)
+                        return;
 
-                RecognizerThread = null;
+                    if (result == null)
+                        (StopperThread = result = new Thread(() => SafeExecute(() =>
+                        {
+                            try
+                            {
+                                rt.Abort();
+                                rt.Join();
+                            }
+                            catch (Exception ex)
+                            {
+                                throw new Exception($@"{nameof(StopRecognize)}Internal: {SearchStopError}{Environment.NewLine}{ex.Message}");
+                            }
+                            finally
+                            {
+                                StopperThread = null;
+                            }
+                        }))
+                        {
+                            IsBackground = true,
+                            Name = @"Stopper"
+                        }).Start();
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($@"{nameof(StopRecognize)}: {SearchStopError}{Environment.NewLine}{ex.Message}");
+                }
+            });
 
-                return true;
-            }
-            catch (Exception ex)
-            {
-                if (!userNotify)
-                    return false;
-
-                WriteLogMessage($@"{nameof(StopRecognize)}: {SearchStopError}{Environment.NewLine}{ex.Message}");
-                MessageBox.Show(this, SearchStopError, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-                return false;
-            }
+            return result;
         }
 
         /// <summary>
