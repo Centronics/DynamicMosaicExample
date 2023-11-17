@@ -8,7 +8,7 @@ namespace DynamicMosaicExample
     {
         /// <summary>
         /// Предоставляет сведения об изменении, произошедшем в файловой системе.
-        /// Используется при постановке задач по изменнию коллекции, в связи с изменениями, произошедшими в файловой системе.
+        /// Используется при постановке задач по изменению коллекции, в связи с изменениями, произошедшими в файловой системе.
         /// </summary>
         public enum FileTaskAction
         {
@@ -101,7 +101,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Помещает в очередь задачу (<see cref="Common"/>) на удаление карт, содержащийся в определённой папке (<see cref="FileTaskAction.REMOVED"/>), из указанного хранилища (<see cref="ConcurrentProcessorStorage.RemoveProcessor(string)"/>).
+        /// Помещает в очередь задачу (<see cref="Common"/>) на удаление карт, содержащихся в определённой папке (<see cref="FileTaskAction.REMOVED"/>), из указанного хранилища (<see cref="ConcurrentProcessorStorage.RemoveProcessor(string)"/>).
         /// </summary>
         /// <param name="fullPath">Путь к папке с картами.</param>
         /// <param name="storage">Хранилище, из которого требуется удалить карты.</param>
@@ -305,7 +305,7 @@ namespace DynamicMosaicExample
         /// <param name="source">Тип хранилища, в котором произошли изменения.</param>
         /// <remarks>
         /// Примеры обрабатываемых ситуаций: изменение содержимого вложенной папки (только если это не карты), удаление или создание рабочего каталога хранилища <see cref="ConcurrentProcessorStorage.WorkingDirectory"/>.
-        /// В случае создания или удаления рабочего каталога хранилища (<see cref="SourceChanged.WORKDIR"/>), испольуется метод <see cref="TrackStorage(ConcurrentProcessorStorage, bool)"/>.
+        /// В случае создания или удаления рабочего каталога хранилища (<see cref="SourceChanged.WORKDIR"/>), используется метод <see cref="TrackStorage(ConcurrentProcessorStorage, bool)"/>.
         /// Эти ситуации связаны с изменением любых сущностей, кроме файлов карт (тех, что с расширением <see cref="ExtImg"/>).
         /// Поддерживаются только следующие значения:
         /// 1) <see cref="WatcherChangeTypes.Deleted"/>,
@@ -396,7 +396,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Функция-обёртка для события перименования файлов и папок в хранилище.
+        /// Функция-обёртка для события переименования файлов и папок в хранилище.
         /// </summary>
         /// <param name="e">Сведения о произошедшем событии в файловой системе.</param>
         /// <param name="source">Сведения о хранилище, в котором произошло событие.</param>

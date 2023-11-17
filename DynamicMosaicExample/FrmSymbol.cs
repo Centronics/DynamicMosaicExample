@@ -185,12 +185,11 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="ctl">Необходим для считывания координат, ширины и высоты.</param>
         /// <param name="g">Поверхность для рисования.</param>
-        /// <param name="draw">Значение <see langword="true"/> для рисования рамки, в противном случае - для стирания.</param>
         /// <remarks>
         /// Метод использует <see cref="FrmExample.ImageFramePen"/> для рисования.
         /// </remarks>
         /// <seealso cref="FrmExample.ImageFramePen"/>
-        void DrawFieldFrame(Control ctl, Graphics g)
+        static void DrawFieldFrame(Control ctl, Graphics g)
         {
             float width = FrmExample.ImageFramePen.Width;
 

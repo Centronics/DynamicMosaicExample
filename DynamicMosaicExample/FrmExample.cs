@@ -89,14 +89,6 @@ namespace DynamicMosaicExample
         /// <seealso cref="ImageActualizeAction"/>
         void ImageActualize(ImageActualizeAction action, string btmPath = null, Processor loadingProcessor = null)
         {
-            void CommonMethod()
-            {
-                _grRecognizeImageGraphics?.Dispose();
-                _grRecognizeImageGraphics = Graphics.FromImage(_btmRecognizeImage);
-
-                pbRecognizeImageDraw.Image = _btmRecognizeImage;
-            }
-
             string tag;
             Bitmap btmAddingProcessor;
             int? countMain = null;
@@ -235,6 +227,16 @@ namespace DynamicMosaicExample
                 txtRecogQueryWord.Select(txtRecogQueryWord.Text.Length, 0);
 
             CommonMethod();
+
+            return;
+
+            void CommonMethod()
+            {
+                _grRecognizeImageGraphics?.Dispose();
+                _grRecognizeImageGraphics = Graphics.FromImage(_btmRecognizeImage);
+
+                pbRecognizeImageDraw.Image = _btmRecognizeImage;
+            }
         }
 
         /// <summary>
@@ -646,38 +648,6 @@ namespace DynamicMosaicExample
                         stwRenew.Restart();
                     }
 
-                    void OutCurrentStatus(string strPreparing, string strLoading, string strStopping)
-                    {
-                        SafeExecute(() =>
-                        {
-                            string CreateTimeString(TimeSpan ts)
-                            {
-                                return $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
-                            }
-
-                            switch (eventIndex)
-                            {
-                                case 1:
-                                    btnRecognizeImage.Image = null;
-                                    btnRecognizeImage.Text = StopperThread != null ? strStopping : CreateTimeString(_stwRecognize.Elapsed);
-                                    return;
-
-                                case 2:
-                                    btnRecognizeImage.Image = null;
-                                    btnRecognizeImage.Text = strPreparing;
-                                    return;
-
-                                case 3:
-                                    btnRecognizeImage.Image = null;
-                                    btnRecognizeImage.Text = strLoading;
-                                    return;
-
-                                default:
-                                    throw new Exception($@"Этот ID произошедшего события недопустим ({eventIndex}).");
-                            }
-                        }, true);
-                    }
-
                     switch (k)
                     {
                         case 0:
@@ -700,6 +670,41 @@ namespace DynamicMosaicExample
                         default:
                             throw new ArgumentOutOfRangeException(nameof(k), k,
                                 @"Некорректное значение индикатора для отображения статуса.");
+                    }
+
+                    continue;
+
+                    void OutCurrentStatus(string strPreparing, string strLoading, string strStopping)
+                    {
+                        SafeExecute(() =>
+                        {
+                            switch (eventIndex)
+                            {
+                                case 1:
+                                    btnRecognizeImage.Image = null;
+                                    btnRecognizeImage.Text = StopperThread != null ? strStopping : CreateTimeString(_stwRecognize.Elapsed);
+                                    return;
+
+                                case 2:
+                                    btnRecognizeImage.Image = null;
+                                    btnRecognizeImage.Text = strPreparing;
+                                    return;
+
+                                case 3:
+                                    btnRecognizeImage.Image = null;
+                                    btnRecognizeImage.Text = strLoading;
+                                    return;
+
+                                default:
+                                    throw new Exception($@"Этот ID произошедшего события недопустим ({eventIndex}).");
+                            }
+
+                            string CreateTimeString(TimeSpan ts)
+                            {
+                                return $@"{ts.Hours:00}:{ts.Minutes:00}:{ts.Seconds:00}";
+                            }
+
+                        }, true);
                     }
                 }
             }))
@@ -774,7 +779,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Выполняет все требуемые операции для подготовки и выполнения поискового запроса: инициализацию и актвацию таймера для отсчёта затраченного времени на его выполнение.
+        /// Выполняет все требуемые операции для подготовки и выполнения поискового запроса: инициализацию и активацию таймера для отсчёта затраченного времени на его выполнение.
         /// Выводит статус на экран, включая историю изменений экземпляра тестируемого класса (<see cref="Recognizer"/>).
         /// Значения статусов следующие:
         /// 1) "start" - экземпляр тестируемого класса (<see cref="Recognizer"/>) был создан.
@@ -897,20 +902,15 @@ namespace DynamicMosaicExample
         {
             bool globalResult = false;
 
+            if (InvokeRequired)
+                Invoke((Action)Act);
+            else
+                Act();
+
+            return globalResult;
+
             void Act()
             {
-                string GetSystemName(int position)
-                {
-                    string strCount = string.IsNullOrEmpty(comment)
-                        ? position < 10 ? ps.Length > 9999 ? "∞" : ps.Length.ToString() :
-                        ps.Length > 999 ? "∞" : ps.Length.ToString()
-                        : comment;
-
-                    char r = result.HasValue ? result == true ? 'T' : 'F' : ' ';
-
-                    return $@"№{position} {r} {DateTime.Now:HH:mm:ss} ({strCount})";
-                }
-
                 try
                 {
                     if (result.HasValue)
@@ -956,14 +956,21 @@ namespace DynamicMosaicExample
                 {
                     WriteLogMessage($@"{nameof(OutHistory)}: {ex.Message}.");
                 }
+
+                return;
+
+                string GetSystemName(int position)
+                {
+                    string strCount = string.IsNullOrEmpty(comment)
+                        ? position < 10 ? ps.Length > 9999 ? "∞" : ps.Length.ToString() :
+                        ps.Length > 999 ? "∞" : ps.Length.ToString()
+                        : comment;
+
+                    char r = result.HasValue ? result == true ? 'T' : 'F' : ' ';
+
+                    return $@"№{position} {r} {DateTime.Now:HH:mm:ss} ({strCount})";
+                }
             }
-
-            if (InvokeRequired)
-                Invoke((Action)Act);
-            else
-                Act();
-
-            return globalResult;
         }
 
         /// <summary>
@@ -1242,26 +1249,6 @@ namespace DynamicMosaicExample
         /// </summary>
         void ChangeSystemSelectedIndex()
         {
-            void ResetConSymbol()
-            {
-                txtConSymbolNumber.Text = string.Empty;
-                txtConSymbolCount.Text = string.Empty;
-                txtConSymbolTag.Text = string.Empty;
-
-                pbConSymbol.Image = new Bitmap(pbConSymbol.Width, pbConSymbol.Height);
-
-                txtConSymbolNumber.Enabled = false;
-                txtConSymbolCount.Enabled = false;
-                txtConSymbolTag.Enabled = false;
-                pbConSymbol.Enabled = false;
-                btnConNext.Enabled = false;
-                btnConPrevious.Enabled = false;
-                btnConSaveImage.Enabled = false;
-                btnConSaveAllImages.Enabled = false;
-                lblConSymbolCount.Enabled = false;
-                lblConSymbolEqual.Enabled = false;
-            }
-
             if (lstHistory.SelectedIndex < 0)
             {
                 ResetConSymbol();
@@ -1317,6 +1304,28 @@ namespace DynamicMosaicExample
             {
                 ResetConSymbol();
                 throw;
+            }
+
+            return;
+
+            void ResetConSymbol()
+            {
+                txtConSymbolNumber.Text = string.Empty;
+                txtConSymbolCount.Text = string.Empty;
+                txtConSymbolTag.Text = string.Empty;
+
+                pbConSymbol.Image = new Bitmap(pbConSymbol.Width, pbConSymbol.Height);
+
+                txtConSymbolNumber.Enabled = false;
+                txtConSymbolCount.Enabled = false;
+                txtConSymbolTag.Enabled = false;
+                pbConSymbol.Enabled = false;
+                btnConNext.Enabled = false;
+                btnConPrevious.Enabled = false;
+                btnConSaveImage.Enabled = false;
+                btnConSaveAllImages.Enabled = false;
+                lblConSymbolCount.Enabled = false;
+                lblConSymbolEqual.Enabled = false;
             }
         }
 

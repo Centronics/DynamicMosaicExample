@@ -34,7 +34,7 @@ namespace DynamicMosaicExample
             IMAGE,
 
             /// <summary>
-            ///     Хранилище карт, которые требуется исследовать последством карт <see cref="IMAGE" />.
+            ///     Хранилище карт, которые требуется исследовать посредством карт <see cref="IMAGE" />.
             /// </summary>
             RECOGNIZE
         }
@@ -82,7 +82,7 @@ namespace DynamicMosaicExample
         protected int IntSelectedIndex = -1;
 
         /// <summary>
-        ///     Внутренний конструтор, используется для передачи значений внутренним переменным.
+        ///     Внутренний конструктор, используется для передачи значений внутренним переменным.
         /// </summary>
         /// <param name="extImg">Расширение файлов с изображениями. Любой регистр, без точки.</param>
         protected ConcurrentProcessorStorage(string extImg)
@@ -711,6 +711,22 @@ namespace DynamicMosaicExample
 
             bool needAdd = IsWorkingDirectory(fullPath);
 
+            IEnumerable<Processor> result = IntAdd().ToList();
+
+            if (!LongOperationsAllowed)
+                return new Processor[0];
+
+            int count = lstExceptions.Count;
+
+            if (count > 1)
+                throw new AggregateException(
+                    $@"{nameof(AddProcessor)}: При загрузке группы карт возникли исключения ({count}).", lstExceptions);
+
+            if (count == 1)
+                throw lstExceptions[0];
+
+            return result;
+
             IEnumerable<Processor> IntAdd()
             {
                 if (IsProcessorFile(fullPath))
@@ -730,22 +746,6 @@ namespace DynamicMosaicExample
                         yield return p;
                 }
             }
-
-            IEnumerable<Processor> result = IntAdd().ToList();
-
-            if (!LongOperationsAllowed)
-                return new Processor[0];
-
-            int count = lstExceptions.Count;
-
-            if (count > 1)
-                throw new AggregateException(
-                    $@"{nameof(AddProcessor)}: При загрузке группы карт возникли исключения ({count}).", lstExceptions);
-
-            if (count == 1)
-                throw lstExceptions[0];
-
-            return result;
         }
 
         /// <summary>
@@ -1133,11 +1133,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Получает значение, отражающее, является ли указанный путь приемлимым в качестве пути к карте.
+        /// Получает значение, отражающее, является ли указанный путь приемлемым в качестве пути к карте.
         /// </summary>
         /// <param name="path">Проверяемый путь.</param>
         /// <returns>
-        /// Если указанный путь является приемлимым в качестве пути к карте, возвращает значение <see langword="true" />.
+        /// Если указанный путь является приемлемым в качестве пути к карте, возвращает значение <see langword="true" />.
         /// Если входная строка пустая (<see langword="null" /> или <see cref="string.Empty" />), возвращает значение <see langword="false" />.
         /// </returns>
         /// <remarks>

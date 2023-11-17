@@ -1101,6 +1101,30 @@ namespace DynamicMosaicExample
         /// </remarks>
         void WriteLogMessage(string logstr)
         {
+            try
+            {
+                logstr = $@"{DateTime.Now:dd.MM.yyyy HH:mm:ss} {logstr}";
+                lock (LogLockerObject)
+                {
+                    using (FileStream fs = new FileStream(LogPath, FileMode.Append, FileAccess.Write,
+                               FileShare.ReadWrite | FileShare.Delete))
+                    using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8))
+                    {
+                        sw.WriteLine(logstr);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowOnceUserMessage(
+                    $@"Ошибка при записи логов: {ex.Message}{Environment.NewLine}Сообщение лога: {logstr}");
+                return;
+            }
+
+            ShowOnceUserMessage();
+
+            return;
+
             void ShowOnceUserMessage(string addMes = null)
             {
                 string m = string.Empty;
@@ -1150,28 +1174,6 @@ namespace DynamicMosaicExample
                         MessageBoxIcon.Error);
                 }
             }
-
-            try
-            {
-                logstr = $@"{DateTime.Now:dd.MM.yyyy HH:mm:ss} {logstr}";
-                lock (LogLockerObject)
-                {
-                    using (FileStream fs = new FileStream(LogPath, FileMode.Append, FileAccess.Write,
-                               FileShare.ReadWrite | FileShare.Delete))
-                    using (StreamWriter sw = new StreamWriter(fs, Encoding.UTF8))
-                    {
-                        sw.WriteLine(logstr);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowOnceUserMessage(
-                    $@"Ошибка при записи логов: {ex.Message}{Environment.NewLine}Сообщение лога: {logstr}");
-                return;
-            }
-
-            ShowOnceUserMessage();
         }
 
         /// <summary>
@@ -1242,10 +1244,10 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Отменяет <see cref="Thread.Abort"/>, вызванный для текущего потока, если он находится в состоянии <see cref="ThreadState.AbortRequested"/>.
+        /// Отменяет <see cref="Thread.Abort()"/>, вызванный для текущего потока, если он находится в состоянии <see cref="ThreadState.AbortRequested"/>.
         /// Использует метод <see cref="Thread.ResetAbort()"/>.
         /// </summary>
-        /// <seealso cref="Thread.Abort"/>
+        /// <seealso cref="Thread.Abort()"/>
         /// <seealso cref="ThreadState.AbortRequested"/>
         /// <seealso cref="Thread.ResetAbort()"/>
         static void ResetAbort()
