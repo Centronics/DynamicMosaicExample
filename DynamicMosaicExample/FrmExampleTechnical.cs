@@ -76,50 +76,51 @@ namespace DynamicMosaicExample
         const string StrStopping3 = @"Остановка...";
 
         /// <summary>
-        /// Строка сообщения.
+        ///     Строка сообщения.
         /// </summary>
         /// <remarks>
-        /// Призвана сократить длину строк в коде.
+        ///     Призвана сократить длину строк в коде.
         /// </remarks>
         const string NeedSaveQuery = @"Перед запуском процедуры поиска необходимо сохранить текущий запрос.";
 
         /// <summary>
-        /// Строка сообщения.
+        ///     Строка сообщения.
         /// </summary>
         /// <remarks>
-        /// Призвана сократить длину строк в коде.
+        ///     Призвана сократить длину строк в коде.
         /// </remarks>
-        const string SaveImageQueryError = @"Необходимо написать какой-либо запрос, который будет использоваться в качестве имени файла изображения.";
+        const string SaveImageQueryError =
+            @"Необходимо написать какой-либо запрос, который будет использоваться в качестве имени файла изображения.";
 
         /// <summary>
-        /// Строка сообщения.
+        ///     Строка сообщения.
         /// </summary>
         /// <remarks>
-        /// Призвана сократить длину строк в коде.
+        ///     Призвана сократить длину строк в коде.
         /// </remarks>
         const string QueryErrorSymbols = @"Запрос содержит недопустимые символы.";
 
         /// <summary>
-        /// Строка сообщения.
+        ///     Строка сообщения.
         /// </summary>
         /// <remarks>
-        /// Призвана сократить длину строк в коде.
+        ///     Призвана сократить длину строк в коде.
         /// </remarks>
         const string LogRefreshedMessage = @"Содержимое лог-файла обновлено. Есть новые сообщения.";
 
         /// <summary>
-        /// Строка сообщения.
+        ///     Строка сообщения.
         /// </summary>
         /// <remarks>
-        /// Призвана сократить длину строк в коде.
+        ///     Призвана сократить длину строк в коде.
         /// </remarks>
         const string SearchStopError = @"Во время остановки процесса поиска произошла ошибка.";
 
         /// <summary>
-        /// Строка сообщения.
+        ///     Строка сообщения.
         /// </summary>
         /// <remarks>
-        /// Призвана сократить длину строк в коде.
+        ///     Призвана сократить длину строк в коде.
         /// </remarks>
         const string UnknownFSChangeType = @"Неизвестный тип изменения файловой системы.";
 
@@ -132,7 +133,7 @@ namespace DynamicMosaicExample
         ///     Указывает, было ли просмотрено сообщение о том, что в процессе работы программы уже произошла ошибка.
         /// </summary>
         /// <remarks>
-        /// Для сброса значения служит метод <see cref="ResetLogWriteMessage()"/>.
+        ///     Для сброса значения служит метод <see cref="ResetLogWriteMessage()" />.
         /// </remarks>
         static volatile bool _errorMessageIsShowed;
 
@@ -142,7 +143,7 @@ namespace DynamicMosaicExample
         public static readonly Pen BlackPen = new Pen(CheckAlphaColor(Color.Black), 2.0f);
 
         /// <summary>
-        /// Служит для рисования рамки вокруг элемента управления.
+        ///     Служит для рисования рамки вокруг элемента управления.
         /// </summary>
         public static readonly Pen ImageFramePen = new Pen(Color.Black);
 
@@ -158,14 +159,15 @@ namespace DynamicMosaicExample
         public static readonly Pen WhitePen = new Pen(DefaultColor, 2.0f);
 
         /// <summary>
-        /// Обеспечивает потокобезопасность членов этого класса.
+        ///     Обеспечивает потокобезопасность членов этого класса.
         /// </summary>
         readonly object _commonLocker = new object();
 
         /// <summary>
-        ///     Очередь, которая предназначена для хранения задач <see cref="FileTask"/>, связанных с обновлением содержимого коллекций карт.
+        ///     Очередь, которая предназначена для хранения задач <see cref="FileTask" />, связанных с обновлением содержимого
+        ///     коллекций карт.
         /// </summary>
-        /// <seealso cref="FileTask"/>
+        /// <seealso cref="FileTask" />
         readonly ConcurrentQueue<FileTask> _concurrentFileTasks = new ConcurrentQueue<FileTask>();
 
         /// <summary>
@@ -175,49 +177,53 @@ namespace DynamicMosaicExample
         readonly ManualResetEvent _fileActivity = new ManualResetEvent(false);
 
         /// <summary>
-        ///     Хранит карты, которые требуется искать, в процессе выполнения поисковых запросов, на картах из <see cref="RecognizeProcessorStorage"/>.
+        ///     Хранит карты, которые требуется искать, в процессе выполнения поисковых запросов, на картах из
+        ///     <see cref="RecognizeProcessorStorage" />.
         /// </summary>
-        /// <seealso cref="RecognizeProcessorStorage"/>
+        /// <seealso cref="RecognizeProcessorStorage" />
         readonly ImageProcessorStorage _imagesProcessorStorage;
-
-        /// <summary>
-        /// Хранит карты, на которых требуется выполнить поисковые запросы, посредством карт из <see cref="ImageProcessorStorage"/>.
-        /// </summary>
-        /// <seealso cref="ImageProcessorStorage"/>
-        readonly RecognizeProcessorStorage _recognizeProcessorStorage;
 
         /// <summary>
         ///     Сохраняет исходное значение свойства <see cref="ButtonBase.Image" /> кнопки <see cref="btnRecognizeImage" />.
         /// </summary>
-        /// <seealso cref="ButtonBase.Image"/>
-        /// <seealso cref="btnRecognizeImage"/>
+        /// <seealso cref="ButtonBase.Image" />
+        /// <seealso cref="btnRecognizeImage" />
         readonly Image _imgSearchDefault;
+
+        /// <summary>
+        ///     Хранит карты, на которых требуется выполнить поисковые запросы, посредством карт из
+        ///     <see cref="ImageProcessorStorage" />.
+        /// </summary>
+        /// <seealso cref="ImageProcessorStorage" />
+        readonly RecognizeProcessorStorage _recognizeProcessorStorage;
 
         /// <summary>
         ///     Отражает статус работы потока, отвечающего за выполнение поискового запроса на распознаваемом изображении.
         /// </summary>
         /// <remarks>
-        /// У этого сигнала самый высокий приоритет (2) среди всех сигналов, кроме <see cref="_stopBackground"/>.
+        ///     У этого сигнала самый высокий приоритет (2) среди всех сигналов, кроме <see cref="_stopBackground" />.
         /// </remarks>
-        /// <seealso cref="_stopBackground"/>
+        /// <seealso cref="_stopBackground" />
         readonly ManualResetEvent _recognizerActivity = new ManualResetEvent(false);
 
         /// <summary>
-        ///     Служит для хранения исторических сведений тестируемого класса <see cref="DynamicReflex"/>.
+        ///     Служит для хранения исторических сведений тестируемого класса <see cref="DynamicReflex" />.
         /// </summary>
         /// <remarks>
-        /// Содержит копию коллекции карт текущего экземпляра, номер карты, на которой пользователь остановил просмотр истории, и комментарий к историческому событию, как указано при вызове функции <see cref="OutHistory(bool?, Processor[], string)"/>.
+        ///     Содержит копию коллекции карт текущего экземпляра, номер карты, на которой пользователь остановил просмотр истории,
+        ///     и комментарий к историческому событию, как указано при вызове функции
+        ///     <see cref="OutHistory(bool?, Processor[], string)" />.
         /// </remarks>
-        /// <seealso cref="DynamicReflex"/>
-        /// <seealso cref="OutHistory(bool?, Processor[], string)"/>
+        /// <seealso cref="DynamicReflex" />
+        /// <seealso cref="OutHistory(bool?, Processor[], string)" />
         readonly List<(Processor[] processors, int reflexMapIndex, string comment)> _recognizeResults =
             new List<(Processor[] processors, int reflexMapIndex, string comment)>();
 
         /// <summary>
-        /// Сигнал о том, что начат процесс подготовки к запуску процесса выполнения поискового запроса.
+        ///     Сигнал о том, что начат процесс подготовки к запуску процесса выполнения поискового запроса.
         /// </summary>
         /// <remarks>
-        /// У этого сигнала приоритет чуть выше, чем у <see cref="_fileActivity"/> (1).
+        ///     У этого сигнала приоритет чуть выше, чем у <see cref="_fileActivity" /> (1).
         /// </remarks>
         readonly ManualResetEvent _recogPreparing = new ManualResetEvent(false);
 
@@ -230,7 +236,7 @@ namespace DynamicMosaicExample
         ///     Сигнал необходимости завершения всех фоновых процессов.
         /// </summary>
         /// <remarks>
-        /// У этого сигнала самый высокий приоритет среди всех остальных сигналов (3).
+        ///     У этого сигнала самый высокий приоритет среди всех остальных сигналов (3).
         /// </remarks>
         readonly ManualResetEvent _stopBackground = new ManualResetEvent(false);
 
@@ -256,22 +262,13 @@ namespace DynamicMosaicExample
         Bitmap _btmRecognizeImage;
 
         /// <summary>
-        /// Содержит копию распознаваемого изображения.
-        /// Необходимо для обнаружения наличия изменений распознаваемого изображения на экране.
+        ///     Содержит копию распознаваемого изображения.
+        ///     Необходимо для обнаружения наличия изменений распознаваемого изображения на экране.
         /// </summary>
         Bitmap _btmSavedRecognizeCopy;
 
         /// <summary>
-        ///     Отражает состояние активации или деактивации пользовательского интерфейса на время выполнения длительной операции.
-        /// </summary>
-        /// <remarks>
-        /// Хранит значение свойства <see cref="IsButtonsEnabled"/>.
-        /// </remarks>
-        /// <seealso cref="IsButtonsEnabled"/>
-        bool _isButtonsEnabled = true;
-
-        /// <summary>
-        /// Текущая позиция курсора в списке исторических событий экземпляра тестируемого класса.
+        ///     Текущая позиция курсора в списке исторических событий экземпляра тестируемого класса.
         /// </summary>
         int _currentHistoryPos;
 
@@ -281,7 +278,7 @@ namespace DynamicMosaicExample
         int _currentImageIndex;
 
         /// <summary>
-        /// Индекс распознаваемой карты, выбранной на данный момент.
+        ///     Индекс распознаваемой карты, выбранной на данный момент.
         /// </summary>
         int _currentRecognizeProcIndex;
 
@@ -289,13 +286,14 @@ namespace DynamicMosaicExample
         ///     Содержит результат завершения последнего выполненного поискового запроса.
         /// </summary>
         /// <remarks>
-        /// Хранит значение свойства <see cref="CurrentUndoRedoState"/>.
+        ///     Хранит значение свойства <see cref="CurrentUndoRedoState" />.
         /// </remarks>
-        /// <seealso cref="CurrentUndoRedoState"/>
+        /// <seealso cref="CurrentUndoRedoState" />
         UndoRedoState _currentUndoRedoState = UndoRedoState.UNKNOWN;
 
         /// <summary>
-        /// Поисковый запрос, написанный пользователем в момент запуска процедуры поиска символов на распознаваемом изображении.
+        ///     Поисковый запрос, написанный пользователем в момент запуска процедуры поиска символов на распознаваемом
+        ///     изображении.
         /// </summary>
         string _currentUndoRedoWord = string.Empty;
 
@@ -306,7 +304,8 @@ namespace DynamicMosaicExample
         bool _drawAllowed;
 
         /// <summary>
-        /// Закрывает все процессы в программе, освобождает все используемые ресурсы, и закрывает форму <see cref="FrmExample"/>.
+        ///     Закрывает все процессы в программе, освобождает все используемые ресурсы, и закрывает форму
+        ///     <see cref="FrmExample" />.
         /// </summary>
         Thread _exitingThread;
 
@@ -316,32 +315,32 @@ namespace DynamicMosaicExample
         Thread _fileRefreshThread;
 
         /// <summary>
-        /// Осуществляет наблюдение за хранилищем <see cref="SourceChanged.IMAGES"/>.
+        ///     Осуществляет наблюдение за хранилищем <see cref="SourceChanged.IMAGES" />.
         /// </summary>
         FileSystemWatcher _fswImageChanged;
 
         /// <summary>
-        /// Осуществляет наблюдение за хранилищем <see cref="SourceChanged.RECOGNIZE"/>.
+        ///     Осуществляет наблюдение за хранилищем <see cref="SourceChanged.RECOGNIZE" />.
         /// </summary>
         FileSystemWatcher _fswRecognizeChanged;
 
         /// <summary>
-        /// Осуществляет наблюдение за хранилищем <see cref="SourceChanged.WORKDIR"/>.
+        ///     Осуществляет наблюдение за хранилищем <see cref="SourceChanged.WORKDIR" />.
         /// </summary>
         FileSystemWatcher _fswWorkDirChanged;
 
         /// <summary>
-        /// Поверхность для рисования на <see cref="grpImages"/>.
+        ///     Поверхность для рисования на <see cref="grpImages" />.
         /// </summary>
         Graphics _grpImagesGraphics;
 
         /// <summary>
-        /// Поверхность для рисования на <see cref="grpResults"/>.
+        ///     Поверхность для рисования на <see cref="grpResults" />.
         /// </summary>
         Graphics _grpResultsGraphics;
 
         /// <summary>
-        /// Поверхность для рисования на <see cref="grpSourceImage"/>.
+        ///     Поверхность для рисования на <see cref="grpSourceImage" />.
         /// </summary>
         Graphics _grpSourceImageGraphics;
 
@@ -351,62 +350,78 @@ namespace DynamicMosaicExample
         Graphics _grRecognizeImageGraphics;
 
         /// <summary>
-        /// Служит для стирания рамки вокруг элемента управления.
+        ///     Служит для стирания рамки вокруг элемента управления.
         /// </summary>
         Pen _imageFrameResetPen;
 
         /// <summary>
-        /// Хранит значение свойства <see cref="IsExited"/>.
+        ///     Отражает состояние активации или деактивации пользовательского интерфейса на время выполнения длительной операции.
         /// </summary>
-        /// <seealso cref="IsExited"/>
+        /// <remarks>
+        ///     Хранит значение свойства <see cref="IsButtonsEnabled" />.
+        /// </remarks>
+        /// <seealso cref="IsButtonsEnabled" />
+        bool _isButtonsEnabled = true;
+
+        /// <summary>
+        ///     Хранит значение свойства <see cref="IsExited" />.
+        /// </summary>
+        /// <seealso cref="IsExited" />
         bool _isExited;
 
         /// <summary>
-        /// Значение <see langword="false"/> - указывает на необходимость обновления сведений о выбранной искомой карте на экране.
-        /// Значение <see langword="true"/> - указывает на необходимость загрузки выбранной карты из коллекции <see cref="_imagesProcessorStorage"/>, по индексу <see cref="_currentImageIndex"/>, и обновлением (на экране) сведений о ней.
+        ///     Значение <see langword="false" /> - указывает на необходимость обновления сведений о выбранной искомой карте на
+        ///     экране.
+        ///     Значение <see langword="true" /> - указывает на необходимость загрузки выбранной карты из коллекции
+        ///     <see cref="_imagesProcessorStorage" />, по индексу <see cref="_currentImageIndex" />, и обновлением (на экране)
+        ///     сведений о ней.
         /// </summary>
         bool _needInitImage = true;
 
         /// <summary>
-        /// Значение <see langword="false"/> - указывает на необходимость обновления сведений о выбранной распознаваемой карте на экране.
-        /// Значение <see langword="true"/> - указывает на необходимость загрузки выбранной карты из коллекции <see cref="_recognizeProcessorStorage"/>, по индексу <see cref="_currentRecognizeProcIndex"/>, и обновлением (на экране) сведений о ней.
+        ///     Значение <see langword="false" /> - указывает на необходимость обновления сведений о выбранной распознаваемой карте
+        ///     на экране.
+        ///     Значение <see langword="true" /> - указывает на необходимость загрузки выбранной карты из коллекции
+        ///     <see cref="_recognizeProcessorStorage" />, по индексу <see cref="_currentRecognizeProcIndex" />, и обновлением (на
+        ///     экране) сведений о ней.
         /// </summary>
         bool _needInitRecognizeImage = true;
 
         /// <summary>
-        /// Хранит значение свойства <see cref="Recognizer"/>.
+        ///     Хранит значение свойства <see cref="Recognizer" />.
         /// </summary>
-        /// <seealso cref="Recognizer"/>
+        /// <seealso cref="Recognizer" />
         DynamicReflex _recognizer;
 
         /// <summary>
         ///     Поток, отвечающий за выполнение текущего поискового запроса.
         /// </summary>
         /// <remarks>
-        /// Хранит значение свойства <see cref="RecognizerThread"/>.
+        ///     Хранит значение свойства <see cref="RecognizerThread" />.
         /// </remarks>
-        /// <seealso cref="RecognizerThread"/>
+        /// <seealso cref="RecognizerThread" />
         Thread _recognizerThread;
 
         /// <summary>
-        /// Поток, который останавливает процесс выполнения поискового запроса.
-        /// </summary>
-        /// <remarks>
-        /// Хранит значение свойства <see cref="StopperThread"/>.
-        /// </remarks>
-        /// <seealso cref="StopperThread"/>
-        Thread _stoppingThread;
-
-        /// <summary>
-        /// Последний сохранённый поисковый запрос.
+        ///     Последний сохранённый поисковый запрос.
         /// </summary>
         string _savedRecognizeQuery = string.Empty;
 
         /// <summary>
-        /// Служит для защиты от бесконечного цикла вызовов обработчика события при изменении текста в поле ввода поискового запроса.
-        /// Поле предназначено только для метода <see cref="TxtRecogQueryWordTextCheck(object, EventArgs)"/>.
+        ///     Поток, который останавливает процесс выполнения поискового запроса.
         /// </summary>
-        /// <seealso cref="TxtRecogQueryWordTextCheck(object, EventArgs)"/>
+        /// <remarks>
+        ///     Хранит значение свойства <see cref="StopperThread" />.
+        /// </remarks>
+        /// <seealso cref="StopperThread" />
+        Thread _stoppingThread;
+
+        /// <summary>
+        ///     Служит для защиты от бесконечного цикла вызовов обработчика события при изменении текста в поле ввода поискового
+        ///     запроса.
+        ///     Поле предназначено только для метода <see cref="TxtRecogQueryWordTextCheck(object, EventArgs)" />.
+        /// </summary>
+        /// <seealso cref="TxtRecogQueryWordTextCheck(object, EventArgs)" />
         bool _txtRecogQueryWordTextChecking;
 
         /// <summary>
@@ -415,7 +430,7 @@ namespace DynamicMosaicExample
         Thread _userInterfaceActualizeThread;
 
         /// <summary>
-        /// Необходим для инициализации коллекции недопустимых символов пути к файлу или папке.
+        ///     Необходим для инициализации коллекции недопустимых символов пути к файлу или папке.
         /// </summary>
         static FrmExample()
         {
@@ -429,8 +444,8 @@ namespace DynamicMosaicExample
         ///     Конструктор основной формы приложения.
         /// </summary>
         /// <remarks>
-        /// Осуществляет инициализацию критически важных для работы программы полей и свойств.
-        /// В случае какой-либо ошибки, этот конструктор принудительно завершит работу программы.
+        ///     Осуществляет инициализацию критически важных для работы программы полей и свойств.
+        ///     В случае какой-либо ошибки, этот конструктор принудительно завершит работу программы.
         /// </remarks>
         internal FrmExample()
         {
@@ -466,20 +481,22 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Экземпляр тестируемого класса <see cref="DynamicReflex"/>.
+        ///     Экземпляр тестируемого класса <see cref="DynamicReflex" />.
         /// </summary>
         /// <remarks>
-        /// Свойство потокобезопасно. Потокобезопасность обеспечивает объект <see cref="_commonLocker"/>.
-        /// Значение хранит переменная <see cref="_recognizer"/>.
-        /// Следует учесть, что присвоить новое значение возможно только в случае, если значение свойства равно <see langword="null"/>, иначе оно выбросит исключение <see cref="ArgumentException"/>.
-        /// В случае присвоения нового значения, свойство <see cref="CurrentUndoRedoState"/> будет сброшено (<see cref="UndoRedoState.UNKNOWN"/>).
+        ///     Свойство потокобезопасно. Потокобезопасность обеспечивает объект <see cref="_commonLocker" />.
+        ///     Значение хранит переменная <see cref="_recognizer" />.
+        ///     Следует учесть, что присвоить новое значение возможно только в случае, если значение свойства равно
+        ///     <see langword="null" />, иначе оно выбросит исключение <see cref="ArgumentException" />.
+        ///     В случае присвоения нового значения, свойство <see cref="CurrentUndoRedoState" />
+        ///     будет сброшено (<see cref="UndoRedoState.UNKNOWN" />).
         /// </remarks>
-        /// <exception cref="ArgumentException"/>
-        /// <seealso cref="DynamicReflex"/>
-        /// <seealso cref="_commonLocker"/>
-        /// <seealso cref="_recognizer"/>
-        /// <seealso cref="CurrentUndoRedoState"/>
-        /// <seealso cref="UndoRedoState.UNKNOWN"/>
+        /// <exception cref="ArgumentException" />
+        /// <seealso cref="DynamicReflex" />
+        /// <seealso cref="_commonLocker" />
+        /// <seealso cref="_recognizer" />
+        /// <seealso cref="CurrentUndoRedoState" />
+        /// <seealso cref="UndoRedoState.UNKNOWN" />
         DynamicReflex Recognizer
         {
             get
@@ -506,15 +523,16 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Предназначено для того, чтобы указать, была ли произведена процедура освобождения используемых ресурсов перед закрытием формы или нет.
+        ///     Предназначено для того, чтобы указать, была ли произведена процедура освобождения используемых ресурсов перед
+        ///     закрытием формы или нет.
         /// </summary>
         /// <remarks>
-        /// Для хранения значения, свойство использует поле <see cref="_isExited"/>.
-        /// Потокобезопасность осуществляет объект <see cref="_commonLocker"/>.
-        /// Свойство потокобезопасно.
+        ///     Для хранения значения, свойство использует поле <see cref="_isExited" />.
+        ///     Потокобезопасность осуществляет объект <see cref="_commonLocker" />.
+        ///     Свойство потокобезопасно.
         /// </remarks>
-        /// <seealso cref="_isExited"/>
-        /// <seealso cref="_commonLocker"/>
+        /// <seealso cref="_isExited" />
+        /// <seealso cref="_commonLocker" />
         bool IsExited
         {
             get
@@ -535,19 +553,19 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Показывает необходимость завершения всех фоновых процессов.
-        /// В случае наличия таковой необходимости возвращает значение <see langword="true"/>.
+        ///     Показывает необходимость завершения всех фоновых процессов.
+        ///     В случае наличия таковой необходимости возвращает значение <see langword="true" />.
         /// </summary>
         /// <remarks>
-        /// Свойство потокобезопасно.
+        ///     Свойство потокобезопасно.
         /// </remarks>
         bool NeedStopBackground => _stopBackground.WaitOne(0);
 
         /// <summary>
-        /// Позволяет считывать и записывать параметры выбранного пользователем исторического события.
+        ///     Позволяет считывать и записывать параметры выбранного пользователем исторического события.
         /// </summary>
         /// <remarks>
-        /// Может быть использован только в том потоке, в котором был создан <see cref="FrmExample"/>.
+        ///     Может быть использован только в том потоке, в котором был создан <see cref="FrmExample" />.
         /// </remarks>
         (Processor[] processors, int reflexMapIndex, string comment) SelectedResult
         {
@@ -556,16 +574,16 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Поток, выполняющий текущий поисковый запрос.
+        ///     Поток, выполняющий текущий поисковый запрос.
         /// </summary>
         /// <remarks>
-        /// Если никакой запрос не выполняется, значение свойства будет равно <see langword="null"/>.
-        /// Свойство потокобезопасно как на чтение, так и на запись.
-        /// Потокобезопасность обеспечивает поле <see cref="_commonLocker"/>.
-        /// Значение свойства содержит поле <see cref="_recognizerThread"/>.
+        ///     Если никакой запрос не выполняется, значение свойства будет равно <see langword="null" />.
+        ///     Свойство потокобезопасно как на чтение, так и на запись.
+        ///     Потокобезопасность обеспечивает поле <see cref="_commonLocker" />.
+        ///     Значение свойства содержит поле <see cref="_recognizerThread" />.
         /// </remarks>
-        /// <seealso cref="_commonLocker"/>
-        /// <seealso cref="_recognizerThread"/>
+        /// <seealso cref="_commonLocker" />
+        /// <seealso cref="_recognizerThread" />
         Thread RecognizerThread
         {
             get
@@ -586,16 +604,16 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Получает или задаёт поток, который останавливает процесс выполнения поискового запроса.
+        ///     Получает или задаёт поток, который останавливает процесс выполнения поискового запроса.
         /// </summary>
         /// <remarks>
-        /// В случае, если поток не активен, в этом свойстве содержится значение <see langword="null"/>.
-        /// Свойство потокобезопасно как на чтение, так и на запись.
-        /// Потокобезопасность обеспечивает поле <see cref="_commonLocker"/>.
-        /// Значение этого свойства содержит поле <see cref="_stoppingThread"/>.
+        ///     В случае, если поток не активен, в этом свойстве содержится значение <see langword="null" />.
+        ///     Свойство потокобезопасно как на чтение, так и на запись.
+        ///     Потокобезопасность обеспечивает поле <see cref="_commonLocker" />.
+        ///     Значение этого свойства содержит поле <see cref="_stoppingThread" />.
         /// </remarks>
-        /// <seealso cref="_commonLocker"/>
-        /// <seealso cref="_stoppingThread"/>
+        /// <seealso cref="_commonLocker" />
+        /// <seealso cref="_stoppingThread" />
         Thread StopperThread
         {
             get
@@ -616,13 +634,14 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Искомое и распознаваемое изображения не должны быть прозрачными, т.к. платформа не позволяет установить параметр прозрачности.
-        /// Этот параметр необходим для проверки значения прозрачности.
+        ///     Искомое и распознаваемое изображения не должны быть прозрачными, т.к. платформа не позволяет установить параметр
+        ///     прозрачности.
+        ///     Этот параметр необходим для проверки значения прозрачности.
         /// </summary>
         public static byte DefaultOpacity => 0xFF;
 
         /// <summary>
-        /// Недопустимые символы, которые не должен содержать путь.
+        ///     Недопустимые символы, которые не должен содержать путь.
         /// </summary>
         internal static HashSet<char> InvalidCharSet { get; }
 
@@ -637,39 +656,45 @@ namespace DynamicMosaicExample
         internal static int ImageHeight { get; private set; }
 
         /// <summary>
-        ///     Название папки, содержащей изображения, интерпретируемые как карты <see cref="Processor" />, которые необходимо найти на распознаваемой(ых) карте(ах).
+        ///     Название папки, содержащей изображения, интерпретируемые как карты <see cref="Processor" />, которые необходимо
+        ///     найти на распознаваемой(ых) карте(ах).
         /// </summary>
         internal static string ImagesFolder => "Images";
 
         /// <summary>
-        ///     Название папки, содержащей изображения, интерпретируемые как карты <see cref="Processor" />, на которых необходимо выполнять поисковые запросы.
+        ///     Название папки, содержащей изображения, интерпретируемые как карты <see cref="Processor" />, на которых необходимо
+        ///     выполнять поисковые запросы.
         /// </summary>
         internal static string RecognizeFolder => "Recognize";
 
         /// <summary>
-        ///     Рабочий каталог приложения (<see cref="Application.StartupPath"/>).
-        ///     Содержит хранилища (<see cref="SourceChanged.WORKDIR"/>, <see cref="SearchImagesPath"/>, <see cref="RecognizeImagesPath"/>) и лог программы <see cref="LogPath"/>.
+        ///     Рабочий каталог приложения (<see cref="Application.StartupPath" />).
+        ///     Содержит хранилища (<see cref="SourceChanged.WORKDIR" />, <see cref="SearchImagesPath" />, <see cref="RecognizeImagesPath" />)
+        ///     и лог программы <see cref="LogPath" />.
         /// </summary>
-        /// <seealso cref="SourceChanged.WORKDIR"/>
-        /// <seealso cref="SearchImagesPath"/>
-        /// <seealso cref="RecognizeImagesPath"/>
-        /// <seealso cref="LogPath"/>
-        /// <seealso cref="Application.StartupPath"/>
+        /// <seealso cref="SourceChanged.WORKDIR" />
+        /// <seealso cref="SearchImagesPath" />
+        /// <seealso cref="RecognizeImagesPath" />
+        /// <seealso cref="LogPath" />
+        /// <seealso cref="Application.StartupPath" />
         public static string WorkingDirectory { get; } = Application.StartupPath;
 
         /// <summary>
-        /// Указывает путь к файлу лога приложения (log.log), который находится в рабочем каталоге программы (<see cref="WorkingDirectory"/>).
+        ///     Указывает путь к файлу лога приложения (log.log), который находится в рабочем каталоге программы (
+        ///     <see cref="WorkingDirectory" />).
         /// </summary>
-        /// <seealso cref="WorkingDirectory"/>
+        /// <seealso cref="WorkingDirectory" />
         public string LogPath { get; }
 
         /// <summary>
-        ///     Путь, по которому ищутся изображения, которые интерпретируются как карты <see cref="Processor" />, которые необходимо найти на распознаваемой(ых) карте(ах).
+        ///     Путь, по которому ищутся изображения, которые интерпретируются как карты <see cref="Processor" />, которые
+        ///     необходимо найти на распознаваемой(ых) карте(ах).
         /// </summary>
         internal static string SearchImagesPath { get; } = Path.Combine(WorkingDirectory, ImagesFolder);
 
         /// <summary>
-        ///     Путь, по которому ищутся изображения, которые интерпретируются как карты <see cref="Processor" />, на которых необходимо выполнять поисковые запросы.
+        ///     Путь, по которому ищутся изображения, которые интерпретируются как карты <see cref="Processor" />, на которых
+        ///     необходимо выполнять поисковые запросы.
         /// </summary>
         internal static string RecognizeImagesPath { get; } = Path.Combine(WorkingDirectory, RecognizeFolder);
 
@@ -679,15 +704,16 @@ namespace DynamicMosaicExample
         internal static string ExtImg => "bmp";
 
         /// <summary>
-        ///     Получает состояние или задаёт его для активации или деактивации пользовательского интерфейса на время выполнения длительной операции.
+        ///     Получает состояние или задаёт его для активации или деактивации пользовательского интерфейса на время выполнения
+        ///     длительной операции.
         /// </summary>
         /// <remarks>
-        /// Свойство потокобезопасно.
-        /// Это свойство можно использовать в любом потоке.
-        /// Потокобезопасность обеспечивает поле <see cref="_commonLocker"/>.
-        /// Значение хранит поле <see cref="_isButtonsEnabled"/>.
+        ///     Свойство потокобезопасно.
+        ///     Это свойство можно использовать в любом потоке.
+        ///     Потокобезопасность обеспечивает поле <see cref="_commonLocker" />.
+        ///     Значение хранит поле <see cref="_isButtonsEnabled" />.
         /// </remarks>
-        /// <seealso cref="_isButtonsEnabled"/>
+        /// <seealso cref="_isButtonsEnabled" />
         bool IsButtonsEnabled
         {
             get
@@ -721,7 +747,8 @@ namespace DynamicMosaicExample
                         btnConSaveImage.Enabled = value;
 
                         btnWide.Enabled = value && pbRecognizeImageDraw.Width < pbRecognizeImageDraw.MaximumSize.Width;
-                        btnNarrow.Enabled = value && pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
+                        btnNarrow.Enabled =
+                            value && pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
                     }, true);
 
                     _isButtonsEnabled = value;
@@ -734,36 +761,41 @@ namespace DynamicMosaicExample
         ///     исходного изображения.
         /// </summary>
         /// <remarks>
-        /// Если все пиксели изображения <see cref="_btmRecognizeImage"/> цвета <see cref="DefaultColor"/>, то изображение считается пустым.
+        ///     Если все пиксели изображения <see cref="_btmRecognizeImage" /> цвета <see cref="DefaultColor" />, то изображение
+        ///     считается пустым.
         /// </remarks>
-        /// <seealso cref="DefaultColor"/>
-        /// <seealso cref="_btmRecognizeImage"/>
+        /// <seealso cref="DefaultColor" />
+        /// <seealso cref="_btmRecognizeImage" />
         bool IsPainting
         {
             get
             {
                 for (int y = 0; y < _btmRecognizeImage.Height; y++)
-                    for (int x = 0; x < _btmRecognizeImage.Width; x++)
-                        if (_btmRecognizeImage.GetPixel(x, y).ToArgb() != DefaultColor.ToArgb())
-                            return true;
+                for (int x = 0; x < _btmRecognizeImage.Width; x++)
+                    if (_btmRecognizeImage.GetPixel(x, y).ToArgb() != DefaultColor.ToArgb())
+                        return true;
 
                 return false;
             }
         }
 
         /// <summary>
-        ///     Служит либо для чтения значения последнего сохранённого поискового запроса, либо для актуализации состояния пользовательского интерфейса в случае его изменения.
+        ///     Служит либо для чтения значения последнего сохранённого поискового запроса, либо для актуализации состояния
+        ///     пользовательского интерфейса в случае его изменения.
         /// </summary>
         /// <remarks>
-        /// Для записи значения этого свойства, необходимо записывать значение в переменную <see cref="_currentUndoRedoWord"/>.
-        /// Чтение значения свойства производится из этой переменной.
-        /// Записать значение свойства возможно только в случае, когда <see cref="CurrentUndoRedoState"/> не равно <see cref="UndoRedoState.UNKNOWN"/>, иначе попытка записи будет игнорирована.
-        /// В случае успешной попытки записи, входное значение не сохраняется в переменной <see cref="_currentUndoRedoWord"/>.
-        /// Вместо этого, производится актуализация статуса текущего поискового запроса в интерфейсе пользователя, с помощью <see cref="pbSuccess"/>, в зависимости от содержимого входного поискового запроса и состояния <see cref="CurrentUndoRedoState"/>.
+        ///     Для записи значения этого свойства, необходимо записывать значение в переменную <see cref="_currentUndoRedoWord" />.
+        ///     Чтение значения свойства производится из этой переменной.
+        ///     Записать значение свойства возможно только в случае, когда <see cref="CurrentUndoRedoState" /> не равно
+        ///     <see cref="UndoRedoState.UNKNOWN" />, иначе попытка записи будет игнорирована.
+        ///     В случае успешной попытки записи, входное значение не сохраняется в переменной <see cref="_currentUndoRedoWord" />.
+        ///     Вместо этого, производится актуализация статуса текущего поискового запроса в интерфейсе пользователя, с помощью
+        ///     <see cref="pbSuccess" />, в зависимости от содержимого входного поискового запроса и состояния
+        ///     <see cref="CurrentUndoRedoState" />.
         /// </remarks>
-        /// <seealso cref="_currentUndoRedoWord"/>
-        /// <seealso cref="CurrentUndoRedoState"/>
-        /// <seealso cref="UndoRedoState"/>
+        /// <seealso cref="_currentUndoRedoWord" />
+        /// <seealso cref="CurrentUndoRedoState" />
+        /// <seealso cref="UndoRedoState" />
         internal string CurrentUndoRedoWord
         {
             get => _currentUndoRedoWord;
@@ -785,11 +817,11 @@ namespace DynamicMosaicExample
         ///     Получает или задаёт результат завершения последнего выполненного поискового запроса, отображая его на форме.
         /// </summary>
         /// <remarks>
-        /// Значение свойства содержит поле <see cref="_currentUndoRedoState"/>.
-        /// Свойство можно использовать только в том потоке, в котором создана форма <see cref="FrmExample"/>.
+        ///     Значение свойства содержит поле <see cref="_currentUndoRedoState" />.
+        ///     Свойство можно использовать только в том потоке, в котором создана форма <see cref="FrmExample" />.
         /// </remarks>
-        /// <seealso cref="_currentUndoRedoState"/>
-        /// <seealso cref="UndoRedoState"/>
+        /// <seealso cref="_currentUndoRedoState" />
+        /// <seealso cref="UndoRedoState" />
         internal UndoRedoState CurrentUndoRedoState
         {
             get => _currentUndoRedoState;
@@ -817,8 +849,8 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Служит для проверки содержимого поля ввода поискового запроса.
-        /// В случае, если введённое слово превышает максимально допустимую длину, оно будет обрезано.
+        ///     Служит для проверки содержимого поля ввода поискового запроса.
+        ///     В случае, если введённое слово превышает максимально допустимую длину, оно будет обрезано.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -836,17 +868,18 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Выполняет проверку значения <see cref="Color.A"/> указанного цвета.
+        ///     Выполняет проверку значения <see cref="Color.A" /> указанного цвета.
         /// </summary>
         /// <param name="c">Проверяемый цвет.</param>
-        /// <returns>Возвращает параметр <paramref name="c"/>.</returns>
+        /// <returns>Возвращает параметр <paramref name="c" />.</returns>
         /// <remarks>
-        /// В случае несоответствия значению <see cref="DefaultOpacity"/>, будет выброшено исключение <see cref="InvalidOperationException"/>.
-        /// Метод потокобезопасен.
+        ///     В случае несоответствия значению <see cref="DefaultOpacity" />, будет выброшено исключение
+        ///     <see cref="InvalidOperationException" />.
+        ///     Метод потокобезопасен.
         /// </remarks>
-        /// <exception cref="InvalidOperationException"/>
-        /// <seealso cref="Color.A"/>
-        /// <seealso cref="DefaultOpacity"/>
+        /// <exception cref="InvalidOperationException" />
+        /// <seealso cref="Color.A" />
+        /// <seealso cref="DefaultOpacity" />
         internal static Color CheckAlphaColor(Color c)
         {
             return c.A == DefaultOpacity
@@ -856,17 +889,17 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Сравнивает два изображения между собой.
+        ///     Сравнивает два изображения между собой.
         /// </summary>
         /// <param name="bitmap1">Первое изображение для сравнения.</param>
         /// <param name="bitmap2">Второе изображение для сравнения.</param>
-        /// <returns>В случае равенства указанных изображений, метод возвращает значение <see langword="true"/>.</returns>
+        /// <returns>В случае равенства указанных изображений, метод возвращает значение <see langword="true" />.</returns>
         /// <remarks>
-        /// Метод потокобезопасен.
-        /// Ни одно из изображений не может быть равно <see langword="null"/>.
-        /// В случае равенства ссылок, метод выбрасывает исключение <see cref="InvalidOperationException"/>.
+        ///     Метод потокобезопасен.
+        ///     Ни одно из изображений не может быть равно <see langword="null" />.
+        ///     В случае равенства ссылок, метод выбрасывает исключение <see cref="InvalidOperationException" />.
         /// </remarks>
-        /// <exception cref="InvalidOperationException"/>
+        /// <exception cref="InvalidOperationException" />
         internal static bool CompareBitmaps(Bitmap bitmap1, Bitmap bitmap2)
         {
             if (bitmap1.Width != bitmap2.Width || bitmap1.Height != bitmap2.Height)
@@ -876,41 +909,45 @@ namespace DynamicMosaicExample
                 throw new InvalidOperationException("Ссылки на проверяемые изображения совпадают.");
 
             for (int x = 0; x < bitmap1.Width; x++)
-                for (int y = 0; y < bitmap1.Height; y++)
-                    if (bitmap1.GetPixel(x, y).ToArgb() != bitmap2.GetPixel(x, y).ToArgb())
-                        return false;
+            for (int y = 0; y < bitmap1.Height; y++)
+                if (bitmap1.GetPixel(x, y).ToArgb() != bitmap2.GetPixel(x, y).ToArgb())
+                    return false;
 
             return true;
         }
 
         /// <summary>
-        /// Освобождает ресурсы, занимаемые основным тестируемым экземпляром класса <see cref="DynamicReflex"/>.
+        ///     Освобождает ресурсы, занимаемые основным тестируемым экземпляром класса <see cref="DynamicReflex" />.
         /// </summary>
         /// <remarks>
-        /// Сбрасывает значение свойства <see cref="Recognizer"/>.
+        ///     Сбрасывает значение свойства <see cref="Recognizer" />.
         /// </remarks>
-        /// <seealso cref="Recognizer"/>
+        /// <seealso cref="Recognizer" />
         void ResetRecognizer()
         {
             Recognizer = null;
         }
 
         /// <summary>
-        ///     Останавливает поток (вызывая <see cref="Thread.Abort()"/>), который называется Recognizer, и выполняет текущий поисковый запрос.
+        ///     Останавливает поток (вызывая <see cref="Thread.Abort()" />), который называется Recognizer, и выполняет текущий
+        ///     поисковый запрос.
         /// </summary>
         /// <returns>
         ///     Возвращает поток, отвечающий за остановку процесса поиска.
-        ///     Если поисковый поток не был запущен, метод возвращает значение <see langword="null"/>.
+        ///     Если поисковый поток не был запущен, метод возвращает значение <see langword="null" />.
         /// </returns>
         /// <remarks>
-        /// Если процесс поиска не был запущен, вызов будет игнорирован.
-        /// Этот поток находится в свойстве <see cref="RecognizerThread"/>, и, в случае его завершения, в этом свойстве будет содержаться значение <see langword="null"/>.
-        /// Метод запускает поток (<see cref="StopperThread"/>), который останавливает процесс выполнения текущего поискового запроса, т.е. этот метод является асинхронным.
-        /// Если вызвать этот метод во время обработки предыдущего запроса на остановку операции поиска, то будет возвращён экземпляр существующего потока вместо того, чтобы создать ещё один запрос на остановку.
+        ///     Если процесс поиска не был запущен, вызов будет игнорирован.
+        ///     Этот поток находится в свойстве <see cref="RecognizerThread" />, и, в случае его завершения, в этом свойстве будет
+        ///     содержаться значение <see langword="null" />.
+        ///     Метод запускает поток (<see cref="StopperThread" />), который останавливает процесс выполнения текущего поискового
+        ///     запроса, т.е. этот метод является асинхронным.
+        ///     Если вызвать этот метод во время обработки предыдущего запроса на остановку операции поиска, то будет возвращён
+        ///     экземпляр существующего потока вместо того, чтобы создать ещё один запрос на остановку.
         /// </remarks>
-        /// <seealso cref="Thread.Abort()"/>
-        /// <seealso cref="RecognizerThread"/>
-        /// <seealso cref="StopperThread"/>
+        /// <seealso cref="Thread.Abort()" />
+        /// <seealso cref="RecognizerThread" />
+        /// <seealso cref="StopperThread" />
         Thread StopRecognize()
         {
             Thread result = null;
@@ -937,7 +974,8 @@ namespace DynamicMosaicExample
                             }
                             catch (Exception ex)
                             {
-                                throw new Exception($@"{nameof(StopRecognize)}Internal: {SearchStopError}{Environment.NewLine}{ex.Message}");
+                                throw new Exception(
+                                    $@"{nameof(StopRecognize)}Internal: {SearchStopError}{Environment.NewLine}{ex.Message}");
                             }
                             finally
                             {
@@ -951,7 +989,8 @@ namespace DynamicMosaicExample
                 }
                 catch (Exception ex)
                 {
-                    throw new Exception($@"{nameof(StopRecognize)}: {SearchStopError}{Environment.NewLine}{ex.Message}");
+                    throw new Exception(
+                        $@"{nameof(StopRecognize)}: {SearchStopError}{Environment.NewLine}{ex.Message}");
                 }
             });
 
@@ -982,12 +1021,13 @@ namespace DynamicMosaicExample
 
         /// <summary>
         ///     Создаёт и запускает новый поток (<see cref="_fileRefreshThread" />), отвечающий за обновление содержимого коллекций карт.
-        ///     Созданный поток называется FileRefreshThread и находится в состоянии <see cref="ThreadState.Running" />, <see cref="ThreadState.Background" />.
+        ///     Созданный поток называется FileRefreshThread и находится в состоянии
+        ///     <see cref="System.Threading.ThreadState.Running" />, <see cref="System.Threading.ThreadState.Background" />.
         /// </summary>
         /// <remarks>
-        /// В случае, если поток уже был создан, метод выбросит исключение <see cref="InvalidOperationException" />.
+        ///     В случае, если поток уже был создан, метод выбросит исключение <see cref="InvalidOperationException" />.
         /// </remarks>
-        /// <exception cref="InvalidOperationException"/>
+        /// <exception cref="InvalidOperationException" />
         void CreateFileRefreshThread()
         {
             if (_fileRefreshThread != null)
@@ -1096,8 +1136,8 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="logstr">Строка лога, которую надо записать.</param>
         /// <remarks>
-        /// Метод потокобезопасен.
-        /// К сообщению автоматически добавляются текущие дата и время в полном формате.
+        ///     Метод потокобезопасен.
+        ///     К сообщению автоматически добавляются текущие дата и время в полном формате.
         /// </remarks>
         void WriteLogMessage(string logstr)
         {
@@ -1182,7 +1222,10 @@ namespace DynamicMosaicExample
         /// <param name="message">Текст отображаемого сообщения.</param>
         void ErrorMessageInOtherThread(string message)
         {
-            new Thread(() => SafeExecute(() => MessageBox.Show(this, message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation), true))
+            new Thread(() =>
+                SafeExecute(
+                    () => MessageBox.Show(this, message, @"Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Exclamation),
+                    true))
             {
                 IsBackground = true,
                 Name = @"Message"
@@ -1244,12 +1287,13 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Отменяет <see cref="Thread.Abort()"/>, вызванный для текущего потока, если он находится в состоянии <see cref="ThreadState.AbortRequested"/>.
-        /// Использует метод <see cref="Thread.ResetAbort()"/>.
+        ///     Отменяет <see cref="Thread.Abort()" />, вызванный для текущего потока, если он находится в состоянии
+        ///     <see cref="System.Threading.ThreadState.AbortRequested" />.
+        ///     Использует метод <see cref="Thread.ResetAbort()" />.
         /// </summary>
-        /// <seealso cref="Thread.Abort()"/>
-        /// <seealso cref="ThreadState.AbortRequested"/>
-        /// <seealso cref="Thread.ResetAbort()"/>
+        /// <seealso cref="Thread.Abort()" />
+        /// <seealso cref="System.Threading.ThreadState.AbortRequested" />
+        /// <seealso cref="Thread.ResetAbort()" />
         static void ResetAbort()
         {
             if ((Thread.CurrentThread.ThreadState & ThreadState.AbortRequested) != 0)

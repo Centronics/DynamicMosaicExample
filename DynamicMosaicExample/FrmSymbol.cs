@@ -26,11 +26,6 @@ namespace DynamicMosaicExample
         readonly Graphics _grFront;
 
         /// <summary>
-        ///     Поверхность для рисования на <see cref="FrmSymbol"/>.
-        /// </summary>
-        Graphics _frmSymbolGraphics;
-
-        /// <summary>
         ///     Хранит загруженные карты, которые требуется искать на основной карте.
         ///     Предназначена для использования несколькими потоками одновременно.
         /// </summary>
@@ -43,7 +38,13 @@ namespace DynamicMosaicExample
         bool _draw;
 
         /// <summary>
-        ///     Флаг, необходимый для того, чтобы защититься от возникновения события изменения текста на поле ввода, в процессе обработки такого события.
+        ///     Поверхность для рисования на <see cref="FrmSymbol" />.
+        /// </summary>
+        Graphics _frmSymbolGraphics;
+
+        /// <summary>
+        ///     Флаг, необходимый для того, чтобы защититься от возникновения события изменения текста на поле ввода, в процессе
+        ///     обработки такого события.
         /// </summary>
         bool _txtSymbolTextChecking;
 
@@ -129,7 +130,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Сохраняет текущий образ искомой буквы в рабочий каталог и закрывает форму (<see cref="DialogResult.OK"/>).
+        ///     Сохраняет текущий образ искомой буквы в рабочий каталог и закрывает форму (<see cref="DialogResult.OK" />).
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -178,17 +179,20 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        void FrmSymbol_Shown(object sender, EventArgs e) => RunAction(() => BtnClear_Click(btnClear, EventArgs.Empty));
+        void FrmSymbol_Shown(object sender, EventArgs e)
+        {
+            RunAction(() => BtnClear_Click(btnClear, EventArgs.Empty));
+        }
 
         /// <summary>
-        /// Рисует рамку вокруг указанного элемента управления.
+        ///     Рисует рамку вокруг указанного элемента управления.
         /// </summary>
         /// <param name="ctl">Необходим для считывания координат, ширины и высоты.</param>
         /// <param name="g">Поверхность для рисования.</param>
         /// <remarks>
-        /// Метод использует <see cref="FrmExample.ImageFramePen"/> для рисования.
+        ///     Метод использует <see cref="FrmExample.ImageFramePen" /> для рисования.
         /// </remarks>
-        /// <seealso cref="FrmExample.ImageFramePen"/>
+        /// <seealso cref="FrmExample.ImageFramePen" />
         static void DrawFieldFrame(Control ctl, Graphics g)
         {
             float width = FrmExample.ImageFramePen.Width;
@@ -216,10 +220,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Производит контроль вводимого содержимого в поле ввода (<see cref="TextBox.Text"/>) названия символа.
-        /// Поле не может содержать знаки пробела, содержать строку длиннее значения <see cref="TextBoxBase.MaxLength"/>, при этом, метод всегда скорректирует строку в большой регистр (<see cref="string.ToUpper()"/>).
-        /// Если поле содержит знаки пробела, его значение будет сброшено (<see cref="string.Empty"/>).
-        /// Если поле пустое (<see cref="string.Empty"/>), метод не производит никаких действий.
+        ///     Производит контроль вводимого содержимого в поле ввода (<see cref="TextBox.Text" />) названия символа.
+        ///     Поле не может содержать знаки пробела, содержать строку длиннее значения <see cref="TextBoxBase.MaxLength" />, при
+        ///     этом, метод всегда скорректирует строку в большой регистр (<see cref="string.ToUpper()" />).
+        ///     Если поле содержит знаки пробела, его значение будет сброшено (<see cref="string.Empty" />).
+        ///     Если поле пустое (<see cref="string.Empty" />), метод не производит никаких действий.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -258,11 +263,12 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Обрабатывает события нажатий клавиш над формой: закрывает форму (<see cref="DialogResult.Cancel"/>) при нажатии клавиши <see cref="Keys.Escape"/>.
+        ///     Обрабатывает события нажатий клавиш над формой: закрывает форму (<see cref="DialogResult.Cancel" />) при нажатии
+        ///     клавиши <see cref="Keys.Escape" />.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        /// <seealso cref="ExitCancel()"/>
+        /// <seealso cref="ExitCancel()" />
         void BtnKeyDown(object sender, KeyEventArgs e)
         {
             RunAction(() =>
@@ -277,14 +283,15 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Обрабатывает события нажатий клавиш над полем ввода названия символа:
-        /// 1) Сохраняет текущий образ искомой буквы в рабочий каталог и закрывает форму (<see cref="DialogResult.OK"/>), при нажатии клавиши <see cref="Keys.Enter"/>.
-        /// 2) Закрывает форму (<see cref="DialogResult.Cancel"/>) при нажатии клавиши <see cref="Keys.Escape"/>.
+        ///     Обрабатывает события нажатий клавиш над полем ввода названия символа:
+        ///     1) Сохраняет текущий образ искомой буквы в рабочий каталог и закрывает форму (<see cref="DialogResult.OK" />), при
+        ///     нажатии клавиши <see cref="Keys.Enter" />.
+        ///     2) Закрывает форму (<see cref="DialogResult.Cancel" />) при нажатии клавиши <see cref="Keys.Escape" />.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        /// <seealso cref="BtnOK_Click(object, EventArgs)"/>
-        /// <seealso cref="ExitCancel()"/>
+        /// <seealso cref="BtnOK_Click(object, EventArgs)" />
+        /// <seealso cref="ExitCancel()" />
         void TxtSymbol_KeyDown(object sender, KeyEventArgs e)
         {
             RunAction(() =>
@@ -302,28 +309,29 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Закрывает форму как диалог (<see cref="DialogResult.Cancel"/>).
+        ///     Закрывает форму как диалог (<see cref="DialogResult.Cancel" />).
         /// </summary>
-        /// <seealso cref="Form.DialogResult"/>
-        /// <seealso cref="DialogResult"/>
+        /// <seealso cref="Form.DialogResult" />
+        /// <seealso cref="DialogResult" />
         void ExitCancel()
         {
             DialogResult = DialogResult.Cancel;
         }
 
         /// <summary>
-        /// Предотвращает (<see cref="KeyPressEventArgs.Handled"/>) реакцию системы (по умолчанию) на нажатие служебной клавиши.
-        /// Поддерживаются следующие клавиши:
-        /// 1) <see cref="Keys.Enter"/>
-        /// 2) <see cref="Keys.Tab"/>
-        /// 3) <see cref="Keys.Escape"/>
-        /// 4) <see cref="Keys.Pause"/>
-        /// 5) <see cref="Keys.XButton1"/>.
-        /// В противном случае, будет выполнена очистка (<see cref="string.Empty"/>) поля ввода названия символа перед тем, как его значение будет изменено.
+        ///     Предотвращает (<see cref="KeyPressEventArgs.Handled" />) реакцию системы (по умолчанию) на нажатие служебной клавиши.
+        ///     Поддерживаются следующие клавиши:
+        ///     1) <see cref="Keys.Enter" />
+        ///     2) <see cref="Keys.Tab" />
+        ///     3) <see cref="Keys.Escape" />
+        ///     4) <see cref="Keys.Pause" />
+        ///     5) <see cref="Keys.XButton1" />
+        ///     В противном случае, будет выполнена очистка (<see cref="string.Empty" />) поля ввода названия символа перед тем,
+        ///     как его значение будет изменено.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        /// <seealso cref="KeyPressEventArgs.Handled"/>
+        /// <seealso cref="KeyPressEventArgs.Handled" />
         void TxtSymbol_KeyPress(object sender, KeyPressEventArgs e)
         {
             RunAction(() =>
@@ -345,11 +353,11 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Освобождает все используемые ресурсы.
+        ///     Освобождает все используемые ресурсы.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
-        /// <seealso cref="FrmExample.DisposeImage(PictureBox)"/>
+        /// <seealso cref="FrmExample.DisposeImage(PictureBox)" />
         void FrmSymbol_FormClosed(object sender, FormClosedEventArgs e)
         {
             RunAction(() =>
@@ -362,16 +370,17 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        /// Рисует рамку вокруг элемента <see cref="pbBox"/> на <see cref="FrmSymbol"/>, с помощью <see cref="_frmSymbolGraphics"/>.
+        ///     Рисует рамку вокруг элемента <see cref="pbBox" /> на <see cref="FrmSymbol" />, с помощью <see cref="_frmSymbolGraphics" />.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
         /// <remarks>
-        /// Использует метод <see cref="DrawFieldFrame(Control, Graphics)"/>.
-        /// Если поверхность для рисования (<see cref="_frmSymbolGraphics"/>) не создана, она будет создана с помощью метода <see cref="Graphics.FromHwnd(IntPtr)"/>.
+        ///     Использует метод <see cref="DrawFieldFrame(Control, Graphics)" />.
+        ///     Если поверхность для рисования (<see cref="_frmSymbolGraphics" />) не создана, она будет создана с помощью метода
+        ///     <see cref="Graphics.FromHwnd(IntPtr)" />.
         /// </remarks>
-        /// <seealso cref="DrawFieldFrame(Control, Graphics)"/>.
-        /// <seealso cref="Graphics.FromHwnd(IntPtr)"/>
+        /// <seealso cref="DrawFieldFrame(Control, Graphics)" />
+        /// <seealso cref="Graphics.FromHwnd(IntPtr)" />
         void FrmSymbol_Paint(object sender, PaintEventArgs e)
         {
             RunAction(() =>
