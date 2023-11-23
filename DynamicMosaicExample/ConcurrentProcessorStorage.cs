@@ -197,7 +197,7 @@ namespace DynamicMosaicExample
         /// </summary>
         /// <param name="fullPath">Полный путь к карте <see cref="Processor" />.</param>
         /// <returns>Возвращает карту <see cref="Processor" /> по указанному пути, путь к ней, и количество карт в коллекции.</returns>
-        public (Processor processor, string path, int count) this[string fullPath]
+        (Processor processor, string path, int count) this[string fullPath]
         {
             get
             {
@@ -373,7 +373,7 @@ namespace DynamicMosaicExample
         ///     копии набора карт, как в случае со свойством <see cref="UniqueElements" />.
         /// </remarks>
         /// <seealso cref="UniqueElements" />
-        protected HashSet<string> UniqueNames
+        HashSet<string> UniqueNames
         {
             get
             {
@@ -570,7 +570,7 @@ namespace DynamicMosaicExample
         ///     каталоге <see cref="WorkingDirectory" />.
         ///     Если имя папки будет содержать корневой каталог, будет возвращён именно этот путь.
         /// </remarks>
-        public string CombinePaths(string folderName)
+        protected string CombinePaths(string folderName)
         {
             return Path.Combine(WorkingDirectory, ReplaceInvalidPathChars(folderName));
         }
@@ -602,7 +602,7 @@ namespace DynamicMosaicExample
         /// <remarks>
         ///     Метод потокобезопасен.
         /// </remarks>
-        public static void CreateFolder(string path)
+        protected static void CreateFolder(string path)
         {
             Directory.CreateDirectory(path);
         }
@@ -706,7 +706,7 @@ namespace DynamicMosaicExample
         ///     Метод потокобезопасен, к файловой системе не обращается.
         /// </remarks>
         /// <exception cref="ArgumentException" />
-        public bool CheckImagePath(ref string relativeFolderPath)
+        bool CheckImagePath(ref string relativeFolderPath)
         {
             if (string.IsNullOrEmpty(relativeFolderPath))
             {

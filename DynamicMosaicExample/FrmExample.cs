@@ -267,6 +267,7 @@ namespace DynamicMosaicExample
                     $@"{nameof(CopyBitmapByWidth)}: Высота {nameof(from)} = ({
                         from.Height
                     }) должна быть равна той, куда осуществляется копирование {nameof(to)} = ({to.Height}).");
+
             using (Graphics gr = Graphics.FromImage(to))
             {
                 gr.Clear(DefaultColor);

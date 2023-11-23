@@ -156,7 +156,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Задаёт цвет и ширину для стирания в окне создания распознаваемого изображения.
         /// </summary>
-        public static readonly Pen WhitePen = new Pen(DefaultColor, 2.0f);
+        static readonly Pen WhitePen = new Pen(DefaultColor, 2.0f);
 
         /// <summary>
         ///     Обеспечивает потокобезопасность членов этого класса.
@@ -659,13 +659,13 @@ namespace DynamicMosaicExample
         ///     Название папки, содержащей изображения, интерпретируемые как карты <see cref="Processor" />, которые необходимо
         ///     найти на распознаваемой(ых) карте(ах).
         /// </summary>
-        internal static string ImagesFolder => "Images";
+        static string ImagesFolder => "Images";
 
         /// <summary>
         ///     Название папки, содержащей изображения, интерпретируемые как карты <see cref="Processor" />, на которых необходимо
         ///     выполнять поисковые запросы.
         /// </summary>
-        internal static string RecognizeFolder => "Recognize";
+        static string RecognizeFolder => "Recognize";
 
         /// <summary>
         ///     Рабочий каталог приложения (<see cref="Application.StartupPath" />).
@@ -677,14 +677,14 @@ namespace DynamicMosaicExample
         /// <seealso cref="RecognizeImagesPath" />
         /// <seealso cref="LogPath" />
         /// <seealso cref="Application.StartupPath" />
-        public static string WorkingDirectory { get; } = Application.StartupPath;
+        static string WorkingDirectory { get; } = Application.StartupPath;
 
         /// <summary>
         ///     Указывает путь к файлу лога приложения (log.log), который находится в рабочем каталоге программы (
         ///     <see cref="WorkingDirectory" />).
         /// </summary>
         /// <seealso cref="WorkingDirectory" />
-        public string LogPath { get; }
+        string LogPath { get; }
 
         /// <summary>
         ///     Путь, по которому ищутся изображения, которые интерпретируются как карты <see cref="Processor" />, которые
@@ -701,7 +701,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Расширение изображений, которые интерпретируются как карты <see cref="Processor" />.
         /// </summary>
-        internal static string ExtImg => "bmp";
+        static string ExtImg => "bmp";
 
         /// <summary>
         ///     Получает состояние или задаёт его для активации или деактивации пользовательского интерфейса на время выполнения
@@ -796,7 +796,7 @@ namespace DynamicMosaicExample
         /// <seealso cref="_currentUndoRedoWord" />
         /// <seealso cref="CurrentUndoRedoState" />
         /// <seealso cref="UndoRedoState" />
-        internal string CurrentUndoRedoWord
+        string CurrentUndoRedoWord
         {
             get => _currentUndoRedoWord;
 
@@ -900,7 +900,7 @@ namespace DynamicMosaicExample
         ///     В случае равенства ссылок, метод выбрасывает исключение <see cref="InvalidOperationException" />.
         /// </remarks>
         /// <exception cref="InvalidOperationException" />
-        internal static bool CompareBitmaps(Bitmap bitmap1, Bitmap bitmap2)
+        static bool CompareBitmaps(Bitmap bitmap1, Bitmap bitmap2)
         {
             if (bitmap1.Width != bitmap2.Width || bitmap1.Height != bitmap2.Height)
                 return false;

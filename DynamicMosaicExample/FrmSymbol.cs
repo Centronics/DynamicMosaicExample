@@ -68,13 +68,13 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Задаёт толщину и цвет выводимой линии.
         /// </summary>
-        public static Pen BlackPen => FrmExample.BlackPen;
+        static Pen BlackPen => FrmExample.BlackPen;
 
         /// <summary>
         ///     Цвет, который считается изначальным. Определяет изначальный цвет, отображаемый на поверхности для рисования.
         ///     Используется для стирания изображения.
         /// </summary>
-        public static Color DefaultColor => FrmExample.DefaultColor;
+        static Color DefaultColor => FrmExample.DefaultColor;
 
         /// <summary>
         ///     Запрещает вывод создаваемой пользователем линии на экран.
