@@ -1353,7 +1353,7 @@ namespace DynamicMosaicExample
                 btnConNext.Enabled = anyProcs && processors.Length > 1;
                 btnConPrevious.Enabled = anyProcs && processors.Length > 1;
                 btnConSaveImage.Enabled = anyProcs && IsButtonsEnabled && p != null;
-                btnConSaveAllImages.Enabled = anyProcs && IsButtonsEnabled && processors.Length > 1;
+                btnConSaveAllImages.Enabled = anyProcs && IsButtonsEnabled && p != null && processors.Length > 1;
                 lblConSymbolCount.Enabled = anyProcs;
                 lblConSymbolEqual.Enabled = anyProcs;
             }

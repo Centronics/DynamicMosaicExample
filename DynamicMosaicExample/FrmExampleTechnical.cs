@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
@@ -738,17 +739,27 @@ namespace DynamicMosaicExample
                         btnLoadRecognizeImage.Enabled = value;
                         btnClearRecogImage.Enabled = value && IsPainting;
                         btnDeleteRecognizeImage.Enabled = value;
+                        btnWide.Enabled = value && pbRecognizeImageDraw.Width < pbRecognizeImageDraw.MaximumSize.Width;
+                        btnNarrow.Enabled = value && pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
 
                         btnImageUpToQueries.Enabled = value;
                         btnImageCreate.Enabled = value;
                         btnImageDelete.Enabled = value;
 
-                        btnConSaveAllImages.Enabled = value;
-                        btnConSaveImage.Enabled = value;
+                        if (!value || lstHistory.SelectedIndex <= -1)
+                        {
+                            btnConSaveImage.Enabled = false;
+                            btnConSaveAllImages.Enabled = false;
+                            return;
+                        }
 
-                        btnWide.Enabled = value && pbRecognizeImageDraw.Width < pbRecognizeImageDraw.MaximumSize.Width;
-                        btnNarrow.Enabled =
-                            value && pbRecognizeImageDraw.Width > pbRecognizeImageDraw.MinimumSize.Width;
+                        (Processor[] processors, int reflexMapIndex, string _) = SelectedResult;
+
+                        bool isProc = processors != null && processors.Any() && processors[reflexMapIndex] != null;
+
+                        btnConSaveImage.Enabled = isProc;
+                        btnConSaveAllImages.Enabled = isProc && processors.Length > 1;
+
                     }, true);
 
                     _isButtonsEnabled = value;
