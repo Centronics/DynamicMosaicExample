@@ -89,7 +89,7 @@
             this.lstHistory.Name = "lstHistory";
             this.lstHistory.ScrollAlwaysVisible = true;
             this.lstHistory.Size = new System.Drawing.Size(125, 132);
-            this.lstHistory.TabIndex = 17;
+            this.lstHistory.TabIndex = 0;
             this.lstHistory.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.LstHistory_DrawItem);
             this.lstHistory.SelectedIndexChanged += new System.EventHandler(this.LstHistory_SelectedIndexChanged);
             // 
@@ -100,7 +100,7 @@
             this.txtRecogQueryWord.MaxLength = 6;
             this.txtRecogQueryWord.Name = "txtRecogQueryWord";
             this.txtRecogQueryWord.Size = new System.Drawing.Size(94, 23);
-            this.txtRecogQueryWord.TabIndex = 9;
+            this.txtRecogQueryWord.TabIndex = 0;
             this.txtRecogQueryWord.Tag = "";
             this.txtRecogQueryWord.TextChanged += new System.EventHandler(this.TxtRecogQueryWord_TextChanged);
             this.txtRecogQueryWord.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.TxtRecogQueryWord_KeyPress);
@@ -122,7 +122,7 @@
             this.grpImages.Location = new System.Drawing.Point(0, 134);
             this.grpImages.Name = "grpImages";
             this.grpImages.Size = new System.Drawing.Size(264, 90);
-            this.grpImages.TabIndex = 26;
+            this.grpImages.TabIndex = 1;
             this.grpImages.TabStop = false;
             this.grpImages.Text = "Искомые образы";
             // 
@@ -134,7 +134,7 @@
             this.txtImagesCount.Name = "txtImagesCount";
             this.txtImagesCount.ReadOnly = true;
             this.txtImagesCount.Size = new System.Drawing.Size(26, 20);
-            this.txtImagesCount.TabIndex = 27;
+            this.txtImagesCount.TabIndex = 2;
             // 
             // lblImagesCount
             // 
@@ -143,7 +143,7 @@
             this.lblImagesCount.Location = new System.Drawing.Point(223, 16);
             this.lblImagesCount.Name = "lblImagesCount";
             this.lblImagesCount.Size = new System.Drawing.Size(13, 13);
-            this.lblImagesCount.TabIndex = 26;
+            this.lblImagesCount.TabIndex = 35;
             this.lblImagesCount.Text = "/";
             // 
             // btnImageUpToQueries
@@ -153,7 +153,7 @@
             this.btnImageUpToQueries.Location = new System.Drawing.Point(131, 34);
             this.btnImageUpToQueries.Name = "btnImageUpToQueries";
             this.btnImageUpToQueries.Size = new System.Drawing.Size(48, 54);
-            this.btnImageUpToQueries.TabIndex = 14;
+            this.btnImageUpToQueries.TabIndex = 5;
             this.btnImageUpToQueries.UseVisualStyleBackColor = true;
             this.btnImageUpToQueries.Click += new System.EventHandler(this.BtnImageUpToQueries_Click);
             // 
@@ -165,7 +165,7 @@
             this.txtSymbolPath.Name = "txtSymbolPath";
             this.txtSymbolPath.ReadOnly = true;
             this.txtSymbolPath.Size = new System.Drawing.Size(194, 20);
-            this.txtSymbolPath.TabIndex = 10;
+            this.txtSymbolPath.TabIndex = 0;
             this.txtSymbolPath.TextChanged += new System.EventHandler(this.TextBoxTextChanged);
             // 
             // txtImagesNumber
@@ -176,7 +176,7 @@
             this.txtImagesNumber.Name = "txtImagesNumber";
             this.txtImagesNumber.ReadOnly = true;
             this.txtImagesNumber.Size = new System.Drawing.Size(26, 20);
-            this.txtImagesNumber.TabIndex = 11;
+            this.txtImagesNumber.TabIndex = 1;
             // 
             // btnImageDelete
             // 
@@ -184,7 +184,7 @@
             this.btnImageDelete.Location = new System.Drawing.Point(223, 34);
             this.btnImageDelete.Name = "btnImageDelete";
             this.btnImageDelete.Size = new System.Drawing.Size(40, 54);
-            this.btnImageDelete.TabIndex = 16;
+            this.btnImageDelete.TabIndex = 7;
             this.btnImageDelete.UseVisualStyleBackColor = true;
             this.btnImageDelete.Click += new System.EventHandler(this.BtnImageDelete_Click);
             // 
@@ -195,7 +195,7 @@
             this.btnPrevImage.Location = new System.Drawing.Point(47, 34);
             this.btnPrevImage.Name = "btnPrevImage";
             this.btnPrevImage.Size = new System.Drawing.Size(40, 54);
-            this.btnPrevImage.TabIndex = 12;
+            this.btnPrevImage.TabIndex = 3;
             this.btnPrevImage.UseVisualStyleBackColor = true;
             this.btnPrevImage.Click += new System.EventHandler(this.BtnImagePrev_Click);
             // 
@@ -205,7 +205,7 @@
             this.btnImageCreate.Location = new System.Drawing.Point(184, 34);
             this.btnImageCreate.Name = "btnImageCreate";
             this.btnImageCreate.Size = new System.Drawing.Size(40, 54);
-            this.btnImageCreate.TabIndex = 15;
+            this.btnImageCreate.TabIndex = 6;
             this.btnImageCreate.UseVisualStyleBackColor = true;
             this.btnImageCreate.Click += new System.EventHandler(this.BtnImageCreate_Click);
             // 
@@ -216,7 +216,7 @@
             this.btnNextImage.Location = new System.Drawing.Point(86, 34);
             this.btnNextImage.Name = "btnNextImage";
             this.btnNextImage.Size = new System.Drawing.Size(40, 54);
-            this.btnNextImage.TabIndex = 13;
+            this.btnNextImage.TabIndex = 4;
             this.btnNextImage.UseVisualStyleBackColor = true;
             this.btnNextImage.Click += new System.EventHandler(this.BtnImageNext_Click);
             // 
@@ -249,7 +249,7 @@
             this.grpResults.Location = new System.Drawing.Point(265, -1);
             this.grpResults.Name = "grpResults";
             this.grpResults.Size = new System.Drawing.Size(129, 225);
-            this.grpResults.TabIndex = 27;
+            this.grpResults.TabIndex = 2;
             this.grpResults.TabStop = false;
             this.grpResults.Text = "История объекта";
             // 
@@ -261,7 +261,7 @@
             this.txtConSymbolNumber.Name = "txtConSymbolNumber";
             this.txtConSymbolNumber.ReadOnly = true;
             this.txtConSymbolNumber.Size = new System.Drawing.Size(26, 20);
-            this.txtConSymbolNumber.TabIndex = 23;
+            this.txtConSymbolNumber.TabIndex = 1;
             // 
             // lblConSymbolEqual
             // 
@@ -271,7 +271,7 @@
             this.lblConSymbolEqual.Location = new System.Drawing.Point(74, 151);
             this.lblConSymbolEqual.Name = "lblConSymbolEqual";
             this.lblConSymbolEqual.Size = new System.Drawing.Size(14, 13);
-            this.lblConSymbolEqual.TabIndex = 26;
+            this.lblConSymbolEqual.TabIndex = 36;
             this.lblConSymbolEqual.Text = "=";
             // 
             // lblConSymbolCount
@@ -282,7 +282,7 @@
             this.lblConSymbolCount.Location = new System.Drawing.Point(30, 152);
             this.lblConSymbolCount.Name = "lblConSymbolCount";
             this.lblConSymbolCount.Size = new System.Drawing.Size(13, 13);
-            this.lblConSymbolCount.TabIndex = 25;
+            this.lblConSymbolCount.TabIndex = 34;
             this.lblConSymbolCount.Text = "/";
             // 
             // txtConSymbolTag
@@ -293,7 +293,7 @@
             this.txtConSymbolTag.Name = "txtConSymbolTag";
             this.txtConSymbolTag.ReadOnly = true;
             this.txtConSymbolTag.Size = new System.Drawing.Size(36, 20);
-            this.txtConSymbolTag.TabIndex = 24;
+            this.txtConSymbolTag.TabIndex = 3;
             // 
             // txtConSymbolCount
             // 
@@ -303,7 +303,7 @@
             this.txtConSymbolCount.Name = "txtConSymbolCount";
             this.txtConSymbolCount.ReadOnly = true;
             this.txtConSymbolCount.Size = new System.Drawing.Size(26, 20);
-            this.txtConSymbolCount.TabIndex = 23;
+            this.txtConSymbolCount.TabIndex = 2;
             // 
             // btnConSaveAllImages
             // 
@@ -312,7 +312,7 @@
             this.btnConSaveAllImages.Location = new System.Drawing.Point(41, 169);
             this.btnConSaveAllImages.Name = "btnConSaveAllImages";
             this.btnConSaveAllImages.Size = new System.Drawing.Size(41, 27);
-            this.btnConSaveAllImages.TabIndex = 20;
+            this.btnConSaveAllImages.TabIndex = 5;
             this.btnConSaveAllImages.UseVisualStyleBackColor = true;
             this.btnConSaveAllImages.Click += new System.EventHandler(this.BtnConSaveAllImages_Click);
             // 
@@ -323,7 +323,7 @@
             this.btnConSaveImage.Location = new System.Drawing.Point(1, 169);
             this.btnConSaveImage.Name = "btnConSaveImage";
             this.btnConSaveImage.Size = new System.Drawing.Size(41, 27);
-            this.btnConSaveImage.TabIndex = 19;
+            this.btnConSaveImage.TabIndex = 4;
             this.btnConSaveImage.UseVisualStyleBackColor = true;
             this.btnConSaveImage.Click += new System.EventHandler(this.BtnConSaveImage_Click);
             // 
@@ -344,7 +344,7 @@
             this.btnConNext.Location = new System.Drawing.Point(41, 195);
             this.btnConNext.Name = "btnConNext";
             this.btnConNext.Size = new System.Drawing.Size(41, 28);
-            this.btnConNext.TabIndex = 22;
+            this.btnConNext.TabIndex = 7;
             this.btnConNext.UseVisualStyleBackColor = true;
             this.btnConNext.Click += new System.EventHandler(this.BtnConNext_Click);
             // 
@@ -355,7 +355,7 @@
             this.btnConPrevious.Location = new System.Drawing.Point(1, 195);
             this.btnConPrevious.Name = "btnConPrevious";
             this.btnConPrevious.Size = new System.Drawing.Size(41, 28);
-            this.btnConPrevious.TabIndex = 21;
+            this.btnConPrevious.TabIndex = 6;
             this.btnConPrevious.UseVisualStyleBackColor = true;
             this.btnConPrevious.Click += new System.EventHandler(this.BtnConPrevious_Click);
             // 
@@ -382,7 +382,7 @@
             this.grpSourceImage.Location = new System.Drawing.Point(0, -1);
             this.grpSourceImage.Name = "grpSourceImage";
             this.grpSourceImage.Size = new System.Drawing.Size(264, 138);
-            this.grpSourceImage.TabIndex = 24;
+            this.grpSourceImage.TabIndex = 0;
             this.grpSourceImage.TabStop = false;
             this.grpSourceImage.Text = "Рисование (ЛКМ / ПКМ)";
             // 
@@ -394,7 +394,7 @@
             this.txtRecogCount.Name = "txtRecogCount";
             this.txtRecogCount.ReadOnly = true;
             this.txtRecogCount.Size = new System.Drawing.Size(26, 20);
-            this.txtRecogCount.TabIndex = 31;
+            this.txtRecogCount.TabIndex = 12;
             // 
             // lblSourceCount
             // 
@@ -403,7 +403,7 @@
             this.lblSourceCount.Location = new System.Drawing.Point(223, 17);
             this.lblSourceCount.Name = "lblSourceCount";
             this.lblSourceCount.Size = new System.Drawing.Size(13, 13);
-            this.lblSourceCount.TabIndex = 30;
+            this.lblSourceCount.TabIndex = 33;
             this.lblSourceCount.Text = "/";
             // 
             // txtRecogPath
@@ -414,7 +414,7 @@
             this.txtRecogPath.Name = "txtRecogPath";
             this.txtRecogPath.ReadOnly = true;
             this.txtRecogPath.Size = new System.Drawing.Size(194, 20);
-            this.txtRecogPath.TabIndex = 28;
+            this.txtRecogPath.TabIndex = 10;
             this.txtRecogPath.TextChanged += new System.EventHandler(this.TextBoxTextChanged);
             // 
             // txtRecogNumber
@@ -425,7 +425,7 @@
             this.txtRecogNumber.Name = "txtRecogNumber";
             this.txtRecogNumber.ReadOnly = true;
             this.txtRecogNumber.Size = new System.Drawing.Size(26, 20);
-            this.txtRecogNumber.TabIndex = 29;
+            this.txtRecogNumber.TabIndex = 11;
             // 
             // pbSuccess
             // 
@@ -444,7 +444,7 @@
             this.btnPrevRecog.Location = new System.Drawing.Point(194, 111);
             this.btnPrevRecog.Name = "btnPrevRecog";
             this.btnPrevRecog.Size = new System.Drawing.Size(35, 25);
-            this.btnPrevRecog.TabIndex = 7;
+            this.btnPrevRecog.TabIndex = 8;
             this.btnPrevRecog.UseVisualStyleBackColor = true;
             this.btnPrevRecog.Click += new System.EventHandler(this.BtnPrevRecogImage_Click);
             // 
@@ -454,7 +454,7 @@
             this.btnNextRecog.Location = new System.Drawing.Point(228, 111);
             this.btnNextRecog.Name = "btnNextRecog";
             this.btnNextRecog.Size = new System.Drawing.Size(35, 25);
-            this.btnNextRecog.TabIndex = 8;
+            this.btnNextRecog.TabIndex = 9;
             this.btnNextRecog.UseVisualStyleBackColor = true;
             this.btnNextRecog.Click += new System.EventHandler(this.BtnNextRecogImage_Click);
             // 
@@ -465,7 +465,7 @@
             this.btnDeleteRecognizeImage.Location = new System.Drawing.Point(159, 111);
             this.btnDeleteRecognizeImage.Name = "btnDeleteRecognizeImage";
             this.btnDeleteRecognizeImage.Size = new System.Drawing.Size(35, 25);
-            this.btnDeleteRecognizeImage.TabIndex = 2;
+            this.btnDeleteRecognizeImage.TabIndex = 7;
             this.btnDeleteRecognizeImage.UseVisualStyleBackColor = true;
             this.btnDeleteRecognizeImage.Click += new System.EventHandler(this.BtnDeleteRecognizeImage_Click);
             // 
@@ -498,7 +498,7 @@
             this.btnLoadRecognizeImage.Location = new System.Drawing.Point(159, 87);
             this.btnLoadRecognizeImage.Name = "btnLoadRecognizeImage";
             this.btnLoadRecognizeImage.Size = new System.Drawing.Size(35, 25);
-            this.btnLoadRecognizeImage.TabIndex = 6;
+            this.btnLoadRecognizeImage.TabIndex = 2;
             this.btnLoadRecognizeImage.UseVisualStyleBackColor = true;
             this.btnLoadRecognizeImage.Click += new System.EventHandler(this.BtnLoadRecognizeImage_Click);
             // 
@@ -509,7 +509,7 @@
             this.btnSaveRecognizeImage.Location = new System.Drawing.Point(125, 87);
             this.btnSaveRecognizeImage.Name = "btnSaveRecognizeImage";
             this.btnSaveRecognizeImage.Size = new System.Drawing.Size(35, 25);
-            this.btnSaveRecognizeImage.TabIndex = 5;
+            this.btnSaveRecognizeImage.TabIndex = 1;
             this.btnSaveRecognizeImage.UseVisualStyleBackColor = true;
             this.btnSaveRecognizeImage.Click += new System.EventHandler(this.BtnSaveRecognizeImage_Click);
             // 
@@ -536,7 +536,7 @@
             this.btnRecognizeImage.Location = new System.Drawing.Point(1, 111);
             this.btnRecognizeImage.Name = "btnRecognizeImage";
             this.btnRecognizeImage.Size = new System.Drawing.Size(124, 25);
-            this.btnRecognizeImage.TabIndex = 0;
+            this.btnRecognizeImage.TabIndex = 5;
             this.btnRecognizeImage.UseVisualStyleBackColor = true;
             this.btnRecognizeImage.Click += new System.EventHandler(this.BtnRecognizeImage_Click);
             // 
@@ -547,7 +547,7 @@
             this.btnClearRecogImage.Location = new System.Drawing.Point(125, 111);
             this.btnClearRecogImage.Name = "btnClearRecogImage";
             this.btnClearRecogImage.Size = new System.Drawing.Size(35, 25);
-            this.btnClearRecogImage.TabIndex = 1;
+            this.btnClearRecogImage.TabIndex = 6;
             this.btnClearRecogImage.UseVisualStyleBackColor = true;
             this.btnClearRecogImage.Click += new System.EventHandler(this.BtnClearRecogImage_Click);
             // 
