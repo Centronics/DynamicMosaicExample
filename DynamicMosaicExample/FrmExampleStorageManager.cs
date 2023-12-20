@@ -131,6 +131,9 @@ namespace DynamicMosaicExample
             if (storage == null)
                 return;
 
+            if (!ConcurrentProcessorStorage.IsDirectory(fullPath))
+                return;
+
             _concurrentFileTasks.Enqueue(new Common(FileTaskAction.REMOVED, storage,
                 ConcurrentProcessorStorage.AddEndingSlash(fullPath)));
 

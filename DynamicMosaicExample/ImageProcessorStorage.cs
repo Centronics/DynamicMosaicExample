@@ -113,17 +113,14 @@ namespace DynamicMosaicExample
         /// <seealso cref="Image.Height" />
         protected override Processor GetAddingProcessor(string fullPath)
         {
-            string tag = GetProcessorTag(fullPath);
-            Bitmap btm = ReadBitmap(fullPath);
-
             try
             {
-                return ImageRect.GetProcessor(btm, tag);
+                return ImageRect.GetProcessor(ReadBitmap(fullPath), GetProcessorTag(fullPath));
             }
             catch (Exception ex)
             {
                 throw new Exception(
-                    $@"{nameof(GetAddingProcessor)}: {ex.Message}{Environment.NewLine}Путь: {fullPath}.", ex);
+                    $@"{nameof(GetAddingProcessor)} ({StorageType}): {ex.Message}{Environment.NewLine}Путь: {fullPath}.", ex);
             }
         }
 

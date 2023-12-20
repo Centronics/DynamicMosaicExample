@@ -78,6 +78,7 @@ namespace DynamicMosaicExample
         ///     выбрасывает исключение <see cref="InvalidOperationException" />.
         ///     Если значение какого-либо параметра не соответствует ожидаемому, метод выбросит одно из нижеперечисленных
         ///     исключений.
+        ///     Метод выбрасывает исключения только в виде <see cref="Exception" />.
         ///     При обработке исключений необходимо проверять свойство <see cref="Exception.InnerException" />, т.к. в нём
         ///     находится первоначальное исключение.
         ///     При указании относительного пути возможны различные коллизии, поэтому рекомендуется всегда указывать только
@@ -87,7 +88,6 @@ namespace DynamicMosaicExample
         ///     метод выбросит исключение <see cref="ArgumentException" />.
         /// </remarks>
         /// <exception cref="ArgumentException" />
-        /// <exception cref="FormatException" />
         /// <exception cref="Exception" />
         /// <exception cref="InvalidOperationException" />
         /// <exception cref="FileNotFoundException" />
@@ -96,17 +96,14 @@ namespace DynamicMosaicExample
         /// <seealso cref="ConcurrentProcessorStorage.ParseName(string)" />
         protected override Processor GetAddingProcessor(string fullPath)
         {
-            string tag = GetProcessorTag(fullPath);
-            Bitmap btm = ReadBitmap(fullPath);
-
             try
             {
-                return new Processor(btm, tag);
+                return new Processor(ReadBitmap(fullPath), GetProcessorTag(fullPath));
             }
             catch (Exception ex)
             {
                 throw new Exception(
-                    $@"{nameof(GetAddingProcessor)}: {ex.Message}{Environment.NewLine}Путь: {fullPath}.", ex);
+                    $@"{nameof(GetAddingProcessor)} ({StorageType}): {ex.Message}{Environment.NewLine}Путь: {fullPath}.", ex);
             }
         }
 
@@ -144,7 +141,7 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Извлекает значение свойства <see cref="Processor.Tag" /> (запрос на поиск данных) из указанного пути.
         /// </summary>
-        /// <param name="fullPath">Путь, из которого требуется извлечь значение свойства <see cref="Processor.Tag" />.</param>
+        /// <param name="fullPath">Путь, из которого необходимо извлечь значение свойства <see cref="Processor.Tag" />.</param>
         /// <returns>Возвращает значение свойства <see cref="Processor.Tag" />.</returns>
         /// <remarks>
         ///     Метод потокобезопасен.
@@ -155,8 +152,11 @@ namespace DynamicMosaicExample
         ///     <paramref name="fullPath" /> не должен содержать недопустимые символы (<see cref="Path.GetInvalidPathChars()" />),
         ///     в том числе, быть пустым (<see langword="null" />, <see cref="string.Empty" /> или состоять из пробелов), иначе
         ///     метод выбросит исключение <see cref="ArgumentException" />.
+        ///     При обработке исключений <see cref="Exception" /> необходимо проверять свойство <see cref="Exception.InnerException" />, т.к. в нём
+        ///     находится первоначальное исключение.
         /// </remarks>
         /// <exception cref="ArgumentException" />
+        /// <exception cref="Exception" />
         /// <seealso cref="ConcurrentProcessorStorage.ParseName(string)" />
         /// <seealso cref="Path.GetFileNameWithoutExtension(string)" />
         /// <seealso cref="Path.GetInvalidPathChars()" />
@@ -195,8 +195,6 @@ namespace DynamicMosaicExample
         ///     находится первоначальное исключение.
         /// </remarks>
         /// <exception cref="ArgumentException" />
-        /// <exception cref="FormatException" />
-        /// <exception cref="Exception" />
         /// <exception cref="InvalidOperationException" />
         /// <exception cref="FileNotFoundException" />
         /// <seealso cref="ConcurrentProcessorStorage.CheckBitmapByAlphaColor(Bitmap)" />
@@ -204,24 +202,7 @@ namespace DynamicMosaicExample
         /// <seealso cref="FrmExample.CheckAlphaColor(Color)" />
         new Bitmap ReadBitmap(string fullPath)
         {
-            Bitmap btm;
-
-            try
-            {
-                btm = ConcurrentProcessorStorage.ReadBitmap(fullPath);
-            }
-            catch (FormatException fx)
-            {
-                throw new FormatException(
-                    $@"{nameof(ReadBitmap)}: Ошибка при загрузке изображения по пути: {fullPath}.{Environment.NewLine}Текст ошибки: ""{fx.Message}"".",
-                    fx);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(
-                    $@"{nameof(ReadBitmap)}: Ошибка при загрузке изображения по пути: {fullPath}.{Environment.NewLine}Текст ошибки: ""{ex.Message}"".",
-                    ex);
-            }
+            Bitmap btm = ConcurrentProcessorStorage.ReadBitmap(fullPath);
 
             if (btm.Width < _minWidth || btm.Width > _maxWidth)
             {
@@ -229,7 +210,7 @@ namespace DynamicMosaicExample
                 btm.Dispose();
 
                 throw new ArgumentException(
-                    $@"{nameof(ReadBitmap)}: Загружаемое изображение не подходит по ширине: {w}. Она выходит за рамки допустимого ({_minWidth};{_maxWidth}).{Environment.NewLine}Путь: {fullPath}.");
+                    $@"{nameof(ReadBitmap)}: Загружаемое распознаваемое изображение не подходит по ширине: {w}. Она выходит за рамки допустимого ({_minWidth};{_maxWidth}).{Environment.NewLine}Путь: {fullPath}.");
             }
 
             if (btm.Height != _height)
@@ -238,7 +219,7 @@ namespace DynamicMosaicExample
                 btm.Dispose();
 
                 throw new ArgumentException(
-                    $@"{nameof(ReadBitmap)}: Загружаемое изображение не подходит по высоте: {h}; необходимо: {_height}.{Environment.NewLine}Путь: {fullPath}.");
+                    $@"{nameof(ReadBitmap)}: Загружаемое распознаваемое изображение не подходит по высоте: {h}; необходимо: {_height}.{Environment.NewLine}Путь: {fullPath}.");
             }
 
             btm.SetPixel(0, 0,

@@ -119,6 +119,12 @@ namespace DynamicMosaicExample
         /// <summary>
         ///     Получает все элементы, добавленные в коллекцию <see cref="ConcurrentProcessorStorage" />.
         /// </summary>
+        /// <remarks>
+        ///     Следует помнить, что это свойство не возвращает копию внутренней коллекции элементов.
+        ///     Таким образом, во время извлечения элементов, она может быть изменена другим потоком, и выбросить
+        ///     исключение об изменении <see cref="InvalidOperationException" />.
+        /// </remarks>
+        /// <exception cref="InvalidOperationException" />
         public IEnumerable<Processor> Elements
         {
             get
@@ -936,9 +942,12 @@ namespace DynamicMosaicExample
         ///     помощью метода <see cref="CheckBitmapByAlphaColor(Bitmap)" />, который, в случае неудачной проверки, выбрасывает
         ///     исключение <see cref="InvalidOperationException" />.
         ///     Метод открывает файл (<paramref name="fullPath" />) на чтение, с флагом <see cref="FileShare.Read" />.
+        ///     Если параметр <paramref name="fullPath" /> пустой (<see langword="null" /> или <see cref="string.Empty" />),
+        ///     метод выбросит исключение <see cref="ArgumentNullException" />.
         /// </remarks>
         /// <exception cref="FileNotFoundException" />
         /// <exception cref="InvalidOperationException" />
+        /// <exception cref="ArgumentNullException" />
         /// <seealso cref="FrmExample.DefaultOpacity" />
         /// <seealso cref="FrmExample.CheckAlphaColor(Color)" />
         /// <seealso cref="CheckBitmapByAlphaColor(Bitmap)" />
