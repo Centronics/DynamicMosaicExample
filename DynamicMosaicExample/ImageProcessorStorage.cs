@@ -88,6 +88,7 @@ namespace DynamicMosaicExample
         ///     Изображение по ширине (<see cref="Image.Width" />) должно соответствовать <see cref="FrmExample.ImageWidth" /> и
         ///     высоте (<see cref="Image.Height" />) должно соответствовать <see cref="FrmExample.ImageHeight" />, иначе будет
         ///     выброшено исключение <see cref="ArgumentException" />.
+        ///     Метод выбрасывает исключения только в виде <see cref="Exception" />.
         ///     При обработке исключений необходимо проверять свойство <see cref="Exception.InnerException" />, т.к. в нём
         ///     находится первоначальное исключение.
         ///     Имя получаемой карты представляет собой имя файла без расширения, получаемое с помощью метода
@@ -96,6 +97,7 @@ namespace DynamicMosaicExample
         ///     в том числе, быть пустым (<see langword="null" />, <see cref="string.Empty" /> или состоять из пробелов), иначе
         ///     метод выбросит исключение <see cref="ArgumentException" />.
         /// </remarks>
+        /// <exception cref="Exception" />
         /// <exception cref="FileNotFoundException" />
         /// <exception cref="InvalidOperationException" />
         /// <exception cref="ArgumentException" />

@@ -87,8 +87,8 @@ namespace DynamicMosaicExample
         ///     в том числе, быть пустым (<see langword="null" />, <see cref="string.Empty" /> или состоять из пробелов), иначе
         ///     метод выбросит исключение <see cref="ArgumentException" />.
         /// </remarks>
-        /// <exception cref="ArgumentException" />
         /// <exception cref="Exception" />
+        /// <exception cref="ArgumentException" />
         /// <exception cref="InvalidOperationException" />
         /// <exception cref="FileNotFoundException" />
         /// <seealso cref="ReadBitmap(string)" />
@@ -152,8 +152,8 @@ namespace DynamicMosaicExample
         ///     <paramref name="fullPath" /> не должен содержать недопустимые символы (<see cref="Path.GetInvalidPathChars()" />),
         ///     в том числе, быть пустым (<see langword="null" />, <see cref="string.Empty" /> или состоять из пробелов), иначе
         ///     метод выбросит исключение <see cref="ArgumentException" />.
-        ///     При обработке исключений <see cref="Exception" /> необходимо проверять свойство <see cref="Exception.InnerException" />, т.к. в нём
-        ///     находится первоначальное исключение.
+        ///     При обработке исключений <see cref="Exception" /> необходимо проверять свойство <see cref="Exception.InnerException" />,
+        ///     т.к. в нём находится первоначальное исключение.
         /// </remarks>
         /// <exception cref="ArgumentException" />
         /// <exception cref="Exception" />
