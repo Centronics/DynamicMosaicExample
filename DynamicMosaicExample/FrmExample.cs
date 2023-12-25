@@ -279,7 +279,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается, когда пользователь начинает рисовать распознаваемое изображение.
+        ///     Обрабатывает событие, когда пользователь начинает рисовать распознаваемое изображение.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -362,7 +362,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается при отпускании клавиши мыши над полем создания исходного изображения <see cref="pbRecognizeImageDraw" />.
+        ///     Обрабатывает событие отпускания клавиши мыши над полем создания исходного изображения <see cref="pbRecognizeImageDraw" />.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -372,7 +372,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается по нажатию кнопки "Следующий" в искомых образах.
+        ///     Обрабатывает событие нажатия кнопки "Следующий" в искомых образах.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -386,7 +386,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается по нажатию кнопки "Предыдущий" в искомых образах.
+        ///     Обрабатывает событие нажатия кнопки "Предыдущий" в искомых образах.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -400,7 +400,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается по нажатию кнопки "Удалить".
+        ///     Обрабатывает событие нажатия кнопки "Удалить".
         ///     Удаляет выбранный искомый образ в корзину.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
@@ -417,7 +417,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается по нажатию кнопки "Создать образ".
+        ///     Обрабатывает событие нажатия кнопки "Создать образ".
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -752,7 +752,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается по нажатию кнопки "Найти".
+        ///     Обрабатывает событие нажатия кнопки "Найти".
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
         /// <param name="e">Данные о событии.</param>
@@ -765,6 +765,9 @@ namespace DynamicMosaicExample
         {
             SafeExecute(() =>
             {
+                if (!btnRecognizeImage.Enabled)
+                    return;
+
                 ResetLogWriteMessage();
 
                 if (StopRecognize() != null)
@@ -1688,7 +1691,7 @@ namespace DynamicMosaicExample
         }
 
         /// <summary>
-        ///     Вызывается во время первого отображения формы.
+        ///     Обрабатывает событие первого отображения формы.
         ///     Выполняет инициализацию.
         /// </summary>
         /// <param name="sender">Вызывающий объект.</param>
